@@ -25,7 +25,8 @@ enum class eEncoding {
 };
 
 enum class eOpcode : InstructionKind_t {
-  DS_ADD_U32              = 0,
+  UNKNOWN,
+  DS_ADD_U32              = 1,
   DS_SUB_U32              = 1 + DS_ADD_U32,
   DS_RSUB_U32             = 2 + DS_ADD_U32,
   DS_INC_U32              = 3 + DS_ADD_U32,
@@ -896,9 +897,6 @@ enum class eOpcode : InstructionKind_t {
   V_CMPX_NE_U64    = 245 + V_CMP_F_F32,
   V_CMPX_GE_U64    = 246 + V_CMP_F_F32,
   V_CMPX_T_U64     = 247 + V_CMP_F_F32,
-
-  C_LOAD_ATTR,
-  UNKNOWN,
   MAX_ITEM,
 };
 
