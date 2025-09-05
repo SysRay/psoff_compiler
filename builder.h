@@ -21,15 +21,15 @@ class Builder {
     _instructions.reserve(numInstructions);
   }
 
-  auto& createInstruction(InstructionKind_t kind, InstructionFlags_t flags, uint8_t numDstOperands, uint8_t numSrcOperands) {
-    return _instructions.emplace_back(ir::InstrCore {.kind = kind, .flags = flags, .numDst = numDstOperands, .numSrc = numSrcOperands});
+  auto& createInstruction(ir::InstCore const& instr) {
+    return _instructions.emplace_back(instr);
   }
 
   private:
   std::unique_ptr<uint8_t[]>          _buffer;
   std::pmr::monotonic_buffer_resource _pool {_buffer.get(), MEMORY_SIZE};
 
-  std::pmr::vector<ir::InstrCore> _instructions {&_pool};
+  std::pmr::vector<ir::InstCore> _instructions {&_pool};
 };
 
 } // namespace compiler

@@ -13,9 +13,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_INSTALL_MESSAGE LAZY)
 unset(CMAKE_IMPORT_LIBRARY_SUFFIX)
 
-
 add_executable(psoff_compiler
   test/main.cpp
+  frontend/parser/debug_strings.cpp
+  ir/instructions.cpp
 )
 
 target_include_directories(psoff_compiler PRIVATE ${CMAKE_SOURCE_DIR})

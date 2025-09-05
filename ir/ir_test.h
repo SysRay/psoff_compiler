@@ -20,13 +20,13 @@ class IRSoA {
 
   // Most common access pattern: iterate instructions, check opcode + operands
   // Pack these tightly for maximum cache hits during traversal
-  struct InstrCore {
+  struct InstCore {
     uint16_t opcode;
     uint16_t flags;
     uint32_t ops[kMaxOps]; // operands packed together
   };
 
-  static_assert(sizeof(InstrCore) == 20); // 3.2 per cache line
+  static_assert(sizeof(InstCore) == 20); // 3.2 per cache line
 
   // Less frequent access: def-use info, only touched during SSA construction/analysis
   struct InstrDefUse {
@@ -48,7 +48,7 @@ class IRSoA {
   static_assert(sizeof(BlockCore) == 16); // 4 per cache line
 
   // THE DATA TREE - organized by access frequency and patterns
-  std::vector<InstrCore>   instr_core_;   // Hot path data
+  std::vector<InstCore>   instr_core_;   // Hot path data
   std::vector<InstrDefUse> instr_defuse_; // Cold analysis data
   std::vector<BlockCore>   blocks_;       // Block structure
   std::vector<Id>          edges_;        // Flat successor list
@@ -66,9 +66,9 @@ class IRSoA {
   [[nodiscard]] Id block_count() const noexcept { return block_count_; }
 
   // Primary instruction access - single cache line for hot data
-  [[nodiscard]] const InstrCore& instr_core(Id id) const noexcept { return instr_core_[id]; }
+  [[nodiscard]] const InstCore& instr_core(Id id) const noexcept { return instr_core_[id]; }
 
-  [[nodiscard]] InstrCore& instr_core(Id id) noexcept { return instr_core_[id]; }
+  [[nodiscard]] InstCore& instr_core(Id id) noexcept { return instr_core_[id]; }
 
   // Def-use access - separate when doing SSA analysis
   [[nodiscard]] const InstrDefUse& instr_defuse(Id id) const noexcept { return instr_defuse_[id]; }
@@ -232,16 +232,16 @@ class IRSoA {
 
   // INTROSPECTION
   [[nodiscard]] std::size_t memory_usage() const noexcept {
-    return instr_core_.capacity() * sizeof(InstrCore) + instr_defuse_.capacity() * sizeof(InstrDefUse) + blocks_.capacity() * sizeof(BlockCore) +
+    return instr_core_.capacity() * sizeof(InstCore) + instr_defuse_.capacity() * sizeof(InstrDefUse) + blocks_.capacity() * sizeof(BlockCore) +
            edges_.capacity() * sizeof(Id);
   }
 
   // Debug: verify data layout assumptions
   static void verify_layout() {
-    static_assert(alignof(InstrCore) <= 8);
+    static_assert(alignof(InstCore) <= 8);
     static_assert(alignof(InstrDefUse) <= 8);
     static_assert(alignof(BlockCore) <= 8);
-    static_assert(sizeof(InstrCore) == 20);
+    static_assert(sizeof(InstCore) == 20);
     static_assert(sizeof(InstrDefUse) == 16);
     static_assert(sizeof(BlockCore) == 16);
   }

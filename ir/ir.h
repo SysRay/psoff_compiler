@@ -2,6 +2,8 @@
 
 #include "types.h"
 
+#include <type_traits>
+
 namespace compiler::ir {
 
 struct Operand {
@@ -13,8 +15,9 @@ struct Operand {
   OperandType type = OperandType::i32();
 };
 
-struct InstrCore {
+struct InstCore {
   InstructionKind_t  kind;
+  eInstructionGroup  group;
   InstructionFlags_t flags;
 
   struct {
@@ -42,6 +45,46 @@ struct InstrCore {
   }
 };
 
-static_assert(sizeof(InstrCore) <= 64); ///< 1 cache line
-static_assert(config::kMaxOps <= 15);   ///< 4 bits
+static_assert(sizeof(InstCore) <= 64); ///< cache lines
+static_assert(config::kMaxOps <= 15);   ///< only 4 bits
+
+// // Handle enum bits to underlying conversion
+template <typename Enum>
+struct Flags {
+  static_assert(std::is_enum_v<Enum>, "Flags<T> requires an enum type");
+
+  using underlying_t = std::underlying_type_t<Enum>;
+  underlying_t value {};
+
+  constexpr Flags()
+      : value(0) {}
+
+  constexpr Flags(Enum flag)
+      : value(static_cast<underlying_t>(flag)) {}
+
+  constexpr Flags(underlying_t raw)
+      : value(raw) {}
+
+  constexpr operator underlying_t() const { return value; }
+
+  constexpr bool has(Enum flag) const {
+    return (value & static_cast<underlying_t>(flag)) != 0;
+  }
+};
+
+template <typename Enum>
+constexpr Flags<Enum> operator|(Enum lhs, Enum rhs) {
+  using U = std::underlying_type_t<Enum>;
+  return Flags<Enum>(static_cast<U>(lhs) | static_cast<U>(rhs));
+}
+
+template <typename Enum>
+constexpr Flags<Enum> operator|(Flags<Enum> lhs, Enum rhs) {
+  return Flags<Enum>(lhs.value | static_cast<std::underlying_type_t<Enum>>(rhs));
+}
+
+template <typename Enum>
+constexpr Flags<Enum> operator|(Enum lhs, Flags<Enum> rhs) {
+  return Flags<Enum>(static_cast<std::underlying_type_t<Enum>>(lhs) | rhs.value);
+}
 } // namespace compiler::ir

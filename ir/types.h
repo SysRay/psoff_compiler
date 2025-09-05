@@ -7,12 +7,17 @@
 
 namespace compiler::ir {
 
-enum eInstructionFlags_t : InstructionFlags_t {
+enum eInstructionFlags : InstructionFlags_t {
   kNone           = 0,
   kHasSideEffects = 1u << 0, ///< cannot be removed / reordered
   kWritesEXEC     = 1u << 1, ///< Writes to exec
   kVirtual        = 1u << 2, ///< Instructions that run only with Exec set
   kBarrier        = 1u << 3, ///< e.g. exec barrier, waitcnt
+};
+
+enum eInstructionGroup : InstructionGroup_t {
+  kALU,
+  kFlowControl,
 };
 
 struct OperandType {
@@ -48,15 +53,15 @@ struct OperandType {
   // ---- construction -------------------------------------------------------
 
   static constexpr OperandType scalar(eBase b) {
-    return OperandType(__OperandTypeData {.bits = {.base = (uint8_t)b, .kind = (uint8_t)eKind::Scalar, .lanes = 0}}.raw);
+    return OperandType(__OperandTypeData {.bits = {.base = (uint8_t)b, .kind = (uint8_t)eKind::Scalar, .lanes = 0}});
   }
 
   static constexpr OperandType vector(eBase b, std::uint8_t lanes) {
-    return OperandType(__OperandTypeData {.bits = {.base = (uint8_t)b, .kind = (uint8_t)eKind::Vector, .lanes = lanes}}.raw);
+    return OperandType(__OperandTypeData {.bits = {.base = (uint8_t)b, .kind = (uint8_t)eKind::Vector, .lanes = lanes}});
   }
 
   static constexpr OperandType array(eBase b, std::uint8_t lanes) {
-    return OperandType(__OperandTypeData {.bits = {.base = (uint8_t)b, .kind = (uint8_t)eKind::Array, .lanes = lanes}}.raw);
+    return OperandType(__OperandTypeData {.bits = {.base = (uint8_t)b, .kind = (uint8_t)eKind::Array, .lanes = lanes}});
   }
 
   // ---- queries ------------------------------------------------------------
@@ -135,7 +140,7 @@ struct OperandType {
     }
   }
 
-  explicit constexpr OperandType(OperandType_t raw): _v(__OperandTypeData {.raw = raw}) {}
+  explicit constexpr OperandType(__OperandTypeData&& type): _v(type) {}
 };
 
 // Hash support

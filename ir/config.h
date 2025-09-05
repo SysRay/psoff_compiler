@@ -11,11 +11,12 @@ using OperandFlags_t = uint8_t;
 using InstructionId_t    = uint32_t;
 using InstructionKind_t  = uint16_t;
 using InstructionFlags_t = uint8_t;
+using InstructionGroup_t = uint8_t;
 
 } // namespace compiler
 
 namespace compiler::config {
-static constexpr uint32_t kMaxOps = 4;
+static constexpr uint32_t kMaxOps = 5;
 
 constexpr uint32_t kOperandKindBits  = 9;
 constexpr uint32_t kOperandFlagsBits = 7;

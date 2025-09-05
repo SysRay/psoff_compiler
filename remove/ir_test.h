@@ -20,13 +20,13 @@ class IRSoA {
 
   // Most common access pattern: iterate instructions, check opcode + operands
   // Pack these tightly for maximum cache hits during traversal
-  struct InstrCore {
+  struct InstCore {
     uint16_t opcode;
     uint16_t flags;
     uint32_t ops[kMaxOps]; // operands packed together
   };
 
-  static_assert(sizeof(InstrCore) == 20); // 3.2 per cache line
+  static_assert(sizeof(InstCore) == 20); // 3.2 per cache line
 
   // Less frequent access: def-use info, only touched during SSA construction/analysis
   struct InstrDefUse {
@@ -48,7 +48,7 @@ class IRSoA {
   static_assert(sizeof(BlockCore) == 16); // 4 per cache line
 
   // THE DATA TREE - organized by access frequency and patterns
-  std::vector<InstrCore>   instr_core_;   // Hot path data
+  std::vector<InstCore>    instr_core_;   // Hot path data
   std::vector<InstrDefUse> instr_defuse_; // Cold analysis data
   std::vector<BlockCore>   blocks_;       // Block structure
   std::vector<Id>          edges_;        // Flat successor list
@@ -66,9 +66,9 @@ class IRSoA {
   [[nodiscard]] Id block_count() const noexcept { return block_count_; }
 
   // Primary instruction access - single cache line for hot data
-  [[nodiscard]] const InstrCore& instr_core(Id id) const noexcept { return instr_core_[id]; }
+  [[nodiscard]] const InstCore& instr_core(Id id) const noexcept { return instr_core_[id]; }
 
-  [[nodiscard]] InstrCore& instr_core(Id id) noexcept { return instr_core_[id]; }
+  [[nodiscard]] InstCore& instr_core(Id id) noexcept { return instr_core_[id]; }
 
   // Def-use access - separate when doing SSA analysis
   [[nodiscard]] const InstrDefUse& instr_defuse(Id id) const noexcept { return instr_defuse_[id]; }
@@ -90,7 +90,7 @@ class IRSoA {
   // Hot path: instruction iteration (most common operation)
   template <typename Func>
   void for_each_instr_core(Func&& func) const {
-    for (Id i = 0; i < instr_count_; ++i) {
+    for(Id i = 0; i < instr_count_; ++i) {
       func(i, instr_core_[i]);
     }
   }
@@ -99,8 +99,8 @@ class IRSoA {
   template <typename Func>
   void for_matching_opcodes(uint16_t target_opcode, Func&& func) const {
     // Vectorizable loop over packed opcode data
-    for (Id i = 0; i < instr_count_; ++i) {
-      if (instr_core_[i].opcode == target_opcode) {
+    for(Id i = 0; i < instr_count_; ++i) {
+      if(instr_core_[i].opcode == target_opcode) {
         func(i, instr_core_[i]);
       }
     }
@@ -109,7 +109,7 @@ class IRSoA {
   // Block traversal - sequential access pattern
   template <typename Func>
   void for_each_block(Func&& func) const {
-    for (Id i = 0; i < block_count_; ++i) {
+    for(Id i = 0; i < block_count_; ++i) {
       func(i, blocks_[i]);
     }
   }
@@ -118,7 +118,7 @@ class IRSoA {
   template <typename Func>
   void for_instrs_in_block(Id block_id, Func&& func) {
     Id instr = blocks_[block_id].head;
-    while (instr != kInvalidId) {
+    while(instr != kInvalidId) {
       func(instr, instr_core_[instr]);
       instr = instr_defuse_[instr].next;
     }
@@ -126,14 +126,14 @@ class IRSoA {
 
   // Bulk operations on contiguous data
   void batch_set_flags(std::span<const Id> ids, uint16_t flag_mask) noexcept {
-    for (Id id: ids) {
+    for(Id id: ids) {
       instr_core_[id].flags |= flag_mask;
     }
   }
 
   void batch_clear_flags(std::span<const Id> ids, uint16_t flag_mask) noexcept {
     const uint16_t clear_mask = ~flag_mask;
-    for (Id id: ids) {
+    for(Id id: ids) {
       instr_core_[id].flags &= clear_mask;
     }
   }
@@ -144,10 +144,10 @@ class IRSoA {
     uses.reserve(16); // typical case
 
     // Hot loop over packed operand data
-    for (Id i = 0; i < instr_count_; ++i) {
+    for(Id i = 0; i < instr_count_; ++i) {
       const auto& core = instr_core_[i];
-      for (uint32_t j = 0; j < kMaxOps; ++j) {
-        if (core.ops[j] == vreg) {
+      for(uint32_t j = 0; j < kMaxOps; ++j) {
+        if(core.ops[j] == vreg) {
           uses.push_back(i);
           break; // found in this instruction
         }
@@ -174,7 +174,7 @@ class IRSoA {
     auto& core  = instr_core_[id];
     core.opcode = opcode;
     core.flags  = flags;
-    for (uint32_t i = 0; i < kMaxOps; ++i) {
+    for(uint32_t i = 0; i < kMaxOps; ++i) {
       core.ops[i] = kInvalidId;
     }
 
@@ -204,7 +204,7 @@ class IRSoA {
     auto& block = blocks_[block_id];
 
     // First edge for this block
-    if (block.edge_count == 0) {
+    if(block.edge_count == 0) {
       block.edge_start = static_cast<uint32_t>(edges_.size());
     }
 
@@ -217,7 +217,7 @@ class IRSoA {
     auto& block        = blocks_[block_id];
     auto& instr_defuse = instr_defuse_[instr_id];
 
-    if (block.head == kInvalidId) {
+    if(block.head == kInvalidId) {
       // First instruction in block
       block.head = block.tail = instr_id;
       instr_defuse.next = instr_defuse.prev = kInvalidId;
@@ -232,16 +232,16 @@ class IRSoA {
 
   // INTROSPECTION
   [[nodiscard]] std::size_t memory_usage() const noexcept {
-    return instr_core_.capacity() * sizeof(InstrCore) + instr_defuse_.capacity() * sizeof(InstrDefUse) + blocks_.capacity() * sizeof(BlockCore) +
+    return instr_core_.capacity() * sizeof(InstCore) + instr_defuse_.capacity() * sizeof(InstrDefUse) + blocks_.capacity() * sizeof(BlockCore) +
            edges_.capacity() * sizeof(Id);
   }
 
   // Debug: verify data layout assumptions
   static void verify_layout() {
-    static_assert(alignof(InstrCore) <= 8);
+    static_assert(alignof(InstCore) <= 8);
     static_assert(alignof(InstrDefUse) <= 8);
     static_assert(alignof(BlockCore) <= 8);
-    static_assert(sizeof(InstrCore) == 20);
+    static_assert(sizeof(InstCore) == 20);
     static_assert(sizeof(InstrDefUse) == 16);
     static_assert(sizeof(BlockCore) == 16);
   }
