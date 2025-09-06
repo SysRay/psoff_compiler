@@ -15,38 +15,43 @@ struct Operand {
   OperandType type = OperandType::i32();
 };
 
+struct InstConstant {
+  OperandType type = OperandType::i32();
+  uint64_t    value;
+};
+
 struct InstCore {
   InstructionKind_t  kind;
-  eInstructionGroup  group;
+  eInstructionGroup  group = eInstructionGroup::kUnknown;
   InstructionFlags_t flags;
 
-  struct {
-    uint8_t numDst : 4;
-    uint8_t numSrc : 4;
+  union {
+    struct Operands {
+      struct {
+        uint8_t numDst : 4;
+        uint8_t numSrc : 4;
+      };
+
+      Operand operands[config::kMaxOps];
+    } operands;
+
+    InstConstant constValue;
   };
 
-  Operand operands[config::kMaxOps];
+  inline bool isValid() const { return group != eInstructionGroup::kUnknown; }
 
   // // Flags
-  constexpr inline bool hasSideEffects() {
-    return (flags & kHasSideEffects) != 0;
-  }
+  constexpr inline bool hasSideEffects() { return (flags & kHasSideEffects) != 0; }
 
-  constexpr inline bool writesExec() {
-    return (flags & kWritesEXEC) != 0;
-  }
+  constexpr inline bool writesExec() { return (flags & kWritesEXEC) != 0; }
 
-  constexpr inline bool isVirtual() {
-    return (flags & kVirtual) != 0;
-  }
+  constexpr inline bool isVirtual() { return (flags & kVirtual) != 0; }
 
-  constexpr bool isBarrier() {
-    return (flags & kBarrier) != 0;
-  }
+  constexpr bool isBarrier() { return (flags & kBarrier) != 0; }
 };
 
 static_assert(sizeof(InstCore) <= 64); ///< cache lines
-static_assert(config::kMaxOps <= 15);   ///< only 4 bits
+static_assert(config::kMaxOps <= 15);  ///< only 4 bits
 
 // // Handle enum bits to underlying conversion
 template <typename Enum>
@@ -56,20 +61,15 @@ struct Flags {
   using underlying_t = std::underlying_type_t<Enum>;
   underlying_t value {};
 
-  constexpr Flags()
-      : value(0) {}
+  constexpr Flags(): value(0) {}
 
-  constexpr Flags(Enum flag)
-      : value(static_cast<underlying_t>(flag)) {}
+  constexpr Flags(Enum flag): value(static_cast<underlying_t>(flag)) {}
 
-  constexpr Flags(underlying_t raw)
-      : value(raw) {}
+  constexpr Flags(underlying_t raw): value(raw) {}
 
   constexpr operator underlying_t() const { return value; }
 
-  constexpr bool has(Enum flag) const {
-    return (value & static_cast<underlying_t>(flag)) != 0;
-  }
+  constexpr bool has(Enum flag) const { return (value & static_cast<underlying_t>(flag)) != 0; }
 };
 
 template <typename Enum>

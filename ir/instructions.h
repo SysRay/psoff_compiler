@@ -7,9 +7,10 @@
 
 namespace compiler::ir {
 // // Opcode definition
-#define INSTRUCTION_LIST                                                                \
-  X(AddF32Op, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32), OP(f32)))                 \
-  X(AddI32Op, kALU, kNone, DST_OPS(OP(i32), OP(i1)), SRC_OPS(OP(i32), OP(i32), OP(i1))) \
+#define INSTRUCTION_LIST                                                                                                                                       \
+  X(MoveOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32)))                                                                                                   \
+  X(AddF32Op, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32), OP(f32)))                                                                                        \
+  X(AddI32Op, kALU, kNone, DST_OPS(OP(i32), OP(i1)), SRC_OPS(OP(i32), OP(i32), OP(i1)))                                                                        \
   X_NO_OPS(ReturnOp, kFlowControl, kHasSideEffects)
 
 // // Create table etc
@@ -30,24 +31,29 @@ std::string_view getInstrKindStr(eInstKind code);
 }
 
 namespace internal {
-#define OP(name)                \
-  Operand {                     \
-    .type = OperandType::name() \
+#define OP(name)                                                                                                                                               \
+  Operand {                                                                                                                                                    \
+    .type = OperandType::name()                                                                                                                                \
   }
 
 #define DST_OPS(...) __VA_ARGS__
 #define SRC_OPS(...) __VA_ARGS__
 
-#define X(name, instGroup, instFlags, dstOps, srcOps) \
-  ir::InstCore {                                     \
-      .kind = conv(eInstKind::name), .group = eInstructionGroup::instGroup, .flags = Flags<eInstructionFlags>(instFlags), .numDst = std::tuple_size<decltype(std::make_tuple(dstOps))>::value, .numSrc = std::tuple_size<decltype(std::make_tuple(srcOps))>::value, .operands = {dstOps, srcOps}},
+#define X(name, instGroup, instFlags, dstOps, srcOps)                                                                                                          \
+  ir::InstCore {.kind  = conv(eInstKind::name),                                                                                                                \
+                .group = eInstructionGroup::instGroup,                                                                                                         \
+                .flags = Flags<eInstructionFlags>(instFlags),                                                                                                  \
+                .operands {.numDst   = std::tuple_size<decltype(std::make_tuple(dstOps))>::value,                                                              \
+                           .numSrc   = std::tuple_size<decltype(std::make_tuple(srcOps))>::value,                                                              \
+                           .operands = {dstOps, srcOps}}},
 
-#define X_NO_OPS(name, instGroup, instFlags) \
-  ir::InstCore {                            \
-      .kind = conv(eInstKind::name), .group = eInstructionGroup::instGroup, .flags = Flags<eInstructionFlags>(instFlags), .numDst = 0, .numSrc = 0},
+#define X_NO_OPS(name, instGroup, instFlags)                                                                                                                   \
+  ir::InstCore {.kind  = conv(eInstKind::name),                                                                                                                \
+                .group = eInstructionGroup::instGroup,                                                                                                         \
+                .flags = Flags<eInstructionFlags>(instFlags),                                                                                                  \
+                .operands {.numDst = 0, .numSrc = 0}},
 
-static constexpr InstCore kOpTable[] = {
-    INSTRUCTION_LIST};
+static constexpr InstCore kOpTable[] = {INSTRUCTION_LIST};
 
 #undef SRC_OPS
 #undef DST_OPS
