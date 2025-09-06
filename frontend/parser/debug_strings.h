@@ -3,6 +3,6 @@
 
 #include <string_view>
 
-namespace compiler::frontend::parser {
-std::string_view getOpcodeString(eOpcode op);
+namespace compiler::frontend::debug {
+std::string_view getDebug(parser::eOpcode op);
 }

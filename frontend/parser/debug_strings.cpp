@@ -4,9 +4,10 @@
 
 #include <format>
 
-namespace compiler::frontend::parser {
+namespace compiler::frontend::debug {
+using namespace parser;
 
-std::string_view getOpcodeString(eOpcode op) {
+std::string_view getDebug(eOpcode op) {
   switch(op) {
     case eOpcode::DS_ADD_U32: return "DS_ADD_U32";
     case eOpcode::DS_SUB_U32: return "DS_SUB_U32";
@@ -848,8 +849,7 @@ std::string_view getOpcodeString(eOpcode op) {
     case eOpcode::V_CMPX_NE_U64: return "V_CMPX_NE_U64";
     case eOpcode::V_CMPX_GE_U64: return "V_CMPX_GE_U64";
     case eOpcode::V_CMPX_T_U64: return "V_CMPX_T_U64";
-    case eOpcode::C_LOAD_ATTR: return "C_LOAD_ATTR";
     default: return "UNK";
   }
 }
-} // namespace compiler::frontend::parser
+} // namespace compiler::frontend::debug

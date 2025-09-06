@@ -3,26 +3,7 @@
 
 namespace compiler::frontend::parser {
 
-enum class eEncoding {
-  SOP1,
-  SOP2,
-  SOPP,
-  SOPC,
-  EXP,
-  VINTRP,
-  DS,
-  MUBUF,
-  MTBUF,
-  MIMG,
-  SMRD,
-  SOPK,
-  VOP1,
-  VOP2,
-  VOP3,
-  VOPC,
-  Custom,
-  UNKNOWN,
-};
+enum class eEncoding { SOP1, SOP2, SOPP, SOPC, EXP, VINTRP, DS, MUBUF, MTBUF, MIMG, SMRD, SOPK, VOP1, VOP2, VOP3, VOPC, UNK };
 
 enum class eOpcode : InstructionKind_t {
   UNKNOWN,

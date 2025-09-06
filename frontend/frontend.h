@@ -12,7 +12,7 @@ enum class eRegClass : OperandFlags_t {
   VGPR,
   Compare,
   Exec,
-  Const,
+  Constant,
   Lds,
 };
 
@@ -24,14 +24,14 @@ enum class eOperandKind : OperandKind_t {
   ExecLo = 126,
   ExecHi,
   ConstZero,
-  ConstInt     = 129,
+  ConstSInt    = 129,
   ConstUInt    = 193,
   ConstFloat   = 240,
   VccZ         = 251,
   ExecZ        = 252,
   Scc          = 253,
   LdsDirect    = 254,
-  LiteralConst = 255,
+  Literal = 255,
   VGPR,
 };
 
