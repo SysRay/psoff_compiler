@@ -2,29 +2,29 @@
 
 #include "../parser.h"
 
-namespace compiler::frontend {
-struct ShaderInput;
+namespace compiler {
+class Builder;
 }
 
 namespace compiler::frontend::translate {
-ir::InstCore handleSop1(ShaderInput const& ctx, parser::pc_t pc, parser::code_p_t* pCode);
-ir::InstCore handleSop2(ShaderInput const& ctx, parser::pc_t pc, parser::code_p_t* pCode);
-ir::InstCore handleSop2(ShaderInput const& ctx, parser::pc_t pc, parser::code_p_t* pCode);
-ir::InstCore handleSopc(ShaderInput const& ctx, parser::pc_t pc, parser::code_p_t* pCode);
-ir::InstCore handleSopk(ShaderInput const& ctx, parser::pc_t pc, parser::code_p_t* pCode);
-ir::InstCore handleSopp(ShaderInput const& ctx, parser::pc_t pc, parser::code_p_t* pCode);
-ir::InstCore handleSmrd(ShaderInput const& ctx, parser::pc_t pc, parser::code_p_t* pCode);
+ir::InstCore handleSop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode);
+ir::InstCore handleSop2(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode);
+ir::InstCore handleSop2(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode);
+ir::InstCore handleSopc(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode);
+ir::InstCore handleSopk(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode);
+ir::InstCore handleSopp(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode);
+ir::InstCore handleSmrd(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode);
 
-ir::InstCore handleVop1(ShaderInput const& ctx, parser::pc_t pc, parser::code_p_t* pCode, bool extended);
-ir::InstCore handleVop2(ShaderInput const& ctx, parser::pc_t pc, parser::code_p_t* pCode, bool extended);
-ir::InstCore handleVop3(ShaderInput const& ctx, parser::pc_t pc, parser::code_p_t* pCode);
-ir::InstCore handleVopc(ShaderInput const& ctx, parser::pc_t pc, parser::code_p_t* pCode, bool extended);
-ir::InstCore handleVintrp(ShaderInput const& ctx, parser::pc_t pc, parser::code_p_t* pCode);
+ir::InstCore handleVop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool extended);
+ir::InstCore handleVop2(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool extended);
+ir::InstCore handleVop3(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode);
+ir::InstCore handleVopc(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool extended);
+ir::InstCore handleVintrp(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode);
 
-ir::InstCore handleExp(ShaderInput const& ctx, parser::pc_t pc, parser::code_p_t* pCode);
-ir::InstCore handleMubuf(ShaderInput const& ctx, parser::pc_t pc, parser::code_p_t* pCode);
-ir::InstCore handleMtbuf(ShaderInput const& ctx, parser::pc_t pc, parser::code_p_t* pCode);
-ir::InstCore handleMimg(ShaderInput const& ctx, parser::pc_t pc, parser::code_p_t* pCode);
-ir::InstCore handleDs(ShaderInput const& ctx, parser::pc_t pc, parser::code_p_t* pCode);
-ir::InstCore handleCustom(ShaderInput const& ctx, parser::pc_t pc, parser::code_p_t* pCode);
+ir::InstCore handleExp(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode);
+ir::InstCore handleMubuf(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode);
+ir::InstCore handleMtbuf(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode);
+ir::InstCore handleMimg(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode);
+ir::InstCore handleDs(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode);
+ir::InstCore handleCustom(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode);
 } // namespace compiler::frontend::translate

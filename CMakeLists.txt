@@ -18,10 +18,12 @@ add_executable(psoff_compiler
 
   ir/instructions.cpp
 
+  frontend/shader_types.cpp
+  frontend/shader_input.cpp
+  frontend/debug_strings.cpp
+
   frontend/parser/debug_strings.cpp
   frontend/parser/parser.cpp
-  frontend/shader_types.cpp
-  frontend/debug_strings.cpp
 
   frontend/parser/translate/ds.cpp
   frontend/parser/translate/exp.cpp
@@ -41,4 +43,4 @@ add_executable(psoff_compiler
   frontend/parser/translate/vopc.cpp
 )
 
-target_include_directories(psoff_compiler PRIVATE ${CMAKE_SOURCE_DIR})
+target_include_directories(psoff_compiler PRIVATE ${CMAKE_SOURCE_DIR} include)

@@ -18,7 +18,6 @@ struct ShaderVertexData {
 };
 
 struct ShaderVertexExportData {
-
   void init(ShaderInput& ctx, ShaderHeader const* header, uint32_t const* gpuRegs);
 };
 

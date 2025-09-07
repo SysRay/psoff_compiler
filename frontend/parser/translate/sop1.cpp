@@ -1,18 +1,20 @@
 #include "../debug_strings.h"
 #include "../opcodes_table.h"
+#include "builder.h"
 #include "encodings.h"
-#include "frontend/shader_input.h"
 #include "translate.h"
 
 #include <format>
 #include <stdexcept>
 
 namespace compiler::frontend::translate {
-ir::InstCore handleSop1(ShaderInput const& ctx, parser::pc_t pc, parser::code_p_t* pCode) {
+ir::InstCore handleSop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
   using namespace parser;
-  auto inst = ENC_SOP1 {.raw = **pCode};
 
-  switch ((parser::eOpcode)inst.OP) {
+  auto       inst = SOP1(**pCode);
+  auto const op   = (parser::eOpcode)inst.template get<SOP1::Field::OP>();
+
+  switch (op) {
     case eOpcode::S_MOV_B32: {
 
     } break;
@@ -121,7 +123,7 @@ ir::InstCore handleSop1(ShaderInput const& ctx, parser::pc_t pc, parser::code_p_
 
     } break;
     case eOpcode::S_MOV_FED_B32: break; // Does not exist
-    default: throw std::runtime_error(std::format("missing inst {}", debug::getDebug((parser::eOpcode)inst.OP))); break;
+    default: throw std::runtime_error(std::format("missing inst {}", debug::getDebug(op))); break;
   }
 
   return {};

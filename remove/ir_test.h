@@ -1,6 +1,6 @@
 #pragma once
 #include <bit>
-#include <cstdint>
+#include <stdint.h>
 #include <memory_resource>
 #include <span>
 #include <vector>

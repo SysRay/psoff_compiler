@@ -1,6 +1,6 @@
 #pragma once
 #include <array>
-#include <cstdint>
+#include <stdint.h>
 
 namespace compiler::frontend {
 constexpr uint8_t SPEC_SLOTS_PER_CHUNK             = 32;

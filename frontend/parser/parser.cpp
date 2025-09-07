@@ -78,31 +78,32 @@ static eEncoding getEncoding(code_t code) {
   return eEncoding::UNK;
 }
 
-ir::InstCore parseInstruction(ShaderInput const& ctx, pc_t pc, code_p_t* pCode) {
+ir::InstCore parseInstruction(Builder& builder, pc_t pc, code_p_t* pCode) {
   using namespace translate;
   switch (getEncoding(**pCode)) {
-    case eEncoding::SOP1: return handleSop1(ctx, pc, pCode);
-    case eEncoding::SOP2: return handleSop2(ctx, pc, pCode);
-    case eEncoding::SOPP: return handleSopp(ctx, pc, pCode);
-    case eEncoding::SOPC: return handleSopc(ctx, pc, pCode);
-    case eEncoding::EXP: return handleExp(ctx, pc, pCode);
-    case eEncoding::VINTRP: return handleVintrp(ctx, pc, pCode);
-    case eEncoding::DS: return handleDs(ctx, pc, pCode);
-    case eEncoding::MUBUF: return handleMubuf(ctx, pc, pCode);
-    case eEncoding::MTBUF: return handleMtbuf(ctx, pc, pCode);
-    case eEncoding::MIMG: return handleMimg(ctx, pc, pCode);
-    case eEncoding::SMRD: return handleSmrd(ctx, pc, pCode);
-    case eEncoding::SOPK: return handleSopk(ctx, pc, pCode);
-    case eEncoding::VOP1: return handleVop1(ctx, pc, pCode, false);
-    case eEncoding::VOP2: return handleVop2(ctx, pc, pCode, false);
+    case eEncoding::SOP1: return handleSop1(builder, pc, pCode);
+    case eEncoding::SOP2: return handleSop2(builder, pc, pCode);
+    case eEncoding::SOPP: return handleSopp(builder, pc, pCode);
+    case eEncoding::SOPC: return handleSopc(builder, pc, pCode);
+    case eEncoding::EXP: return handleExp(builder, pc, pCode);
+    case eEncoding::VINTRP: return handleVintrp(builder, pc, pCode);
+    case eEncoding::DS: return handleDs(builder, pc, pCode);
+    case eEncoding::MUBUF: return handleMubuf(builder, pc, pCode);
+    case eEncoding::MTBUF: return handleMtbuf(builder, pc, pCode);
+    case eEncoding::MIMG: return handleMimg(builder, pc, pCode);
+    case eEncoding::SMRD: return handleSmrd(builder, pc, pCode);
+    case eEncoding::SOPK: return handleSopk(builder, pc, pCode);
+    case eEncoding::VOP1: return handleVop1(builder, pc, pCode, false);
+    case eEncoding::VOP2: return handleVop2(builder, pc, pCode, false);
     case eEncoding::VOP3: {
-      auto header = ENC_VOP3 {.raw = *(codeE_p_t)*pCode};
-      if (header.OP >= 0x180) return handleVop1(ctx, pc, pCode, true);
-      if (header.OP >= 0x140) return handleVop3(ctx, pc, pCode);
-      if (header.OP >= 0x100) return handleVop2(ctx, pc, pCode, true);
-      return handleVopc(ctx, pc, pCode, true);
+      auto const header = VOP3(*(codeE_p_t)*pCode);
+      auto const op     = header.get<VOP3::Field::OP>();
+      if (op >= 0x180) return handleVop1(builder, pc, pCode, true);
+      if (op >= 0x140) return handleVop3(builder, pc, pCode);
+      if (op >= 0x100) return handleVop2(builder, pc, pCode, true);
+      return handleVopc(builder, pc, pCode, true);
     }
-    case eEncoding::VOPC: return handleVopc(ctx, pc, pCode, false);
+    case eEncoding::VOPC: return handleVopc(builder, pc, pCode, false);
     default: return {};
   }
 }
