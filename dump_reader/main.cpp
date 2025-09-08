@@ -1,19 +1,42 @@
 #include "builder.h"
-#include "ir/instructions.h"
+
+#include <filesystem>
+#include <fstream>
+#include <iostream>
 
 namespace compiler::frontend {
 uint64_t getAddr(uint64_t addr) {
-  // todo move to user defined
-  return addr;
-  // return Platform::System::mem_convert();
+  printf("Error: getAddr called!");
+  exit(1);
+  return 0;
 }
 } // namespace compiler::frontend
 
-int main() {
-  compiler::Builder builder(100);
-  using namespace compiler::ir;
+int main(int argc, char* argv[]) {
+  // // Read Dump
+  std::filesystem::path fp = argv[1];
+  if (!std::filesystem::exists(fp)) {
+    printf("Missing file: %S\n", fp.c_str());
+    return 1;
+  }
 
-  auto& add = builder.createInstruction(getInfo(eInstKind::AddF32Op));
+  auto const fsize = std::filesystem::file_size(fp);
+
+  compiler::ShaderDump_t data(fsize);
+
+  std::ifstream file;
+  file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+  try {
+    std::cout << "Opening " << fp << std::endl;
+    file.open(fp, std::ios::binary);
+  } catch (std::ifstream::failure e) {
+    printf("Exception openFile %s\n", e.what());
+    return 2;
+  }
+
+  // // Build Shader
+  compiler::Builder builder(1000);
+  builder.createShader(data);
 
   return 0;
 }
