@@ -11,15 +11,18 @@ namespace compiler::ir {
   X(MoveOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32)))                                                                                                   \
   X(AddF32Op, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32), OP(f32)))                                                                                        \
   X(AddI32Op, kALU, kNone, DST_OPS(OP(i32), OP(i1)), SRC_OPS(OP(i32), OP(i32), OP(i1)))                                                                        \
-  X_NO_OPS(ReturnOp, kFlowControl, kHasSideEffects)
+  X_NO_OPS(ReturnOp, kFlowControl, kHasSideEffects)                                                                                                            \
+  X_NO_SRC(ConstantOp, kConstant, kNone, DST_OPS(OP(f32)))
 
 // // Create table etc
 enum class eInstKind : InstructionKind_t {
 #define X(name, ...)        name,
 #define X_NO_OPS(name, ...) name,
+#define X_NO_SRC(name, ...) name,
   INSTRUCTION_LIST
 #undef X
 #undef X_NO_OPS
+#undef X_NO_SRC
 };
 
 constexpr inline InstructionKind_t conv(eInstKind&& code) {
@@ -53,6 +56,12 @@ namespace internal {
                 .flags = Flags<eInstructionFlags>(instFlags),                                                                                                  \
                 .operands {.numDst = 0, .numSrc = 0}},
 
+#define X_NO_SRC(name, instGroup, instFlags, dstOps)                                                                                                           \
+  ir::InstCore {.kind  = conv(eInstKind::name),                                                                                                                \
+                .group = eInstructionGroup::instGroup,                                                                                                         \
+                .flags = Flags<eInstructionFlags>(instFlags),                                                                                                  \
+                .operands {.numDst = std::tuple_size<decltype(std::make_tuple(dstOps))>::value, .numSrc = 0, .operands = {dstOps}}},
+
 static constexpr InstCore kOpTable[] = {INSTRUCTION_LIST};
 
 #undef SRC_OPS
@@ -60,6 +69,7 @@ static constexpr InstCore kOpTable[] = {INSTRUCTION_LIST};
 #undef OP
 #undef X
 #undef X_NO_OPS
+#undef X_NO_SRC
 } // namespace internal
 
 inline constexpr const ir::InstCore& getInfo(eInstKind instr) {

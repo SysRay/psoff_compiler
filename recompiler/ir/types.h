@@ -18,6 +18,7 @@ enum eInstructionFlags : InstructionFlags_t {
 enum eInstructionGroup : InstructionGroup_t {
   kUnknown,
   kALU,
+  kConstant,
   kFlowControl,
 };
 

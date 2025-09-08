@@ -4,11 +4,7 @@
 #include "si_ci_vi_merged_offset.h"
 
 namespace compiler::frontend {
-uint64_t getAddr(uint64_t addr) {
-  // todo move to user defined
-  return addr;
-  // return Platform::System::mem_convert();
-}
+extern uint64_t getAddr(uint64_t addr);
 
 uint64_t getShaderBase(ShaderStage stage, uint32_t const* gpuRegs) {
   using namespace Pal::Gfx6::Chip;

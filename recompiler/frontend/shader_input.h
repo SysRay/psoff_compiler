@@ -7,6 +7,10 @@
 
 namespace compiler::frontend {
 
+uint64_t            getShaderBase(ShaderStage stage, uint32_t const* gpuRegs);
+ShaderHeader const* getShaderHeader(const uint32_t* code);
+uint32_t const*     getShaderUserData(ShaderStage, uint32_t const* gpuRegs);
+
 struct ShaderInput;
 
 // // Shader stage data
