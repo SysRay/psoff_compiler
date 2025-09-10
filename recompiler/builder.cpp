@@ -20,7 +20,7 @@ static std::string_view getFileTpye(frontend::ShaderStage stage) {
   }
 }
 
-bool Builder::createShader(frontend::ShaderStage stage, uint32_t id, frontend::ShaderHeader const* header, uint32_t const* gpuRegs) {
+bool Builder::init(frontend::ShaderStage stage, uint32_t id, frontend::ShaderHeader const* header, uint32_t const* gpuRegs) {
   { // Create name
     size_t const len = std::format("{}_{:#x}_{}", getFileTpye(stage), header->hash0, id).copy(_name, sizeof(_name) - 1);
     _name[len]       = '\0';
@@ -58,7 +58,7 @@ struct DumpData {
   std::vector<uint32_t> fetchInstructions;
 };
 
-bool Builder::createShader(ShaderDump_t const& dump) {
+bool Builder::init(ShaderDump_t const& dump) {
   _debugFlags.set(ShaderDebugFlags::ISDUMP);
 
   size_t         start   = 0;
