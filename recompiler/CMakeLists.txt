@@ -30,6 +30,5 @@ add_library(psOff_recompiler STATIC
 target_include_directories(psOff_recompiler
   PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}
-  include
-  third_party/alpaca/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/alpaca/include
 )

@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
 
-namespace util {
+namespace compiler::util {
 
 template <class T, size_t Offset, size_t Width>
 struct Bitfield {
@@ -13,7 +13,7 @@ struct Bitfield {
 
   static constexpr auto insert(T value, auto field) noexcept { return (value & ~mask) | ((field << Offset) & mask); }
 };
-} // namespace util
+} // namespace compiler::util
 
 // ---------------- Macro Helper ----------------
 #define DEFINE_BITFIELD_STRUCT(StructName, StorageType, FIELDS_MACRO)                                                                                          \

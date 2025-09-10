@@ -1,7 +1,7 @@
 #pragma once
 
-#include "flags.h"
 #include "frontend/shader_input.h"
+#include "include/flags.h"
 #include "ir/ir.h"
 
 #include <memory_resource>

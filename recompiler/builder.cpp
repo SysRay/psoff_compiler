@@ -26,11 +26,29 @@ bool Builder::createShader(frontend::ShaderStage stage, uint32_t id, frontend::S
     _name[len]       = '\0';
   }
 
-  return false;
-}
+  // Get shader data
+  using namespace frontend;
 
-bool Builder::createShader(ShaderDump_t const& dump) {
-  _debugFlags.set(ShaderDebugFlags::ISDUMP);
+  _shaderInput.stage = stage;
+#define __INIT(name)                                                                                                                                           \
+  {                                                                                                                                                            \
+    name obj;                                                                                                                                                  \
+    obj.init(_shaderInput, header, gpuRegs);                                                                                                                   \
+    _shaderInput.stageData = obj;                                                                                                                              \
+  }
+
+  switch (stage) {
+    case ShaderStage::Compute: __INIT(ShaderComputeData) break;
+    case ShaderStage::Vertex: __INIT(ShaderVertexData) break;
+    case ShaderStage::VertexExport: __INIT(ShaderVertexExportData) break;
+    case ShaderStage::VertexLocal: __INIT(ShaderVertexLocalData) break;
+    case ShaderStage::Fragment: __INIT(ShaderFragmentData) break;
+    case ShaderStage::Geometry: __INIT(ShaderGeometryData) break;
+    case ShaderStage::Copy: __INIT(ShaderCopyData) break;
+    case ShaderStage::TessellationCtrl: __INIT(ShaderTessCntrlData) break;
+    case ShaderStage::TessellationEval: __INIT(ShaderTessEvalData) break;
+  }
+#undef __INIT
   return false;
 }
 
@@ -39,6 +57,28 @@ struct DumpData {
   std::vector<uint32_t> instructions;
   std::vector<uint32_t> fetchInstructions;
 };
+
+bool Builder::createShader(ShaderDump_t const& dump) {
+  _debugFlags.set(ShaderDebugFlags::ISDUMP);
+
+  size_t         start   = 0;
+  size_t         end     = dump.size();
+  constexpr auto OPTIONS = alpaca::options::fixed_length_encoding;
+
+  DumpData data;
+
+  std::error_code ec;
+  alpaca::deserialize<OPTIONS>(data, dump, start, end, ec);
+  if (ec) {
+    std::cerr << "Deserialization failed: " << ec.message() << "\n";
+    return false;
+  }
+
+  _shaderInput = data.shaderInput;
+
+  // todo how to handle fetchInstructions getFetch callback?
+  return false;
+}
 
 bool Builder::createDump(frontend::ShaderHeader const* header, uint32_t const* gpuRegs) const {
   // // Create dump data

@@ -3,7 +3,7 @@
 #include <initializer_list>
 #include <type_traits>
 
-namespace util {
+namespace compiler::util {
 template <typename Enum>
 class Flags {
   static_assert(std::is_enum_v<Enum>, "Template parameter must be an enum class");
@@ -58,4 +58,4 @@ class Flags {
 
   [[nodiscard]] auto value() const { return flags; }
 };
-} // namespace util
+} // namespace compiler::util

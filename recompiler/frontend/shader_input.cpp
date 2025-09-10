@@ -1,7 +1,7 @@
 #include "shader_input.h"
 
+#include "include/si_ci_vi_merged_offset.h"
 #include "parser/registers.h"
-#include "si_ci_vi_merged_offset.h"
 
 namespace compiler::frontend {
 extern uint64_t getAddr(uint64_t addr);
