@@ -9,6 +9,7 @@ add_library(psOff_recompiler STATIC
   frontend/parser/debug_strings.cpp
   frontend/parser/parser.cpp
 
+  frontend/parser/translate/instruction_builder.cpp
   frontend/parser/translate/ds.cpp
   frontend/parser/translate/exp.cpp
   frontend/parser/translate/mimg.cpp

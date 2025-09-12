@@ -1,18 +1,30 @@
+#include "../../frontend.h"
 #include "../debug_strings.h"
 #include "../opcodes_table.h"
 #include "builder.h"
 #include "encodings.h"
+#include "instruction_builder.h"
 #include "translate.h"
 
 #include <format>
 #include <stdexcept>
 
 namespace compiler::frontend::translate {
-ir::InstCore handleSop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
+
+bool handleSop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
   using namespace parser;
 
   auto       inst = SOP1(**pCode);
   auto const op   = (parser::eOpcode)inst.template get<SOP1::Field::OP>();
+
+  auto const sdst = (eOperandKind)inst.template get<SOP1::Field::SDST>();
+  auto const src0 = (eOperandKind)inst.template get<SOP1::Field::SSRC0>();
+
+  if (src0 == eOperandKind::Literal) {
+    *pCode += 1;
+    builder.createInstruction(createLiteral(**pCode));
+  }
+  *pCode += 1;
 
   switch (op) {
     case eOpcode::S_MOV_B32: {
@@ -98,8 +110,8 @@ ir::InstCore handleSop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCo
     case eOpcode::S_GETPC_B64: {
 
     } break;
-    // case eOpcode::S_SETPC_B64: break; // in branch
-    //  case eOpcode::S_SWAPPC_B64: break; // in branch
+    case eOpcode::S_SETPC_B64: break;
+    case eOpcode::S_SWAPPC_B64: break;
     // case eOpcode::S_RFE_B64: break; // Does not exist
     case eOpcode::S_AND_SAVEEXEC_B64:
     case eOpcode::S_OR_SAVEEXEC_B64:
@@ -111,21 +123,21 @@ ir::InstCore handleSop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCo
     case eOpcode::S_XNOR_SAVEEXEC_B64: {
 
     } break;
-    // case eOpcode::S_QUADMASK_B32: return; // todo ? might be same as wqm
-    // case eOpcode::S_QUADMASK_B64: return; // todo ? might be same as wqm
+    case eOpcode::S_QUADMASK_B32: break;
+    case eOpcode::S_QUADMASK_B64: break;
     case eOpcode::S_MOVRELS_B32: break;
     case eOpcode::S_MOVRELS_B64: break;
     case eOpcode::S_MOVRELD_B32: break;
     case eOpcode::S_MOVRELD_B64: break;
-    // case eOpcode::S_CBRANCH_JOIN: break; // in branch
+    case eOpcode::S_CBRANCH_JOIN: break;
     //  case eOpcode::S_MOV_REGRD_B32: break; // Does not exist
     case eOpcode::S_ABS_I32: {
 
     } break;
-    case eOpcode::S_MOV_FED_B32: break; // Does not exist
+    // case eOpcode::S_MOV_FED_B32: break; // Does not exist
     default: throw std::runtime_error(std::format("missing inst {}", debug::getDebug(op))); break;
   }
 
-  return {};
+  return true;
 }
 } // namespace compiler::frontend::translate

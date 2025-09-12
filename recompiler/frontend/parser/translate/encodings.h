@@ -4,6 +4,10 @@
 #include <stdint.h>
 
 namespace compiler::frontend::translate {
+constexpr inline uint64_t getU64(uint32_t const* pCode) {
+  return ((uint64_t)pCode[1] << 32) | pCode[0];
+}
+
 #define VOP1_FIELDS(X)                                                                                                                                         \
   X(SRC0, 0, 9)                                                                                                                                                \
   X(OP, 9, 8)                                                                                                                                                  \

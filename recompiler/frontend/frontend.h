@@ -24,18 +24,18 @@ enum class eOperandKind : OperandKind_t {
   ExecLo = 126,
   ExecHi,
   ConstZero,
-  ConstSInt    = 129,
-  ConstUInt    = 193,
-  ConstFloat   = 240,
-  VccZ         = 251,
-  ExecZ        = 252,
-  Scc          = 253,
-  LdsDirect    = 254,
-  Literal = 255,
+  ConstSInt  = 129,
+  ConstUInt  = 193,
+  ConstFloat = 240,
+  VccZ       = 251,
+  ExecZ      = 252,
+  Scc        = 253,
+  LdsDirect  = 254,
+  Literal    = 255,
   VGPR,
 };
 
-eOperandKind getOperandKind(OperandKind_t kind) {
+constexpr inline eOperandKind getOperandKind(OperandKind_t kind) {
   return (eOperandKind)kind;
 }
 
@@ -72,9 +72,7 @@ struct OperandFlagsDst {
     return omodTable[bits.omod];
   }
 
-  constexpr auto hasMultiply() const {
-    return bits.omod != 0;
-  }
+  constexpr auto hasMultiply() const { return bits.omod != 0; }
 
   private:
   union {

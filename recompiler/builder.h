@@ -31,8 +31,8 @@ class Builder {
 
   auto& createInstruction(ir::InstCore const& instr) { return _instructions.emplace_back(instr); }
 
-  bool init(frontend::ShaderStage stage, uint32_t id, frontend::ShaderHeader const* header, uint32_t const* gpuRegs);
-  bool init(ShaderDump_t const&);
+  bool createShader(frontend::ShaderStage stage, uint32_t id, frontend::ShaderHeader const* header, uint32_t const* gpuRegs);
+  bool createShader(ShaderDump_t const&);
 
   bool createDump(frontend::ShaderHeader const* header, uint32_t const* gpuRegs) const;
 

@@ -78,7 +78,7 @@ static eEncoding getEncoding(code_t code) {
   return eEncoding::UNK;
 }
 
-ir::InstCore parseInstruction(Builder& builder, pc_t pc, code_p_t* pCode) {
+bool parseInstruction(Builder& builder, pc_t pc, code_p_t* pCode) {
   using namespace translate;
   switch (getEncoding(**pCode)) {
     case eEncoding::SOP1: return handleSop1(builder, pc, pCode);

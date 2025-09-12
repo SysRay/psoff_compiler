@@ -1,6 +1,7 @@
 #include "builder.h"
 
 #include "alpaca/alpaca.h"
+#include "frontend/parser/parser.h"
 
 #include <filesystem>
 
@@ -20,7 +21,7 @@ static std::string_view getFileTpye(frontend::ShaderStage stage) {
   }
 }
 
-bool Builder::init(frontend::ShaderStage stage, uint32_t id, frontend::ShaderHeader const* header, uint32_t const* gpuRegs) {
+bool Builder::createShader(frontend::ShaderStage stage, uint32_t id, frontend::ShaderHeader const* header, uint32_t const* gpuRegs) {
   { // Create name
     size_t const len = std::format("{}_{:#x}_{}", getFileTpye(stage), header->hash0, id).copy(_name, sizeof(_name) - 1);
     _name[len]       = '\0';
@@ -58,7 +59,7 @@ struct DumpData {
   std::vector<uint32_t> fetchInstructions;
 };
 
-bool Builder::init(ShaderDump_t const& dump) {
+bool Builder::createShader(ShaderDump_t const& dump) {
   _debugFlags.set(ShaderDebugFlags::ISDUMP);
 
   size_t         start   = 0;
@@ -77,6 +78,12 @@ bool Builder::init(ShaderDump_t const& dump) {
   _shaderInput = data.shaderInput;
 
   // todo how to handle fetchInstructions getFetch callback?
+  uint32_t const* pCode   = data.instructions.data();
+  auto            curCode = pCode;
+  while (curCode < (pCode + data.instructions.size())) {
+    auto const pc = (frontend::parser::pc_t)curCode;
+    frontend::parser::parseInstruction(*this, pc, &curCode);
+  }
   return false;
 }
 

@@ -6,12 +6,14 @@
 
 namespace compiler::ir {
 
+// todo operands need constants too (instructions with either constant or register)
 struct Operand {
   struct {
     OperandKind_t  kind: config::kOperandKindBits   = 0;
     OperandFlags_t flags: config::kOperandFlagsBits = 0;
   };
 
+  uint16_t    value; ///< some opcodes have const values (offset, base)
   OperandType type = OperandType::i32();
 };
 
@@ -25,17 +27,16 @@ struct InstCore {
   eInstructionGroup  group = eInstructionGroup::kUnknown;
   InstructionFlags_t flags;
 
+  struct {
+    uint8_t numDst : 4;
+    uint8_t numSrc : 4;
+  };
+
+  Operand dstOperands[config::kMaxDstOps];
+
   union {
-    struct Operands {
-      struct {
-        uint8_t numDst : 4;
-        uint8_t numSrc : 4;
-      };
-
-      Operand operands[config::kMaxOps];
-    } operands;
-
-    InstConstant constValue;
+    Operand      srcOperands[config::kMaxSrcOps];
+    InstConstant srcConstant;
   };
 
   inline bool isValid() const { return group != eInstructionGroup::kUnknown; }

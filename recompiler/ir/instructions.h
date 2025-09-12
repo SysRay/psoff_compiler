@@ -43,24 +43,30 @@ namespace internal {
 #define SRC_OPS(...) __VA_ARGS__
 
 #define X(name, instGroup, instFlags, dstOps, srcOps)                                                                                                          \
-  ir::InstCore {.kind  = conv(eInstKind::name),                                                                                                                \
-                .group = eInstructionGroup::instGroup,                                                                                                         \
-                .flags = Flags<eInstructionFlags>(instFlags),                                                                                                  \
-                .operands {.numDst   = std::tuple_size<decltype(std::make_tuple(dstOps))>::value,                                                              \
-                           .numSrc   = std::tuple_size<decltype(std::make_tuple(srcOps))>::value,                                                              \
-                           .operands = {dstOps, srcOps}}},
+  ir::InstCore {.kind        = conv(eInstKind::name),                                                                                                          \
+                .group       = eInstructionGroup::instGroup,                                                                                                   \
+                .flags       = Flags<eInstructionFlags>(instFlags),                                                                                            \
+                .numDst      = std::tuple_size<decltype(std::make_tuple(dstOps))>::value,                                                                      \
+                .numSrc      = std::tuple_size<decltype(std::make_tuple(srcOps))>::value,                                                                      \
+                .dstOperands = {dstOps},                                                                                                                       \
+                .srcOperands = {srcOps}},
 
 #define X_NO_OPS(name, instGroup, instFlags)                                                                                                                   \
-  ir::InstCore {.kind  = conv(eInstKind::name),                                                                                                                \
-                .group = eInstructionGroup::instGroup,                                                                                                         \
-                .flags = Flags<eInstructionFlags>(instFlags),                                                                                                  \
-                .operands {.numDst = 0, .numSrc = 0}},
+  ir::InstCore {.kind   = conv(eInstKind::name),                                                                                                               \
+                .group  = eInstructionGroup::instGroup,                                                                                                        \
+                .flags  = Flags<eInstructionFlags>(instFlags),                                                                                                 \
+                .numDst = 0,                                                                                                                                   \
+                .numSrc = 0,                                                                                                                                   \
+                .dstOperands {},                                                                                                                               \
+                .srcOperands = {}},
 
 #define X_NO_SRC(name, instGroup, instFlags, dstOps)                                                                                                           \
-  ir::InstCore {.kind  = conv(eInstKind::name),                                                                                                                \
-                .group = eInstructionGroup::instGroup,                                                                                                         \
-                .flags = Flags<eInstructionFlags>(instFlags),                                                                                                  \
-                .operands {.numDst = std::tuple_size<decltype(std::make_tuple(dstOps))>::value, .numSrc = 0, .operands = {dstOps}}},
+  ir::InstCore {.kind        = conv(eInstKind::name),                                                                                                          \
+                .group       = eInstructionGroup::instGroup,                                                                                                   \
+                .flags       = Flags<eInstructionFlags>(instFlags),                                                                                            \
+                .numDst      = std::tuple_size<decltype(std::make_tuple(dstOps))>::value,                                                                      \
+                .numSrc      = 0,                                                                                                                              \
+                .dstOperands = {dstOps}},
 
 static constexpr InstCore kOpTable[] = {INSTRUCTION_LIST};
 

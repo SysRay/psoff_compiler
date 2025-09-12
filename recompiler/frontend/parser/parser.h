@@ -2,8 +2,8 @@
 
 #include "ir/ir.h"
 
-namespace compiler::frontend {
-struct ShaderInput;
+namespace compiler {
+class Builder;
 }
 
 namespace compiler::frontend::parser {
@@ -13,6 +13,6 @@ using codeE_t   = uint64_t;
 using code_p_t  = code_t const*;
 using codeE_p_t = codeE_t const*;
 
-ir::InstCore parseInstruction(ShaderInput const&, pc_t, code_p_t*);
+bool parseInstruction(Builder& builder, pc_t, code_p_t*);
 
 } // namespace compiler::frontend::parser

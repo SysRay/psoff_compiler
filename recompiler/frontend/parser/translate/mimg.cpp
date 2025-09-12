@@ -8,7 +8,11 @@
 #include <stdexcept>
 
 namespace compiler::frontend::translate {
-ir::InstCore handleMimg(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
-  return {};
+bool handleMimg(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
+  auto       inst = MIMG(getU64(*pCode));
+  auto const op   = (parser::eOpcode)inst.template get<MIMG::Field::OP>();
+
+  *pCode += 2;
+  return true;
 }
 } // namespace compiler::frontend::translate

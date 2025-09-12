@@ -8,7 +8,11 @@
 #include <stdexcept>
 
 namespace compiler::frontend::translate {
-ir::InstCore handleMubuf(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
-  return {};
+bool handleMubuf(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
+  auto       inst = MUBUF(getU64(*pCode));
+  auto const op   = (parser::eOpcode)inst.template get<MUBUF::Field::OP>();
+
+  *pCode += 2;
+  return true;
 }
 } // namespace compiler::frontend::translate
