@@ -1,0 +1,3 @@
+## Structuring graph
+DOI:10.1145/2693261
+https://www.researchgate.net/publication/271723114_Perfect_Reconstructability_of_Control_Flow_from_Demand_Dependence_Graphs

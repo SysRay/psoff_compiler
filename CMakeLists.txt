@@ -16,3 +16,4 @@ unset(CMAKE_IMPORT_LIBRARY_SUFFIX)
 
 add_subdirectory(recompiler)
 add_subdirectory(dump_reader)
+add_subdirectory(graph_test)
