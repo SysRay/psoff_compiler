@@ -24,9 +24,9 @@ enum class eOperandKind : OperandKind_t {
   ExecLo = 126,
   ExecHi,
   ConstZero,
-  ConstSInt  = 129,
-  ConstUInt  = 193,
-  ConstFloat = 240,
+  ConstUInt  = 129, //< 1..64
+  ConstSInt  = 193, ///< -1..-64
+  ConstFloat = 240, ///< 0.5f, -0.5f, 1.0f, -1.0f, 2.0f, -2.0f, 4.0f, -4.0f
   VccZ       = 251,
   ExecZ      = 252,
   Scc        = 253,
@@ -39,8 +39,14 @@ constexpr inline eOperandKind getOperandKind(OperandKind_t kind) {
   return (eOperandKind)kind;
 }
 
+constexpr inline OperandKind_t getOperandKind(eOperandKind kind) {
+  return (OperandKind_t)kind;
+}
+
 struct OperandFlagsSrc {
   constexpr OperandFlagsSrc(OperandFlags_t flags): raw(flags) {}
+
+  constexpr OperandFlagsSrc(eRegClass regClass, bool negate, bool abs): bits {.regClass = regClass, .negate = negate, .abs = abs} {}
 
   constexpr auto getRegClass() const { return (eRegClass)bits.regClass; }
 
@@ -48,12 +54,14 @@ struct OperandFlagsSrc {
 
   constexpr auto getAbsolute() const { return bits.abs; }
 
+  operator OperandFlags_t() const { return raw; }
+
   private:
   union {
     struct {
-      OperandFlags_t regClass : 3;
-      bool           negate   : 1;
-      bool           abs      : 1;
+      eRegClass regClass : 3;
+      bool      negate   : 1;
+      bool      abs      : 1;
     } bits;
 
     OperandFlags_t raw;
@@ -62,6 +70,9 @@ struct OperandFlagsSrc {
 
 struct OperandFlagsDst {
   constexpr OperandFlagsDst(OperandFlags_t flags): raw(flags) {}
+
+  constexpr OperandFlagsDst(eRegClass regClass, uint8_t omod, bool clamp, bool negate)
+      : bits {.regClass = regClass, .omod = omod, .clamp = clamp, .negate = negate} {}
 
   constexpr auto getRegClass() const { return (eRegClass)bits.regClass; }
 
@@ -74,12 +85,17 @@ struct OperandFlagsDst {
 
   constexpr auto hasMultiply() const { return bits.omod != 0; }
 
+  constexpr auto getNegate() const { return bits.negate; }
+
+  operator OperandFlags_t() const { return raw; }
+
   private:
   union {
     struct {
-      OperandFlags_t regClass : 3;
-      OperandFlags_t omod     : 2;
-      bool           clamp    : 1;
+      eRegClass regClass : 3;
+      uint8_t   omod     : 2;
+      bool      clamp    : 1;
+      bool      negate   : 1;
     } bits;
 
     OperandFlags_t raw;

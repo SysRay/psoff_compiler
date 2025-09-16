@@ -35,7 +35,7 @@ bool handleVop2(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
 
     if (src0 == eOperandKind::Literal || src1 == eOperandKind::Literal) {
       *pCode += 1;
-      builder.createInstruction(createLiteral(**pCode));
+      builder.createInstruction(create::literalOp(**pCode));
     }
   }
 
@@ -133,11 +133,11 @@ bool handleVop2(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
 
     } break;
     case eOpcode::V_MADMK_F32: {
-      builder.createInstruction(createLiteral(**pCode));
+      builder.createInstruction(create::literalOp(**pCode));
       *pCode += 1;
     } break;
     case eOpcode::V_MADAK_F32: {
-      builder.createInstruction(createLiteral(**pCode));
+      builder.createInstruction(create::literalOp(**pCode));
       *pCode += 1;
     } break;
     case eOpcode::V_BCNT_U32_B32: {

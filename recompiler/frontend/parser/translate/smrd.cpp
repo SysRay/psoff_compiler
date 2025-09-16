@@ -22,7 +22,7 @@ bool handleSmrd(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
 
   if (!isImm && sOffset == eOperandKind::Literal) {
     *pCode += 1;
-    builder.createInstruction(createLiteral(**pCode));
+    builder.createInstruction(create::literalOp(**pCode));
   }
 
   *pCode += 1;

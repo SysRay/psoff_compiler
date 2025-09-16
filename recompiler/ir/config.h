@@ -8,10 +8,11 @@ using OperandIndex_t = uint16_t;
 using OperandType_t  = uint16_t;
 using OperandFlags_t = uint8_t;
 
-using InstructionId_t    = uint32_t;
-using InstructionKind_t  = uint16_t;
-using InstructionFlags_t = uint8_t;
-using InstructionGroup_t = uint8_t;
+using InstructionId_t       = uint32_t;
+using InstructionKind_t     = uint16_t;
+using InstructionUserData_t = uint16_t;
+using InstructionFlags_t    = uint8_t;
+using InstructionGroup_t    = uint8_t;
 
 } // namespace compiler
 

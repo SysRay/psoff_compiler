@@ -32,7 +32,7 @@ bool handleVop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
     src0  = (eOperandKind)inst.template get<VOP1::Field::SRC0>();
     if (src0 == eOperandKind::Literal) {
       *pCode += 1;
-      builder.createInstruction(createLiteral(**pCode));
+      builder.createInstruction(create::literalOp(**pCode));
     }
   }
 

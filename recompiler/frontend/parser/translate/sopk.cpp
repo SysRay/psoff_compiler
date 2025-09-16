@@ -79,7 +79,7 @@ bool handleSopk(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
     case eOpcode::S_GETREG_REGRD_B32: {
     } break;
     case eOpcode::S_SETREG_IMM32_B32: {
-      builder.createInstruction(createLiteral(**pCode));
+      builder.createInstruction(create::literalOp(**pCode));
       *pCode += 1;
     } break;
     default: throw std::runtime_error(std::format("missing inst {}", debug::getDebug(op))); break;

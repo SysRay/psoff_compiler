@@ -33,7 +33,7 @@ bool handleVopc(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
 
     if (src0 == eOperandKind::Literal || src1 == eOperandKind::Literal) {
       *pCode += 1;
-      builder.createInstruction(createLiteral(**pCode));
+      builder.createInstruction(create::literalOp(**pCode));
     }
   }
 

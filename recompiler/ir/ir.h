@@ -6,7 +6,6 @@
 
 namespace compiler::ir {
 
-// todo operands need constants too (instructions with either constant or register)
 struct Operand {
   struct {
     OperandKind_t  kind: config::kOperandKindBits   = 0;
@@ -22,10 +21,12 @@ struct InstConstant {
   uint64_t    value;
 };
 
-struct InstCore {
+struct alignas(64) InstCore {
   InstructionKind_t  kind;
   eInstructionGroup  group = eInstructionGroup::kUnknown;
   InstructionFlags_t flags;
+
+  InstructionUserData_t userData = 0;
 
   struct {
     uint8_t numDst : 4;

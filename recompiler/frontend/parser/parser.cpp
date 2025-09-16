@@ -15,7 +15,7 @@ enum eEncodingMask : uint32_t {
   eEncodingMask_1b = 0x80000000,
 };
 
-constexpr uint32_t getEncodingBits(eEncoding encoding) {
+static constexpr uint32_t getEncodingBits(eEncoding encoding) {
   switch (encoding) {
     case eEncoding::SOP1: return 0xbe800000;
     case eEncoding::SOP2: return 0x80000000;
