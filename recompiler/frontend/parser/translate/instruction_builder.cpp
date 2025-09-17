@@ -111,12 +111,36 @@ ir::InstCore bitsetOp(eOperandKind dst, eOperandKind src, eOperandKind offset, e
   auto inst                = ir::getInfo(ir::eInstKind::BitsetOp);
   inst.dstOperands[0].kind = getOperandKind(dst);
   inst.srcOperands[0].kind = getOperandKind(src);
-  inst.srcOperands[0].kind = getOperandKind(offset);
-  inst.srcOperands[0].kind = getOperandKind(value);
+  inst.srcOperands[1].kind = getOperandKind(offset);
+  inst.srcOperands[2].kind = getOperandKind(value);
   inst.dstOperands[0].type = type;
   inst.srcOperands[0].type = type;
   inst.srcOperands[1].type = ir::OperandType::i32();
   inst.srcOperands[2].type = type;
+  return inst;
+}
+
+ir::InstCore bitUExtractOp(eOperandKind dst, eOperandKind base, eOperandKind offset, eOperandKind count, ir::OperandType type) {
+  auto inst                = ir::getInfo(ir::eInstKind::BitUExtractOp);
+  inst.dstOperands[0].kind = getOperandKind(dst);
+  inst.srcOperands[0].kind = getOperandKind(base);
+  inst.srcOperands[1].kind = getOperandKind(offset);
+  inst.srcOperands[2].kind = getOperandKind(count);
+  inst.dstOperands[0].type = type;
+  inst.srcOperands[0].type = type;
+  inst.srcOperands[2].type = inst.srcOperands[1].type = ir::OperandType::i32();
+  return inst;
+}
+
+ir::InstCore bitCmpOp(eOperandKind dst, eOperandKind base, ir::OperandType type, eOperandKind index, bool value) {
+  auto inst                = ir::getInfo(ir::eInstKind::BitCmpOp);
+  inst.dstOperands[0].kind = getOperandKind(dst);
+  inst.srcOperands[0].kind = getOperandKind(base);
+  inst.srcOperands[1].kind = getOperandKind(index);
+
+  inst.srcOperands[0].type = type;
+  inst.srcOperands[1].type = ir::OperandType::i32();
+  if (!value) inst.dstOperands[0].flags = OperandFlagsDst(eRegClass::SGPR, 0, false, true); // invert it
   return inst;
 }
 

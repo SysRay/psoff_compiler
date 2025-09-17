@@ -70,7 +70,7 @@ bool handleSopk(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
     case eOpcode::S_MULK_I32: {
 
     } break;
-    case eOpcode::S_CBRANCH_I_FORK: { // handled in branch
+    case eOpcode::S_CBRANCH_I_FORK: {
     } break;
     case eOpcode::S_GETREG_B32: {
     } break;

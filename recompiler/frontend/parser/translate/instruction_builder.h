@@ -38,6 +38,8 @@ ir::InstCore findUMsbOp(eOperandKind dst, eOperandKind src, ir::OperandType type
 ir::InstCore findSMsbOp(eOperandKind dst, eOperandKind src, ir::OperandType type);
 ir::InstCore signExtendI32Op(eOperandKind dst, eOperandKind src, ir::OperandType type);
 ir::InstCore bitsetOp(eOperandKind dst, eOperandKind src, eOperandKind offset, eOperandKind value, ir::OperandType type);
+ir::InstCore bitUExtractOp(eOperandKind dst, eOperandKind base, eOperandKind offset, eOperandKind count, ir::OperandType type);
+ir::InstCore bitCmpOp(eOperandKind dst, eOperandKind base, ir::OperandType type, eOperandKind index, bool value);
 ir::InstCore cmpIOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type, CmpIPredicate op);
 
 // // Flow control

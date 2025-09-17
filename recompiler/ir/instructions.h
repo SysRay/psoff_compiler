@@ -20,7 +20,9 @@ namespace compiler::ir {
   X(FindSMsbOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32)))                                                                                               \
   X(SignExtendOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32)))                                                                                             \
   X(BitsetOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32), OP(i1)))                                                                                \
-  X(CmpIOp, kALU, kNone, DST_OPS(OP(i1)), SRC_OPS(OP(i32), OP(i32)))                                                                                \
+  X(BitCmpOp, kALU, kNone, DST_OPS(OP(i1)), SRC_OPS(OP(i32), OP(i32)))                                                                                         \
+  X(BitUExtractOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32), OP(i32)))                                                                          \
+  X(CmpIOp, kALU, kNone, DST_OPS(OP(i1)), SRC_OPS(OP(i32), OP(i32)))                                                                                           \
   X(AddF32Op, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32), OP(f32)))                                                                                        \
   X(AddI32Op, kALU, kNone, DST_OPS(OP(i32), OP(i1)), SRC_OPS(OP(i32), OP(i32), OP(i1)))                                                                        \
   X_NO_OPS(ReturnOp, kFlowControl, kHasSideEffects)                                                                                                            \
