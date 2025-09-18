@@ -172,7 +172,8 @@ bool handleSop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
       builder.createInstruction(create::bitXnorOp(eOperandKind::ExecLo, src0, sdst, ir::OperandType::i1()));
       builder.createInstruction(create::moveOp(eOperandKind::Scc, eOperandKind::ExecLo, ir::OperandType::i1()));
     } break;
-      // case eOpcode::S_QUADMASK_B32: break; // todo,  might be same as wqm
+      // case eOpcode::S_QUADMASK_B
+      // 32: break; // todo,  might be same as wqm
       // case eOpcode::S_QUADMASK_B64: break; // todo, might be same as wqm
     // case eOpcode::S_MOVRELS_B32: {} break; // todo
     // case eOpcode::S_MOVRELS_B64: {} break; // todo

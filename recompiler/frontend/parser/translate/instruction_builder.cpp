@@ -162,6 +162,14 @@ ir::InstCore jumpAbsOp(eOperandKind addr) {
   return inst;
 }
 
+ir::InstCore jumpAbsOp(uint64_t addr) {
+  auto inst              = ir::getInfo(ir::eInstKind::JumpAbsOp);
+  inst.srcConstant.value = addr;
+  inst.srcConstant.type  = ir::OperandType::i64();
+  inst.flags |= ir::Flags<ir::eInstructionFlags>(ir::eInstructionFlags::kConstant);
+  return inst;
+}
+
 ir::InstCore bitAndOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type) {
   auto inst                = ir::getInfo(ir::eInstKind::BitAndOp);
   inst.dstOperands[0].kind = getOperandKind(dst);

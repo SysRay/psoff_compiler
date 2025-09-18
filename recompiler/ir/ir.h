@@ -43,13 +43,13 @@ struct alignas(64) InstCore {
   inline bool isValid() const { return group != eInstructionGroup::kUnknown; }
 
   // // Flags
-  constexpr inline bool hasSideEffects() { return (flags & kHasSideEffects) != 0; }
+  constexpr inline bool hasSideEffects() { return (flags & (InstructionFlags_t)eInstructionFlags::kHasSideEffects) != 0; }
 
-  constexpr inline bool writesExec() { return (flags & kWritesEXEC) != 0; }
+  constexpr inline bool writesExec() { return (flags & (InstructionFlags_t)eInstructionFlags::kWritesEXEC) != 0; }
 
-  constexpr inline bool isVirtual() { return (flags & kVirtual) != 0; }
+  constexpr inline bool isVirtual() { return (flags & (InstructionFlags_t)eInstructionFlags::kVirtual) != 0; }
 
-  constexpr bool isBarrier() { return (flags & kBarrier) != 0; }
+  constexpr bool isBarrier() { return (flags & (InstructionFlags_t)eInstructionFlags::kBarrier) != 0; }
 };
 
 static_assert(sizeof(InstCore) <= 64); ///< cache lines

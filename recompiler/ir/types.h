@@ -7,15 +7,16 @@
 
 namespace compiler::ir {
 
-enum eInstructionFlags : InstructionFlags_t {
+enum class eInstructionFlags : InstructionFlags_t {
   kNone           = 0,
   kHasSideEffects = 1u << 0, ///< cannot be removed / reordered
   kWritesEXEC     = 1u << 1, ///< Writes to exec
   kVirtual        = 1u << 2, ///< Instructions that run only with Exec set
   kBarrier        = 1u << 3, ///< e.g. exec barrier, waitcnt
+  kConstant       = 1u << 4, ///< use src constant
 };
 
-enum eInstructionGroup : InstructionGroup_t {
+enum class eInstructionGroup : InstructionGroup_t {
   kUnknown,
   kALU,
   kBIT,
