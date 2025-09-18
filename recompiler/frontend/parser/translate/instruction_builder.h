@@ -20,7 +20,7 @@ namespace create {
 ir::InstCore literalOp(uint32_t);
 ir::InstCore constantOp(eOperandKind dst, uint64_t, ir::OperandType type);
 ir::InstCore moveOp(eOperandKind dst, eOperandKind src, ir::OperandType type);
-ir::InstCore condMoveOp(eOperandKind dst, eOperandKind src, eOperandKind predicate, ir::OperandType type);
+ir::InstCore selectOp(eOperandKind dst, eOperandKind predicate, eOperandKind srcTrue, eOperandKind srcFalse, ir::OperandType type);
 ir::InstCore notOp(eOperandKind dst, eOperandKind src, ir::OperandType type);
 ir::InstCore absOp(eOperandKind dst, eOperandKind src, ir::OperandType type);
 ir::InstCore bitReverseOp(eOperandKind dst, eOperandKind src, ir::OperandType type);
@@ -42,6 +42,16 @@ ir::InstCore bitUExtractOp(eOperandKind dst, eOperandKind base, eOperandKind off
 ir::InstCore bitCmpOp(eOperandKind dst, eOperandKind base, ir::OperandType type, eOperandKind index, bool value);
 ir::InstCore cmpIOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type, CmpIPredicate op);
 
+ir::InstCore shiftLUIOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type);
+ir::InstCore shiftRUIOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type);
+ir::InstCore shiftRSIOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type);
+
+// // arith
+ir::InstCore mulIOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type);
+ir::InstCore addIOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type);
+ir::InstCore addcIOp(eOperandKind dst, eOperandKind carryOut, eOperandKind src0, eOperandKind src1, eOperandKind carryIn, ir::OperandType type);
+ir::InstCore subIOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type);
+ir::InstCore subbIOp(eOperandKind dst, eOperandKind carryOut, eOperandKind src0, eOperandKind src1, eOperandKind carryIn, ir::OperandType type);
 // // Flow control
 ir::InstCore jumpAbsOp(eOperandKind addr);
 } // namespace create

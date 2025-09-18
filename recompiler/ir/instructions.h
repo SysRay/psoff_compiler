@@ -8,23 +8,30 @@
 namespace compiler::ir {
 // // Opcode definition
 #define INSTRUCTION_LIST                                                                                                                                       \
-  X(MoveOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32)))                                                                                                   \
-  X(CMoveOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i1), OP(i32)))                                                                                          \
-  X(BitReverseOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32)))                                                                                             \
-  X(BitCountOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32)))                                                                                               \
-  X(BitAndOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                        \
-  X(BitOrOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                         \
-  X(BitXorOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                        \
-  X(FindILsbOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32)))                                                                                               \
-  X(FindUMsbOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32)))                                                                                               \
-  X(FindSMsbOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32)))                                                                                               \
-  X(SignExtendOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32)))                                                                                             \
-  X(BitsetOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32), OP(i1)))                                                                                \
-  X(BitCmpOp, kALU, kNone, DST_OPS(OP(i1)), SRC_OPS(OP(i32), OP(i32)))                                                                                         \
-  X(BitUExtractOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32), OP(i32)))                                                                          \
+  X(MoveOp, kUnknown, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32)))                                                                                               \
+  X(SelectOp, kUnknown, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i1), OP(i32), OP(i32)))                                                                            \
+  X(BitReverseOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32)))                                                                                             \
+  X(BitCountOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32)))                                                                                               \
+  X(BitAndOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                        \
+  X(BitOrOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                         \
+  X(BitXorOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                        \
+  X(FindILsbOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32)))                                                                                               \
+  X(FindUMsbOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32)))                                                                                               \
+  X(FindSMsbOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32)))                                                                                               \
+  X(SignExtendOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32)))                                                                                             \
+  X(BitsetOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32), OP(i1)))                                                                                \
+  X(BitCmpOp, kBIT, kNone, DST_OPS(OP(i1)), SRC_OPS(OP(i32), OP(i32)))                                                                                         \
+  X(BitUExtractOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32), OP(i32)))                                                                          \
+  X(ShiftLUIOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                      \
+  X(ShiftRUIOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                      \
+  X(ShiftRSIOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                      \
   X(CmpIOp, kALU, kNone, DST_OPS(OP(i1)), SRC_OPS(OP(i32), OP(i32)))                                                                                           \
   X(AddF32Op, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32), OP(f32)))                                                                                        \
-  X(AddI32Op, kALU, kNone, DST_OPS(OP(i32), OP(i1)), SRC_OPS(OP(i32), OP(i32), OP(i1)))                                                                        \
+  X(MulIOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                          \
+  X(AddIOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                          \
+  X(AddCarryIOp, kALU, kNone, DST_OPS(OP(i32), OP(i1)), SRC_OPS(OP(i32), OP(i32), OP(i1)))                                                                     \
+  X(SubIOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                          \
+  X(SubBurrowIOp, kALU, kNone, DST_OPS(OP(i32), OP(i1)), SRC_OPS(OP(i32), OP(i32), OP(i1)))                                                                    \
   X_NO_OPS(ReturnOp, kFlowControl, kHasSideEffects)                                                                                                            \
   X_NO_DST(JumpAbsOp, kFlowControl, kHasSideEffects, SRC_OPS(OP(i64)))                                                                                         \
   X_NO_SRC(ConstantOp, kConstant, kNone, DST_OPS(OP(f32)))

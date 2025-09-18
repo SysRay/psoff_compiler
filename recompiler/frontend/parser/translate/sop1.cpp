@@ -34,10 +34,10 @@ bool handleSop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
       builder.createInstruction(create::moveOp(sdst, src0, ir::OperandType::i64()));
     } break;
     case eOpcode::S_CMOV_B32: {
-      builder.createInstruction(create::condMoveOp(sdst, src0, eOperandKind::Scc, ir::OperandType::i32()));
+      builder.createInstruction(create::selectOp(sdst, eOperandKind::Scc, src0, sdst, ir::OperandType::i32()));
     } break;
     case eOpcode::S_CMOV_B64: {
-      builder.createInstruction(create::condMoveOp(sdst, src0, eOperandKind::Scc, ir::OperandType::i64()));
+      builder.createInstruction(create::selectOp(sdst, eOperandKind::Scc, src0, sdst, ir::OperandType::i64()));
     } break;
     case eOpcode::S_NOT_B32: {
       builder.createInstruction(create::notOp(sdst, src0, ir::OperandType::i32()));

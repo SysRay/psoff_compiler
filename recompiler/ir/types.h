@@ -18,6 +18,7 @@ enum eInstructionFlags : InstructionFlags_t {
 enum eInstructionGroup : InstructionGroup_t {
   kUnknown,
   kALU,
+  kBIT,
   kConstant,
   kFlowControl,
 };
@@ -36,9 +37,7 @@ struct OperandType {
     f64
   };
 
-  enum class eKind : uint8_t { Scalar = 0,
-                               Vector = 1,
-                               Array  = 2 };
+  enum class eKind : uint8_t { Scalar = 0, Vector = 1, Array = 2 };
 
   struct __OperandTypeData {
     union {
@@ -93,7 +92,7 @@ struct OperandType {
   constexpr std::uint32_t byte_size() const noexcept {
     const std::uint32_t elem = base_size_bytes();
     const std::uint32_t c    = cols();
-    if(c) return elem * c;
+    if (c) return elem * c;
     return elem;
   }
 
@@ -120,7 +119,7 @@ struct OperandType {
   __OperandTypeData _v;
 
   static constexpr std::uint8_t base_size(eBase b) {
-    switch(b) {
+    switch (b) {
       case eBase::i1: return 1;
       case eBase::i8: return 1;
       case eBase::i16: return 2;
@@ -134,7 +133,7 @@ struct OperandType {
   }
 
   static constexpr bool is_float_base(eBase b) {
-    switch(b) {
+    switch (b) {
       case eBase::f16:
       case eBase::f32:
       case eBase::f64: return true;
@@ -147,9 +146,7 @@ struct OperandType {
 
 // Hash support
 struct OperandTypeHash {
-  auto operator()(const OperandType& t) const noexcept {
-    return std::hash<OperandType_t> {}(t.packed());
-  }
+  auto operator()(const OperandType& t) const noexcept { return std::hash<OperandType_t> {}(t.packed()); }
 };
 
 } // namespace compiler::ir
