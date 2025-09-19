@@ -22,6 +22,7 @@ enum class eInstructionGroup : InstructionGroup_t {
   kBIT,
   kConstant,
   kFlowControl,
+  kBarrier,
 };
 
 struct OperandType {

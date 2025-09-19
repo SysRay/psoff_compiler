@@ -38,7 +38,9 @@ namespace compiler::ir {
   X(SubIOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                          \
   X(SubBurrowIOp, kALU, kNone, DST_OPS(OP(i32), OP(i1)), SRC_OPS(OP(i32), OP(i32), OP(i1)))                                                                    \
   X_NO_OPS(ReturnOp, kFlowControl, kHasSideEffects)                                                                                                            \
+  X_NO_OPS(BarrierOp, kFlowControl, kHasSideEffects)                                                                                                           \
   X_NO_DST(JumpAbsOp, kFlowControl, kHasSideEffects, SRC_OPS(OP(i64)))                                                                                         \
+  X_NO_DST(CondJumpAbsOp, kFlowControl, kHasSideEffects, SRC_OPS(OP(i1), OP(i64)))                                                                             \
   X_NO_SRC(ConstantOp, kConstant, kConstant, DST_OPS(OP(f32)))
 
 // // Create table etc

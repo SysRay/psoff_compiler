@@ -21,34 +21,45 @@ bool handleSopp(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
   *pCode += 1;
 
   switch (op) {
-    case eOpcode::S_NOP: {
-    } break;
+    case eOpcode::S_NOP: break; // ignore
     case eOpcode::S_ENDPGM: {
+      builder.createInstruction(ir::getInfo(ir::eInstKind::ReturnOp));
     } break;
     case eOpcode::S_BRANCH: {
+      builder.createInstruction(create::jumpAbsOp(4 + pc + 4 * (int64_t)offset));
     } break;
     case eOpcode::S_CBRANCH_SCC0: {
+      builder.createInstruction(create::constantOp(eOperandKind::CustomTemp0Lo, 4 + pc + 4 * (int64_t)offset, ir::OperandType::i64()));
+      builder.createInstruction(create::cjumpAbsOp(eOperandKind::Scc, true, eOperandKind::CustomTemp0Lo));
     } break;
     case eOpcode::S_CBRANCH_SCC1: {
+      builder.createInstruction(create::constantOp(eOperandKind::CustomTemp0Lo, 4 + pc + 4 * (int64_t)offset, ir::OperandType::i64()));
+      builder.createInstruction(create::cjumpAbsOp(eOperandKind::Scc, false, eOperandKind::CustomTemp0Lo));
     } break;
     case eOpcode::S_CBRANCH_VCCZ: {
+      builder.createInstruction(create::constantOp(eOperandKind::CustomTemp0Lo, 4 + pc + 4 * (int64_t)offset, ir::OperandType::i64()));
+      builder.createInstruction(create::cjumpAbsOp(eOperandKind::VccZ, false, eOperandKind::CustomTemp0Lo));
     } break;
     case eOpcode::S_CBRANCH_VCCNZ: {
+      builder.createInstruction(create::constantOp(eOperandKind::CustomTemp0Lo, 4 + pc + 4 * (int64_t)offset, ir::OperandType::i64()));
+      builder.createInstruction(create::cjumpAbsOp(eOperandKind::VccZ, true, eOperandKind::CustomTemp0Lo));
     } break;
     case eOpcode::S_CBRANCH_EXECZ: {
+      builder.createInstruction(create::constantOp(eOperandKind::CustomTemp0Lo, 4 + pc + 4 * (int64_t)offset, ir::OperandType::i64()));
+      builder.createInstruction(create::cjumpAbsOp(eOperandKind::ExecZ, false, eOperandKind::CustomTemp0Lo));
     } break;
     case eOpcode::S_CBRANCH_EXECNZ: {
+      builder.createInstruction(create::constantOp(eOperandKind::CustomTemp0Lo, 4 + pc + 4 * (int64_t)offset, ir::OperandType::i64()));
+      builder.createInstruction(create::cjumpAbsOp(eOperandKind::ExecZ, true, eOperandKind::CustomTemp0Lo));
     } break;
     case eOpcode::S_BARRIER: {
+      builder.createInstruction(ir::getInfo(ir::eInstKind::BarrierOp));
     } break;
-    case eOpcode::S_SETKILL: {
-    } break;
-    case eOpcode::S_WAITCNT: {
-    } break;
-    case eOpcode::S_SETHALT: {
-    } break;
-    case eOpcode::S_SLEEP: {
-    } break;
+    // case eOpcode::S_SETKILL: {} break; // Does not exist
+    case eOpcode::S_WAITCNT:
+      break; // ignore
+    // case eOpcode::S_SETHALT: {} break; // Does not exist
+    case eOpcode::S_SLEEP: break; // ignore
     case eOpcode::S_SETPRIO: {
     } break;
     case eOpcode::S_SENDMSG: {

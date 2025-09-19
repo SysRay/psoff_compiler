@@ -61,5 +61,6 @@ ir::InstCore subbIOp(eOperandKind dst, eOperandKind carryOut, eOperandKind src0,
 // // Flow control
 ir::InstCore jumpAbsOp(eOperandKind addr);
 ir::InstCore jumpAbsOp(uint64_t addr);
+ir::InstCore cjumpAbsOp(eOperandKind predicate, bool invert, eOperandKind addr);
 } // namespace create
 } // namespace compiler::frontend::translate

@@ -217,6 +217,14 @@ ir::InstCore jumpAbsOp(uint64_t addr) {
   return inst;
 }
 
+ir::InstCore cjumpAbsOp(eOperandKind predicate, bool invert, eOperandKind addr) {
+  auto inst                = ir::getInfo(ir::eInstKind::CondJumpAbsOp);
+  inst.srcOperands[0].kind = getOperandKind(predicate);
+  inst.srcOperands[1].kind = getOperandKind(addr);
+  if (invert) inst.srcOperands[0].flags = OperandFlagsSrc(eRegClass::SGPR, true, false);
+  return inst;
+}
+
 ir::InstCore bitFieldMaskOp(eOperandKind dst, eOperandKind size, eOperandKind offset, ir::OperandType type) {
   auto inst                = ir::getInfo(ir::eInstKind::BitFieldMaskOp);
   inst.dstOperands[0].kind = getOperandKind(dst);
