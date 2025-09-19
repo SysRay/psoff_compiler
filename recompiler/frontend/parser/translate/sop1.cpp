@@ -60,36 +60,32 @@ bool handleSop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
       builder.createInstruction(create::bitReverseOp(sdst, src0, ir::OperandType::i64()));
     } break;
     case eOpcode::S_BCNT0_I32_B32: {
-      builder.createInstruction(create::bitCountOp(sdst, src0, ir::OperandType::i32()));
+      builder.createInstruction(create::bitCountOp(sdst, src0, ir::OperandType::i32(), false));
       builder.createInstruction(create::cmpIOp(eOperandKind::Scc, sdst, eOperandKind::ConstZero, ir::OperandType::i32(), CmpIPredicate::ne));
     } break;
     case eOpcode::S_BCNT0_I32_B64: {
-      builder.createInstruction(create::bitCountOp(sdst, src0, ir::OperandType::i64()));
+      builder.createInstruction(create::bitCountOp(sdst, src0, ir::OperandType::i64(), false));
       builder.createInstruction(create::cmpIOp(eOperandKind::Scc, sdst, eOperandKind::ConstZero, ir::OperandType::i32(), CmpIPredicate::ne));
     } break;
     case eOpcode::S_BCNT1_I32_B32: {
-      builder.createInstruction(create::notOp(src0, src0, ir::OperandType::i32()));
-      builder.createInstruction(create::bitCountOp(sdst, src0, ir::OperandType::i32()));
+      builder.createInstruction(create::bitCountOp(sdst, src0, ir::OperandType::i32(), true));
       builder.createInstruction(create::cmpIOp(eOperandKind::Scc, sdst, eOperandKind::ConstZero, ir::OperandType::i32(), CmpIPredicate::ne));
     } break;
     case eOpcode::S_BCNT1_I32_B64: {
-      builder.createInstruction(create::notOp(src0, src0, ir::OperandType::i64()));
-      builder.createInstruction(create::bitCountOp(sdst, src0, ir::OperandType::i64()));
+      builder.createInstruction(create::bitCountOp(sdst, src0, ir::OperandType::i64(), true));
       builder.createInstruction(create::cmpIOp(eOperandKind::Scc, sdst, eOperandKind::ConstZero, ir::OperandType::i32(), CmpIPredicate::ne));
     } break;
     case eOpcode::S_FF0_I32_B32: {
-      builder.createInstruction(create::notOp(src0, src0, ir::OperandType::i32()));
-      builder.createInstruction(create::findILsbOp(sdst, src0, ir::OperandType::i32()));
+      builder.createInstruction(create::findILsbOp(sdst, src0, ir::OperandType::i32(), false));
     } break;
     case eOpcode::S_FF0_I32_B64: {
-      builder.createInstruction(create::notOp(src0, src0, ir::OperandType::i64()));
-      builder.createInstruction(create::findILsbOp(sdst, src0, ir::OperandType::i64()));
+      builder.createInstruction(create::findILsbOp(sdst, src0, ir::OperandType::i64(), false));
     } break;
     case eOpcode::S_FF1_I32_B32: {
-      builder.createInstruction(create::findILsbOp(sdst, src0, ir::OperandType::i32()));
+      builder.createInstruction(create::findILsbOp(sdst, src0, ir::OperandType::i32(), true));
     } break;
     case eOpcode::S_FF1_I32_B64: {
-      builder.createInstruction(create::findILsbOp(sdst, src0, ir::OperandType::i64()));
+      builder.createInstruction(create::findILsbOp(sdst, src0, ir::OperandType::i64(), true));
     } break;
     case eOpcode::S_FLBIT_I32_B32: {
       builder.createInstruction(create::findUMsbOp(sdst, src0, ir::OperandType::i32()));
@@ -116,10 +112,10 @@ bool handleSop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
       builder.createInstruction(create::bitsetOp(sdst, sdst, src0, eOperandKind::ConstZero, ir::OperandType::i64()));
     } break;
     case eOpcode::S_BITSET1_B32: {
-      builder.createInstruction(create::bitsetOp(sdst, sdst, src0, eOperandKind::ConstUInt, ir::OperandType::i32()));
+      builder.createInstruction(create::bitsetOp(sdst, sdst, src0, getUImm(1), ir::OperandType::i32()));
     } break;
     case eOpcode::S_BITSET1_B64: {
-      builder.createInstruction(create::bitsetOp(sdst, sdst, src0, eOperandKind::ConstUInt, ir::OperandType::i64()));
+      builder.createInstruction(create::bitsetOp(sdst, sdst, src0, getUImm(1), ir::OperandType::i64()));
     } break;
     case eOpcode::S_GETPC_B64: {
       builder.createInstruction(create::constantOp(sdst, 4 + pc, ir::OperandType::i64()));

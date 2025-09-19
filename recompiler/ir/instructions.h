@@ -15,13 +15,17 @@ namespace compiler::ir {
   X(BitAndOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                        \
   X(BitOrOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                         \
   X(BitXorOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                        \
+  X(BitFieldMaskOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                  \
   X(FindILsbOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32)))                                                                                               \
   X(FindUMsbOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32)))                                                                                               \
   X(FindSMsbOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32)))                                                                                               \
   X(SignExtendOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32)))                                                                                             \
   X(BitsetOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32), OP(i1)))                                                                                \
   X(BitCmpOp, kBIT, kNone, DST_OPS(OP(i1)), SRC_OPS(OP(i32), OP(i32)))                                                                                         \
-  X(BitUExtractOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32), OP(i32)))                                                                          \
+  X(BitUIExtractOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32), OP(i32)))                                                                         \
+  X(BitSIExtractOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32), OP(i32)))                                                                         \
+  X(BitUIExtractCompactOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                           \
+  X(BitSIExtractCompactOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                           \
   X(ShiftLUIOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                      \
   X(ShiftRUIOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                      \
   X(ShiftRSIOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                      \

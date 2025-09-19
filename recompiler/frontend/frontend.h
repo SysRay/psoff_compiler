@@ -40,6 +40,10 @@ enum class eOperandKind : OperandKind_t {
   VGPR,
 };
 
+constexpr inline eOperandKind getUImm(uint8_t value) {
+  return eOperandKind((OperandKind_t)eOperandKind::ConstZero + value);
+}
+
 constexpr inline eOperandKind getOperandKind(OperandKind_t kind) {
   return (eOperandKind)kind;
 }

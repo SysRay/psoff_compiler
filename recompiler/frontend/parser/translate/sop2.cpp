@@ -161,22 +161,29 @@ bool handleSop2(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
       builder.createInstruction(create::cmpIOp(eOperandKind::Scc, sdst, eOperandKind::ConstZero, ir::OperandType::i64(), CmpIPredicate::ne));
     } break;
     case eOpcode::S_BFM_B32: {
-
+      builder.createInstruction(create::bitFieldMaskOp(sdst, src0, src1, ir::OperandType::i32()));
     } break;
     case eOpcode::S_BFM_B64: {
-
+      builder.createInstruction(create::bitFieldMaskOp(sdst, src0, src1, ir::OperandType::i64()));
     } break;
     case eOpcode::S_MUL_I32: {
       builder.createInstruction(create::mulIOp(sdst, src0, src1, ir::OperandType::i32()));
     } break;
     case eOpcode::S_BFE_U32: {
-
+      builder.createInstruction(create::bitUIExtractOp(sdst, src0, src1, ir::OperandType::i32()));
+      builder.createInstruction(create::cmpIOp(eOperandKind::Scc, sdst, eOperandKind::ConstZero, ir::OperandType::i32(), CmpIPredicate::ne));
     } break;
     case eOpcode::S_BFE_I32: {
+      builder.createInstruction(create::bitSIExtractOp(sdst, src0, src1, ir::OperandType::i32()));
+      builder.createInstruction(create::cmpIOp(eOperandKind::Scc, sdst, eOperandKind::ConstZero, ir::OperandType::i32(), CmpIPredicate::ne));
     } break;
     case eOpcode::S_BFE_U64: {
+      builder.createInstruction(create::bitSIExtractOp(sdst, src0, src1, ir::OperandType::i64()));
+      builder.createInstruction(create::cmpIOp(eOperandKind::Scc, sdst, eOperandKind::ConstZero, ir::OperandType::i64(), CmpIPredicate::ne));
     } break;
     case eOpcode::S_BFE_I64: {
+      builder.createInstruction(create::bitSIExtractOp(sdst, src0, src1, ir::OperandType::i64()));
+      builder.createInstruction(create::cmpIOp(eOperandKind::Scc, sdst, eOperandKind::ConstZero, ir::OperandType::i64(), CmpIPredicate::ne));
     } break;
     // case eOpcode::S_CBRANCH_G_FORK: { } break; // todo, make a block falltrough or handle data?
     case eOpcode::S_ABSDIFF_I32: {
