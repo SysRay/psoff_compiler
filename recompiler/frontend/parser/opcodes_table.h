@@ -447,6 +447,7 @@ enum class eOpcode : InstructionKind_t {
 
   // SOPK
   S_MOVK_I32,
+  S_MOVK_HI_I32      = 1 + S_MOVK_I32,
   S_CMOVK_I32        = 2 + S_MOVK_I32,
   S_CMPK_EQ_I32      = 3 + S_MOVK_I32,
   S_CMPK_LG_I32      = 4 + S_MOVK_I32,

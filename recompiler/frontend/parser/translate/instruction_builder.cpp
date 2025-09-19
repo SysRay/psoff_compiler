@@ -19,6 +19,14 @@ ir::InstCore constantOp(eOperandKind dst, uint64_t value, ir::OperandType type) 
   return inst;
 }
 
+ir::InstCore constantOp(eOperandKind dst, int16_t value, ir::OperandType type) {
+  auto inst                = ir::getInfo(ir::eInstKind::ConstantOp);
+  inst.srcConstant.value   = (uint64_t)((int64_t)value);
+  inst.dstOperands[0].kind = getOperandKind(dst);
+  inst.dstOperands[0].type = inst.srcConstant.type = type;
+  return inst;
+}
+
 ir::InstCore moveOp(eOperandKind dst, eOperandKind src, ir::OperandType type) {
   auto inst                = ir::getInfo(ir::eInstKind::MoveOp);
   inst.dstOperands[0].kind = getOperandKind(dst);
@@ -133,6 +141,16 @@ ir::InstCore bitsetOp(eOperandKind dst, eOperandKind src, eOperandKind offset, e
   return inst;
 }
 
+ir::InstCore bitFieldInsertOp(eOperandKind dst, eOperandKind value, eOperandKind offset, eOperandKind count, ir::OperandType type) {
+  auto inst                = ir::getInfo(ir::eInstKind::BitFieldInsertOp);
+  inst.dstOperands[0].kind = getOperandKind(dst);
+  inst.srcOperands[0].kind = getOperandKind(value);
+  inst.srcOperands[1].kind = getOperandKind(offset);
+  inst.srcOperands[2].kind = getOperandKind(count);
+  inst.dstOperands[0].type = inst.srcOperands[0].type = type;
+  return inst;
+}
+
 ir::InstCore bitUIExtractOp(eOperandKind dst, eOperandKind base, eOperandKind offset, eOperandKind count, ir::OperandType type) {
   auto inst                = ir::getInfo(ir::eInstKind::BitUIExtractOp);
   inst.dstOperands[0].kind = getOperandKind(dst);
@@ -140,7 +158,6 @@ ir::InstCore bitUIExtractOp(eOperandKind dst, eOperandKind base, eOperandKind of
   inst.srcOperands[1].kind = getOperandKind(offset);
   inst.srcOperands[2].kind = getOperandKind(count);
   inst.dstOperands[0].type = inst.srcOperands[0].type = type;
-
   return inst;
 }
 

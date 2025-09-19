@@ -12,7 +12,7 @@ struct Operand {
     OperandFlags_t flags: config::kOperandFlagsBits = 0;
   };
 
-  uint16_t    value; ///< some opcodes have const values (offset, base)
+  // uint16_t    value; ///< some opcodes have const values (offset, base)
   OperandType type = OperandType::i32();
 };
 

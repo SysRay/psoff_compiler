@@ -23,65 +23,81 @@ bool handleSopk(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
 
   switch (op) {
     case eOpcode::S_MOVK_I32: {
-
+      builder.createInstruction(create::constantOp(sdst, imm16, ir::OperandType::i32()));
+    } break;
+    case eOpcode::S_MOVK_HI_I32: {
+      builder.createInstruction(create::literalOp((uint32_t)imm16 << 16u));
+      builder.createInstruction(create::bitFieldInsertOp(sdst, eOperandKind::CustomTemp0Lo, getUImm(16), getUImm(16), ir::OperandType::i32()));
     } break;
     case eOpcode::S_CMOVK_I32: {
-
+      builder.createInstruction(create::literalOp((uint32_t)(int32_t)imm16));
+      builder.createInstruction(create::selectOp(sdst, eOperandKind::Scc, eOperandKind::Literal, sdst, ir::OperandType::i32()));
     } break;
     case eOpcode::S_CMPK_EQ_I32: {
-
+      builder.createInstruction(create::literalOp((uint32_t)(int32_t)imm16));
+      builder.createInstruction(create::cmpIOp(eOperandKind::Scc, sdst, eOperandKind::Literal, ir::OperandType::i32(), CmpIPredicate::eq));
     } break;
     case eOpcode::S_CMPK_LG_I32: {
-
+      builder.createInstruction(create::literalOp((uint32_t)(int32_t)imm16));
+      builder.createInstruction(create::cmpIOp(eOperandKind::Scc, sdst, eOperandKind::Literal, ir::OperandType::i32(), CmpIPredicate::ne));
     } break;
     case eOpcode::S_CMPK_GT_I32: {
-
+      builder.createInstruction(create::literalOp((uint32_t)(int32_t)imm16));
+      builder.createInstruction(create::cmpIOp(eOperandKind::Scc, sdst, eOperandKind::Literal, ir::OperandType::i32(), CmpIPredicate::sgt));
     } break;
     case eOpcode::S_CMPK_GE_I32: {
-
+      builder.createInstruction(create::literalOp((uint32_t)(int32_t)imm16));
+      builder.createInstruction(create::cmpIOp(eOperandKind::Scc, sdst, eOperandKind::Literal, ir::OperandType::i32(), CmpIPredicate::sge));
     } break;
     case eOpcode::S_CMPK_LT_I32: {
-
+      builder.createInstruction(create::literalOp((uint32_t)(int32_t)imm16));
+      builder.createInstruction(create::cmpIOp(eOperandKind::Scc, sdst, eOperandKind::Literal, ir::OperandType::i32(), CmpIPredicate::slt));
     } break;
     case eOpcode::S_CMPK_LE_I32: {
-
+      builder.createInstruction(create::literalOp((uint32_t)(int32_t)imm16));
+      builder.createInstruction(create::cmpIOp(eOperandKind::Scc, sdst, eOperandKind::Literal, ir::OperandType::i32(), CmpIPredicate::sle));
     } break;
     case eOpcode::S_CMPK_EQ_U32: {
-
+      builder.createInstruction(create::literalOp((uint32_t)(uint16_t)imm16));
+      builder.createInstruction(create::cmpIOp(eOperandKind::Scc, sdst, eOperandKind::Literal, ir::OperandType::i32(), CmpIPredicate::eq));
     } break;
     case eOpcode::S_CMPK_LG_U32: {
-
+      builder.createInstruction(create::literalOp((uint32_t)(uint16_t)imm16));
+      builder.createInstruction(create::cmpIOp(eOperandKind::Scc, sdst, eOperandKind::Literal, ir::OperandType::i32(), CmpIPredicate::ne));
     } break;
     case eOpcode::S_CMPK_GT_U32: {
-
+      builder.createInstruction(create::literalOp((uint32_t)(uint16_t)imm16));
+      builder.createInstruction(create::cmpIOp(eOperandKind::Scc, sdst, eOperandKind::Literal, ir::OperandType::i32(), CmpIPredicate::ugt));
     } break;
     case eOpcode::S_CMPK_GE_U32: {
-
+      builder.createInstruction(create::literalOp((uint32_t)(uint16_t)imm16));
+      builder.createInstruction(create::cmpIOp(eOperandKind::Scc, sdst, eOperandKind::Literal, ir::OperandType::i32(), CmpIPredicate::uge));
     } break;
     case eOpcode::S_CMPK_LT_U32: {
-
+      builder.createInstruction(create::literalOp((uint32_t)(uint16_t)imm16));
+      builder.createInstruction(create::cmpIOp(eOperandKind::Scc, sdst, eOperandKind::Literal, ir::OperandType::i32(), CmpIPredicate::ult));
     } break;
     case eOpcode::S_CMPK_LE_U32: {
-
+      builder.createInstruction(create::literalOp((uint32_t)(uint16_t)imm16));
+      builder.createInstruction(create::cmpIOp(eOperandKind::Scc, sdst, eOperandKind::Literal, ir::OperandType::i32(), CmpIPredicate::ule));
     } break;
     case eOpcode::S_ADDK_I32: {
-
+      builder.createInstruction(create::literalOp((uint32_t)(int32_t)imm16));
+      builder.createInstruction(create::addIOp(sdst, eOperandKind::Literal, sdst, ir::OperandType::i32()));
+      builder.createInstruction(create::cmpIOp(eOperandKind::Scc, sdst, eOperandKind::Literal, ir::OperandType::i32(), CmpIPredicate::ult));
     } break;
     case eOpcode::S_MULK_I32: {
-
+      builder.createInstruction(create::literalOp((uint32_t)(int32_t)imm16));
+      builder.createInstruction(create::mulIOp(sdst, eOperandKind::Literal, sdst, ir::OperandType::i32()));
     } break;
-    case eOpcode::S_CBRANCH_I_FORK: {
-    } break;
-    case eOpcode::S_GETREG_B32: {
-    } break;
-    case eOpcode::S_SETREG_B32: {
-    } break;
-    case eOpcode::S_GETREG_REGRD_B32: {
-    } break;
-    case eOpcode::S_SETREG_IMM32_B32: {
-      builder.createInstruction(create::literalOp(**pCode));
-      *pCode += 1;
-    } break;
+      // case eOpcode::S_CBRANCH_I_FORK: {} break; // todo
+    // case eOpcode::S_GETREG_B32: {} break; // todo
+    // case eOpcode::S_SETREG_B32: {} break; // todo
+    // case eOpcode::S_GETREG_REGRD_B32: {} break;// todo
+    // case eOpcode::S_SETREG_IMM32_B32: { // todo
+    //   builder.createInstruction(create::literalOp(**pCode));
+    //   *pCode += 1;
+    // } break;
     default: throw std::runtime_error(std::format("missing inst {}", debug::getDebug(op))); break;
   }
   return true;

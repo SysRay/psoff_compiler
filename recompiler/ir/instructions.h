@@ -22,6 +22,7 @@ namespace compiler::ir {
   X(SignExtendOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32)))                                                                                             \
   X(BitsetOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32), OP(i1)))                                                                                \
   X(BitCmpOp, kBIT, kNone, DST_OPS(OP(i1)), SRC_OPS(OP(i32), OP(i32)))                                                                                         \
+  X(BitFieldInsertOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32), OP(i32)))                                                                       \
   X(BitUIExtractOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32), OP(i32)))                                                                         \
   X(BitSIExtractOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32), OP(i32)))                                                                         \
   X(BitUIExtractCompactOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                           \

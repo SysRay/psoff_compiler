@@ -19,6 +19,7 @@ struct OperandDst {
 namespace create {
 ir::InstCore literalOp(uint32_t);
 ir::InstCore constantOp(eOperandKind dst, uint64_t, ir::OperandType type);
+ir::InstCore constantOp(eOperandKind dst, int16_t, ir::OperandType type);
 ir::InstCore moveOp(eOperandKind dst, eOperandKind src, ir::OperandType type);
 ir::InstCore selectOp(eOperandKind dst, eOperandKind predicate, eOperandKind srcTrue, eOperandKind srcFalse, ir::OperandType type);
 ir::InstCore notOp(eOperandKind dst, eOperandKind src, ir::OperandType type);
@@ -39,6 +40,7 @@ ir::InstCore findUMsbOp(eOperandKind dst, eOperandKind src, ir::OperandType type
 ir::InstCore findSMsbOp(eOperandKind dst, eOperandKind src, ir::OperandType type);
 ir::InstCore signExtendI32Op(eOperandKind dst, eOperandKind src, ir::OperandType type);
 ir::InstCore bitsetOp(eOperandKind dst, eOperandKind src, eOperandKind offset, eOperandKind value, ir::OperandType type);
+ir::InstCore bitFieldInsertOp(eOperandKind dst, eOperandKind value, eOperandKind offset, eOperandKind count, ir::OperandType type);
 ir::InstCore bitUIExtractOp(eOperandKind dst, eOperandKind base, eOperandKind offset, eOperandKind count, ir::OperandType type);
 ir::InstCore bitSIExtractOp(eOperandKind dst, eOperandKind base, eOperandKind offset, eOperandKind count, ir::OperandType type);
 ir::InstCore bitUIExtractOp(eOperandKind dst, eOperandKind base, eOperandKind compact, ir::OperandType type);

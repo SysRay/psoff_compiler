@@ -81,11 +81,11 @@ bool handleSop2(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
       builder.createInstruction(create::cmpIOp(eOperandKind::Scc, sdst, eOperandKind::ConstZero, ir::OperandType::i64(), CmpIPredicate::ne));
     } break;
     case eOpcode::S_OR_B32: {
-      builder.createInstruction(create::bitAndOp(sdst, src0, src1, ir::OperandType::i32()));
+      builder.createInstruction(create::bitOrOp(sdst, src0, src1, ir::OperandType::i32()));
       builder.createInstruction(create::cmpIOp(eOperandKind::Scc, sdst, eOperandKind::ConstZero, ir::OperandType::i32(), CmpIPredicate::ne));
     } break;
     case eOpcode::S_OR_B64: {
-      builder.createInstruction(create::bitAndOp(sdst, src0, src1, ir::OperandType::i64()));
+      builder.createInstruction(create::bitOrOp(sdst, src0, src1, ir::OperandType::i64()));
       builder.createInstruction(create::cmpIOp(eOperandKind::Scc, sdst, eOperandKind::ConstZero, ir::OperandType::i64(), CmpIPredicate::ne));
     } break;
     case eOpcode::S_XOR_B32: {

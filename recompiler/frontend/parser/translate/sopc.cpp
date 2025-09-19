@@ -75,7 +75,9 @@ bool handleSopc(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
     case eOpcode::S_BITCMP1_B64: {
       builder.createInstruction(create::bitCmpOp(eOperandKind::Scc, src0, ir::OperandType::i64(), src1, true));
     } break;
-    // case eOpcode::S_SETVSKIP: {} break; // todo
+    case eOpcode::S_SETVSKIP: {
+      builder.createInstruction(create::bitCmpOp(eOperandKind::CustomVskip, src0, ir::OperandType::i32(), src1, true));
+    } break;
     default: throw std::runtime_error(std::format("missing inst {}", debug::getDebug(op))); break;
   }
   return true;
