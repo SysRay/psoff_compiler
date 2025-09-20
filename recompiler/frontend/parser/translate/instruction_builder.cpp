@@ -11,129 +11,121 @@ ir::InstCore literalOp(uint32_t value) {
   return inst;
 }
 
-ir::InstCore constantOp(eOperandKind dst, uint64_t value, ir::OperandType type) {
-  auto inst                = ir::getInfo(ir::eInstKind::ConstantOp);
-  inst.srcConstant.value   = value;
-  inst.dstOperands[0].kind = getOperandKind(dst);
+ir::InstCore constantOp(OpDst dst, uint64_t value, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::ConstantOp);
+  inst.srcConstant.value    = value;
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.dstOperands[0].flags = dst.flags;
   inst.dstOperands[0].type = inst.srcConstant.type = type;
   return inst;
 }
 
-ir::InstCore constantOp(eOperandKind dst, int16_t value, ir::OperandType type) {
-  auto inst                = ir::getInfo(ir::eInstKind::ConstantOp);
-  inst.srcConstant.value   = (uint64_t)((int64_t)value);
-  inst.dstOperands[0].kind = getOperandKind(dst);
+ir::InstCore constantOp(OpDst dst, int16_t value, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::ConstantOp);
+  inst.srcConstant.value    = (uint64_t)((int64_t)value);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.dstOperands[0].flags = dst.flags;
   inst.dstOperands[0].type = inst.srcConstant.type = type;
   return inst;
 }
 
-ir::InstCore moveOp(eOperandKind dst, eOperandKind src, ir::OperandType type) {
-  auto inst                = ir::getInfo(ir::eInstKind::MoveOp);
-  inst.dstOperands[0].kind = getOperandKind(dst);
-  inst.srcOperands[0].kind = getOperandKind(src);
-  inst.dstOperands[0].type = inst.srcOperands[0].type = type;
-  return inst;
-}
-
-ir::InstCore notOp(eOperandKind dst, eOperandKind src, ir::OperandType type) {
+ir::InstCore moveOp(OpDst dst, OpSrc src, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::MoveOp);
-  inst.dstOperands[0].kind  = getOperandKind(dst);
-  inst.srcOperands[0].kind  = getOperandKind(src);
-  inst.srcOperands[0].flags = OperandFlagsSrc(eRegClass::SGPR, true, false);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = src.flags;
   inst.dstOperands[0].type = inst.srcOperands[0].type = type;
   return inst;
 }
 
-ir::InstCore absOp(eOperandKind dst, eOperandKind src, ir::OperandType type) {
-  auto inst                 = ir::getInfo(ir::eInstKind::MoveOp);
-  inst.dstOperands[0].kind  = getOperandKind(dst);
-  inst.srcOperands[0].kind  = getOperandKind(src);
-  inst.srcOperands[0].flags = OperandFlagsSrc(eRegClass::SGPR, false, true);
-  inst.dstOperands[0].type = inst.srcOperands[0].type = type;
-  return inst;
-}
-
-ir::InstCore absDiff(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type) {
-  auto inst                 = ir::getInfo(ir::eInstKind::SubIOp);
-  inst.dstOperands[0].kind  = getOperandKind(dst);
-  inst.srcOperands[0].kind  = getOperandKind(src0);
-  inst.srcOperands[1].kind  = getOperandKind(src1);
-  inst.srcOperands[0].flags = OperandFlagsSrc(eRegClass::SGPR, false, true);
-  inst.dstOperands[0].type = inst.srcOperands[0].type = type;
-  return inst;
-}
-
-ir::InstCore selectOp(eOperandKind dst, eOperandKind predicate, eOperandKind srcTrue, eOperandKind srcFalse, ir::OperandType type) {
-  auto inst                = ir::getInfo(ir::eInstKind::SelectOp);
-  inst.dstOperands[0].kind = getOperandKind(dst);
-  inst.srcOperands[0].kind = getOperandKind(predicate);
-  inst.srcOperands[1].kind = getOperandKind(srcTrue);
-  inst.srcOperands[2].kind = getOperandKind(srcFalse);
+ir::InstCore selectOp(OpDst dst, OpSrc predicate, OpSrc srcTrue, OpSrc srcFalse, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::SelectOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(predicate.kind);
+  inst.srcOperands[1].kind  = getOperandKind(srcTrue.kind);
+  inst.srcOperands[2].kind  = getOperandKind(srcFalse.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = predicate.flags;
+  inst.srcOperands[1].flags = srcTrue.flags;
+  inst.srcOperands[2].flags = srcFalse.flags;
   inst.dstOperands[1].type = inst.srcOperands[1].type = inst.srcOperands[2].type = type;
   return inst;
 }
 
-ir::InstCore bitReverseOp(eOperandKind dst, eOperandKind src, ir::OperandType type) {
-  auto inst                = ir::getInfo(ir::eInstKind::BitReverseOp);
-  inst.dstOperands[0].kind = getOperandKind(dst);
-  inst.srcOperands[0].kind = getOperandKind(src);
+ir::InstCore bitReverseOp(OpDst dst, OpSrc src, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::BitReverseOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = src.flags;
   inst.dstOperands[0].type = inst.srcOperands[0].type = type;
   return inst;
 }
 
-ir::InstCore bitCountOp(eOperandKind dst, eOperandKind src, ir::OperandType type, bool value) {
-  auto inst                = ir::getInfo(ir::eInstKind::BitCountOp);
-  inst.dstOperands[0].kind = getOperandKind(dst);
-  inst.srcOperands[0].kind = getOperandKind(src);
-  inst.dstOperands[0].type = ir::OperandType::i32();
-  inst.srcOperands[0].type = type;
-  if (!value) inst.srcOperands[0].flags = OperandFlagsSrc(eRegClass::SGPR, true, false); // invert it
+ir::InstCore bitCountOp(OpDst dst, OpSrc src, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::BitCountOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = src.flags;
+  inst.srcOperands[0].type  = type;
   return inst;
 }
 
-ir::InstCore findILsbOp(eOperandKind dst, eOperandKind src, ir::OperandType type, bool value) {
-  auto inst                = ir::getInfo(ir::eInstKind::FindILsbOp);
-  inst.dstOperands[0].kind = getOperandKind(dst);
-  inst.srcOperands[0].kind = getOperandKind(src);
-  inst.dstOperands[0].type = ir::OperandType::i32();
-  inst.srcOperands[0].type = type;
-  if (!value) inst.srcOperands[0].flags = OperandFlagsSrc(eRegClass::SGPR, true, false); // invert it
+ir::InstCore findILsbOp(OpDst dst, OpSrc src, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::FindILsbOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = src.flags;
+  inst.dstOperands[0].type  = ir::OperandType::i32();
+  inst.srcOperands[0].type  = type;
   return inst;
 }
 
-ir::InstCore findUMsbOp(eOperandKind dst, eOperandKind src, ir::OperandType type) {
+ir::InstCore findUMsbOp(OpDst dst, OpSrc src, ir::OperandType type) {
   auto inst                = ir::getInfo(ir::eInstKind::FindUMsbOp);
-  inst.dstOperands[0].kind = getOperandKind(dst);
-  inst.srcOperands[0].kind = getOperandKind(src);
+  inst.dstOperands[0].kind = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind = getOperandKind(src.kind);
   inst.dstOperands[0].type = ir::OperandType::i32();
   inst.srcOperands[0].type = type;
   return inst;
 }
 
-ir::InstCore findSMsbOp(eOperandKind dst, eOperandKind src, ir::OperandType type) {
-  auto inst                = ir::getInfo(ir::eInstKind::FindUMsbOp);
-  inst.dstOperands[0].kind = getOperandKind(dst);
-  inst.srcOperands[0].kind = getOperandKind(src);
-  inst.dstOperands[0].type = ir::OperandType::i32();
-  inst.srcOperands[0].type = type;
+ir::InstCore findSMsbOp(OpDst dst, OpSrc src, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::FindUMsbOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = src.flags;
+  inst.dstOperands[0].type  = ir::OperandType::i32();
+  inst.srcOperands[0].type  = type;
   return inst;
 }
 
-ir::InstCore signExtendI32Op(eOperandKind dst, eOperandKind src, ir::OperandType type) {
-  auto inst                = ir::getInfo(ir::eInstKind::SignExtendOp);
-  inst.dstOperands[0].kind = getOperandKind(dst);
-  inst.srcOperands[0].kind = getOperandKind(src);
-  inst.dstOperands[0].type = ir::OperandType::i32();
-  inst.srcOperands[0].type = type;
+ir::InstCore signExtendI32Op(OpDst dst, OpSrc src, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::SignExtendOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = src.flags;
+  inst.dstOperands[0].type  = ir::OperandType::i32();
+  inst.srcOperands[0].type  = type;
   return inst;
 }
 
-ir::InstCore bitsetOp(eOperandKind dst, eOperandKind src, eOperandKind offset, eOperandKind value, ir::OperandType type) {
-  auto inst                = ir::getInfo(ir::eInstKind::BitsetOp);
-  inst.dstOperands[0].kind = getOperandKind(dst);
-  inst.srcOperands[0].kind = getOperandKind(src);
-  inst.srcOperands[1].kind = getOperandKind(offset);
-  inst.srcOperands[2].kind = getOperandKind(value);
+ir::InstCore bitsetOp(OpDst dst, OpSrc src, OpSrc offset, OpSrc value, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::BitsetOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src.kind);
+  inst.srcOperands[1].kind  = getOperandKind(offset.kind);
+  inst.srcOperands[2].kind  = getOperandKind(value.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = src.flags;
+  inst.srcOperands[1].flags = offset.flags;
+  inst.srcOperands[2].flags = value.flags;
+
   inst.dstOperands[0].type = type;
   inst.srcOperands[0].type = type;
   inst.srcOperands[1].type = ir::OperandType::i32();
@@ -141,64 +133,85 @@ ir::InstCore bitsetOp(eOperandKind dst, eOperandKind src, eOperandKind offset, e
   return inst;
 }
 
-ir::InstCore bitFieldInsertOp(eOperandKind dst, eOperandKind value, eOperandKind offset, eOperandKind count, ir::OperandType type) {
-  auto inst                = ir::getInfo(ir::eInstKind::BitFieldInsertOp);
-  inst.dstOperands[0].kind = getOperandKind(dst);
-  inst.srcOperands[0].kind = getOperandKind(value);
-  inst.srcOperands[1].kind = getOperandKind(offset);
-  inst.srcOperands[2].kind = getOperandKind(count);
+ir::InstCore bitFieldInsertOp(OpDst dst, OpSrc value, OpSrc offset, OpSrc count, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::BitFieldInsertOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(value.kind);
+  inst.srcOperands[1].kind  = getOperandKind(offset.kind);
+  inst.srcOperands[2].kind  = getOperandKind(count.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = value.flags;
+  inst.srcOperands[1].flags = offset.flags;
+  inst.srcOperands[2].flags = count.flags;
+
   inst.dstOperands[0].type = inst.srcOperands[0].type = type;
   return inst;
 }
 
-ir::InstCore bitUIExtractOp(eOperandKind dst, eOperandKind base, eOperandKind offset, eOperandKind count, ir::OperandType type) {
-  auto inst                = ir::getInfo(ir::eInstKind::BitUIExtractOp);
-  inst.dstOperands[0].kind = getOperandKind(dst);
-  inst.srcOperands[0].kind = getOperandKind(base);
-  inst.srcOperands[1].kind = getOperandKind(offset);
-  inst.srcOperands[2].kind = getOperandKind(count);
+ir::InstCore bitUIExtractOp(OpDst dst, OpSrc base, OpSrc offset, OpSrc count, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::BitUIExtractOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(base.kind);
+  inst.srcOperands[1].kind  = getOperandKind(offset.kind);
+  inst.srcOperands[2].kind  = getOperandKind(count.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = base.flags;
+  inst.srcOperands[1].flags = offset.flags;
+  inst.srcOperands[2].flags = count.flags;
   inst.dstOperands[0].type = inst.srcOperands[0].type = type;
   return inst;
 }
 
-ir::InstCore bitSIExtractOp(eOperandKind dst, eOperandKind base, eOperandKind offset, eOperandKind count, ir::OperandType type) {
-  auto inst                = ir::getInfo(ir::eInstKind::BitSIExtractOp);
-  inst.dstOperands[0].kind = getOperandKind(dst);
-  inst.srcOperands[0].kind = getOperandKind(base);
-  inst.srcOperands[1].kind = getOperandKind(offset);
-  inst.srcOperands[2].kind = getOperandKind(count);
+ir::InstCore bitSIExtractOp(OpDst dst, OpSrc base, OpSrc offset, OpSrc count, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::BitSIExtractOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(base.kind);
+  inst.srcOperands[1].kind  = getOperandKind(offset.kind);
+  inst.srcOperands[2].kind  = getOperandKind(count.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = base.flags;
+  inst.srcOperands[1].flags = offset.flags;
+  inst.srcOperands[2].flags = count.flags;
   inst.dstOperands[0].type = inst.srcOperands[0].type = type;
   return inst;
 }
 
-ir::InstCore bitUIExtractOp(eOperandKind dst, eOperandKind base, eOperandKind compact, ir::OperandType type) {
-  auto inst                = ir::getInfo(ir::eInstKind::BitUIExtractCompactOp);
-  inst.dstOperands[0].kind = getOperandKind(dst);
-  inst.srcOperands[0].kind = getOperandKind(base);
-  inst.srcOperands[1].kind = getOperandKind(compact);
+ir::InstCore bitUIExtractOp(OpDst dst, OpSrc base, OpSrc compact, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::BitUIExtractCompactOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(base.kind);
+  inst.srcOperands[1].kind  = getOperandKind(compact.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = base.flags;
+  inst.srcOperands[1].flags = compact.flags;
   inst.dstOperands[0].type = inst.srcOperands[0].type = type;
 
   return inst;
 }
 
-ir::InstCore bitSIExtractOp(eOperandKind dst, eOperandKind base, eOperandKind compact, ir::OperandType type) {
-  auto inst                = ir::getInfo(ir::eInstKind::BitSIExtractCompactOp);
-  inst.dstOperands[0].kind = getOperandKind(dst);
-  inst.srcOperands[0].kind = getOperandKind(base);
-  inst.srcOperands[1].kind = getOperandKind(compact);
+ir::InstCore bitSIExtractOp(OpDst dst, OpSrc base, OpSrc compact, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::BitSIExtractCompactOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(base.kind);
+  inst.srcOperands[1].kind  = getOperandKind(compact.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = base.flags;
+  inst.srcOperands[1].flags = compact.flags;
   inst.dstOperands[0].type = inst.srcOperands[0].type = type;
   return inst;
 }
 
-ir::InstCore bitCmpOp(eOperandKind dst, eOperandKind base, ir::OperandType type, eOperandKind index, bool value) {
-  auto inst                = ir::getInfo(ir::eInstKind::BitCmpOp);
-  inst.dstOperands[0].kind = getOperandKind(dst);
-  inst.srcOperands[0].kind = getOperandKind(base);
-  inst.srcOperands[1].kind = getOperandKind(index);
+ir::InstCore bitCmpOp(OpDst dst, OpSrc base, ir::OperandType type, OpSrc index) {
+  auto inst                 = ir::getInfo(ir::eInstKind::BitCmpOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(base.kind);
+  inst.srcOperands[1].kind  = getOperandKind(index.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = base.flags;
+  inst.srcOperands[1].flags = index.flags;
 
   inst.srcOperands[0].type = type;
   inst.srcOperands[1].type = ir::OperandType::i32();
-  if (!value) inst.dstOperands[0].flags = OperandFlagsDst(eRegClass::SGPR, 0, false, true); // invert it
   return inst;
 }
 
@@ -210,9 +223,9 @@ ir::InstCore barrierOp() {
   return ir::getInfo(ir::eInstKind::BarrierOp);
 }
 
-ir::InstCore jumpAbsOp(eOperandKind addr) {
+ir::InstCore jumpAbsOp(OpSrc addr) {
   auto inst                = ir::getInfo(ir::eInstKind::JumpAbsOp);
-  inst.srcOperands[0].kind = getOperandKind(addr);
+  inst.srcOperands[0].kind = getOperandKind(addr.kind);
   inst.srcOperands[1].type = ir::OperandType::i64();
   return inst;
 }
@@ -225,183 +238,178 @@ ir::InstCore jumpAbsOp(uint64_t addr) {
   return inst;
 }
 
-ir::InstCore cjumpAbsOp(eOperandKind predicate, bool invert, eOperandKind addr) {
-  auto inst                = ir::getInfo(ir::eInstKind::CondJumpAbsOp);
-  inst.srcOperands[0].kind = getOperandKind(predicate);
-  inst.srcOperands[1].kind = getOperandKind(addr);
+ir::InstCore cjumpAbsOp(OpSrc predicate, bool invert, OpSrc addr) {
+  auto inst                 = ir::getInfo(ir::eInstKind::CondJumpAbsOp);
+  inst.srcOperands[0].kind  = getOperandKind(predicate.kind);
+  inst.srcOperands[1].kind  = getOperandKind(addr.kind);
+  inst.srcOperands[0].flags = predicate.flags;
+  inst.srcOperands[1].flags = addr.flags;
   if (invert) inst.srcOperands[0].flags = OperandFlagsSrc(eRegClass::SGPR, true, false);
   return inst;
 }
 
-ir::InstCore bitFieldMaskOp(eOperandKind dst, eOperandKind size, eOperandKind offset, ir::OperandType type) {
-  auto inst                = ir::getInfo(ir::eInstKind::BitFieldMaskOp);
-  inst.dstOperands[0].kind = getOperandKind(dst);
-  inst.srcOperands[0].kind = getOperandKind(size);
-  inst.srcOperands[1].kind = getOperandKind(offset);
-  inst.dstOperands[0].type = type;
+ir::InstCore bitFieldMaskOp(OpDst dst, OpSrc size, OpSrc offset, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::BitFieldMaskOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(size.kind);
+  inst.srcOperands[1].kind  = getOperandKind(offset.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = size.flags;
+  inst.srcOperands[1].flags = offset.flags;
+  inst.dstOperands[0].type  = type;
   return inst;
 }
 
-ir::InstCore bitAndOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type) {
-  auto inst                = ir::getInfo(ir::eInstKind::BitAndOp);
-  inst.dstOperands[0].kind = getOperandKind(dst);
-  inst.srcOperands[0].kind = getOperandKind(src0);
-  inst.srcOperands[1].kind = getOperandKind(src1);
-  inst.dstOperands[0].type = inst.srcOperands[0].type = inst.srcOperands[1].type = type;
-  return inst;
-}
-
-ir::InstCore bitOrOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type) {
-  auto inst                = ir::getInfo(ir::eInstKind::BitOrOp);
-  inst.dstOperands[0].kind = getOperandKind(dst);
-  inst.srcOperands[0].kind = getOperandKind(src0);
-  inst.srcOperands[1].kind = getOperandKind(src1);
-  inst.dstOperands[0].type = inst.srcOperands[0].type = inst.srcOperands[1].type = type;
-  return inst;
-}
-
-ir::InstCore bitXorOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type) {
-  auto inst                = ir::getInfo(ir::eInstKind::BitXorOp);
-  inst.dstOperands[0].kind = getOperandKind(dst);
-  inst.srcOperands[0].kind = getOperandKind(src0);
-  inst.srcOperands[1].kind = getOperandKind(src1);
-  inst.dstOperands[0].type = inst.srcOperands[0].type = inst.srcOperands[1].type = type;
-  return inst;
-}
-
-ir::InstCore bitAndNOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type) {
+ir::InstCore bitAndOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::BitAndOp);
-  inst.dstOperands[0].kind  = getOperandKind(dst);
-  inst.srcOperands[0].kind  = getOperandKind(src0);
-  inst.srcOperands[1].kind  = getOperandKind(src1);
-  inst.srcOperands[0].flags = OperandFlagsSrc(eRegClass::SGPR, true, false);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src0.kind);
+  inst.srcOperands[1].kind  = getOperandKind(src1.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = src0.flags;
+  inst.srcOperands[1].flags = src1.flags;
   inst.dstOperands[0].type = inst.srcOperands[0].type = inst.srcOperands[1].type = type;
   return inst;
 }
 
-ir::InstCore bitOrNOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type) {
+ir::InstCore bitOrOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::BitOrOp);
-  inst.dstOperands[0].kind  = getOperandKind(dst);
-  inst.srcOperands[0].kind  = getOperandKind(src0);
-  inst.srcOperands[1].kind  = getOperandKind(src1);
-  inst.srcOperands[0].flags = OperandFlagsSrc(eRegClass::SGPR, true, false);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src0.kind);
+  inst.srcOperands[1].kind  = getOperandKind(src1.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = src0.flags;
+  inst.srcOperands[1].flags = src1.flags;
   inst.dstOperands[0].type = inst.srcOperands[0].type = inst.srcOperands[1].type = type;
   return inst;
 }
 
-ir::InstCore bitNandOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type) {
-  auto inst                 = ir::getInfo(ir::eInstKind::BitAndOp);
-  inst.dstOperands[0].kind  = getOperandKind(dst);
-  inst.srcOperands[0].kind  = getOperandKind(src0);
-  inst.srcOperands[1].kind  = getOperandKind(src1);
-  inst.dstOperands[0].flags = OperandFlagsDst(eRegClass::SGPR, 0, false, true);
-  inst.dstOperands[0].type = inst.srcOperands[0].type = inst.srcOperands[1].type = type;
-  return inst;
-}
-
-ir::InstCore bitNorOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type) {
-  auto inst                 = ir::getInfo(ir::eInstKind::BitOrOp);
-  inst.dstOperands[0].kind  = getOperandKind(dst);
-  inst.srcOperands[0].kind  = getOperandKind(src0);
-  inst.srcOperands[1].kind  = getOperandKind(src1);
-  inst.dstOperands[0].flags = OperandFlagsDst(eRegClass::SGPR, 0, false, true);
-  inst.dstOperands[0].type = inst.srcOperands[0].type = inst.srcOperands[1].type = type;
-  return inst;
-}
-
-ir::InstCore bitXnorOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type) {
+ir::InstCore bitXorOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::BitXorOp);
-  inst.dstOperands[0].kind  = getOperandKind(dst);
-  inst.srcOperands[0].kind  = getOperandKind(src0);
-  inst.srcOperands[1].kind  = getOperandKind(src1);
-  inst.dstOperands[0].flags = OperandFlagsDst(eRegClass::SGPR, 0, false, true);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src0.kind);
+  inst.srcOperands[1].kind  = getOperandKind(src1.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = src0.flags;
+  inst.srcOperands[1].flags = src1.flags;
   inst.dstOperands[0].type = inst.srcOperands[0].type = inst.srcOperands[1].type = type;
   return inst;
 }
 
-ir::InstCore cmpIOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type, CmpIPredicate op) {
-  auto inst                = ir::getInfo(ir::eInstKind::CmpIOp);
-  inst.dstOperands[0].kind = getOperandKind(dst);
-  inst.srcOperands[0].kind = getOperandKind(src0);
-  inst.srcOperands[1].kind = getOperandKind(src1);
+ir::InstCore cmpIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type, CmpIPredicate op) {
+  auto inst                 = ir::getInfo(ir::eInstKind::CmpIOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src0.kind);
+  inst.srcOperands[1].kind  = getOperandKind(src1.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = src0.flags;
+  inst.srcOperands[1].flags = src1.flags;
   inst.srcOperands[0].type = inst.srcOperands[1].type = type;
 
   inst.userData = (std::underlying_type<CmpIPredicate>::type)op;
   return inst;
 }
 
-ir::InstCore mulIOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type) {
-  auto inst                = ir::getInfo(ir::eInstKind::MulIOp);
-  inst.dstOperands[0].kind = getOperandKind(dst);
-  inst.srcOperands[0].kind = getOperandKind(src0);
-  inst.srcOperands[1].kind = getOperandKind(src1);
+ir::InstCore mulIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::MulIOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src0.kind);
+  inst.srcOperands[1].kind  = getOperandKind(src1.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = src0.flags;
+  inst.srcOperands[1].flags = src1.flags;
   inst.dstOperands[0].type = inst.srcOperands[0].type = inst.srcOperands[1].type = type;
   return inst;
 }
 
-ir::InstCore addIOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type) {
-  auto inst                = ir::getInfo(ir::eInstKind::AddIOp);
-  inst.dstOperands[0].kind = getOperandKind(dst);
-  inst.srcOperands[0].kind = getOperandKind(src0);
-  inst.srcOperands[1].kind = getOperandKind(src1);
+ir::InstCore addIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::AddIOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src0.kind);
+  inst.srcOperands[1].kind  = getOperandKind(src1.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = src0.flags;
+  inst.srcOperands[1].flags = src1.flags;
   inst.dstOperands[0].type = inst.srcOperands[0].type = inst.srcOperands[1].type = type;
   return inst;
 }
 
-ir::InstCore addcIOp(eOperandKind dst, eOperandKind carryOut, eOperandKind src0, eOperandKind src1, eOperandKind carryIn, ir::OperandType type) {
-  auto inst                = ir::getInfo(ir::eInstKind::AddCarryIOp);
-  inst.dstOperands[0].kind = getOperandKind(dst);
-  inst.dstOperands[1].kind = getOperandKind(carryOut);
-  inst.srcOperands[0].kind = getOperandKind(src0);
-  inst.srcOperands[1].kind = getOperandKind(src1);
-  inst.srcOperands[2].kind = getOperandKind(carryIn);
+ir::InstCore addcIOp(OpDst dst, OpDst carryOut, OpSrc src0, OpSrc src1, OpSrc carryIn, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::AddCarryIOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.dstOperands[1].kind  = getOperandKind(carryOut.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src0.kind);
+  inst.srcOperands[1].kind  = getOperandKind(src1.kind);
+  inst.srcOperands[2].kind  = getOperandKind(carryIn.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.dstOperands[1].flags = carryOut.flags;
+  inst.srcOperands[0].flags = src0.flags;
+  inst.srcOperands[1].flags = src1.flags;
+  inst.srcOperands[2].flags = carryIn.flags;
   inst.dstOperands[0].type = inst.srcOperands[0].type = inst.srcOperands[1].type = type;
   return inst;
 }
 
-ir::InstCore subIOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type) {
-  auto inst                = ir::getInfo(ir::eInstKind::SubIOp);
-  inst.dstOperands[0].kind = getOperandKind(dst);
-  inst.srcOperands[0].kind = getOperandKind(src0);
-  inst.srcOperands[1].kind = getOperandKind(src1);
+ir::InstCore subIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::SubIOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src0.kind);
+  inst.srcOperands[1].kind  = getOperandKind(src1.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = src0.flags;
+  inst.srcOperands[1].flags = src1.flags;
   inst.dstOperands[0].type = inst.srcOperands[0].type = inst.srcOperands[1].type = type;
   return inst;
 }
 
-ir::InstCore subbIOp(eOperandKind dst, eOperandKind carryOut, eOperandKind src0, eOperandKind src1, eOperandKind carryIn, ir::OperandType type) {
-  auto inst                = ir::getInfo(ir::eInstKind::SubBurrowIOp);
-  inst.dstOperands[0].kind = getOperandKind(dst);
-  inst.dstOperands[1].kind = getOperandKind(carryOut);
-  inst.srcOperands[0].kind = getOperandKind(src0);
-  inst.srcOperands[1].kind = getOperandKind(src1);
-  inst.srcOperands[2].kind = getOperandKind(carryIn);
+ir::InstCore subbIOp(OpDst dst, OpDst carryOut, OpSrc src0, OpSrc src1, OpSrc carryIn, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::SubBurrowIOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.dstOperands[1].kind  = getOperandKind(carryOut.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src0.kind);
+  inst.srcOperands[1].kind  = getOperandKind(src1.kind);
+  inst.srcOperands[2].kind  = getOperandKind(carryIn.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.dstOperands[1].flags = carryOut.flags;
+  inst.srcOperands[0].flags = src0.flags;
+  inst.srcOperands[1].flags = src1.flags;
+  inst.srcOperands[2].flags = carryIn.flags;
   inst.dstOperands[0].type = inst.srcOperands[0].type = inst.srcOperands[1].type = type;
   return inst;
 }
 
-ir::InstCore shiftLUIOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type) {
-  auto inst                = ir::getInfo(ir::eInstKind::ShiftLUIOp);
-  inst.dstOperands[0].kind = getOperandKind(dst);
-  inst.srcOperands[0].kind = getOperandKind(src0);
-  inst.srcOperands[1].kind = getOperandKind(src1);
+ir::InstCore shiftLUIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::ShiftLUIOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src0.kind);
+  inst.srcOperands[1].kind  = getOperandKind(src1.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = src0.flags;
+  inst.srcOperands[1].flags = src1.flags;
   inst.dstOperands[0].type = inst.srcOperands[0].type = type;
   return inst;
 }
 
-ir::InstCore shiftRUIOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type) {
-  auto inst                = ir::getInfo(ir::eInstKind::ShiftRUIOp);
-  inst.dstOperands[0].kind = getOperandKind(dst);
-  inst.srcOperands[0].kind = getOperandKind(src0);
-  inst.srcOperands[1].kind = getOperandKind(src1);
+ir::InstCore shiftRUIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::ShiftRUIOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src0.kind);
+  inst.srcOperands[1].kind  = getOperandKind(src1.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = src0.flags;
+  inst.srcOperands[1].flags = src1.flags;
   inst.dstOperands[0].type = inst.srcOperands[0].type = type;
   return inst;
 }
 
-ir::InstCore shiftRSIOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type) {
-  auto inst                = ir::getInfo(ir::eInstKind::ShiftRSIOp);
-  inst.dstOperands[0].kind = getOperandKind(dst);
-  inst.srcOperands[0].kind = getOperandKind(src0);
-  inst.srcOperands[1].kind = getOperandKind(src1);
+ir::InstCore shiftRSIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::ShiftRSIOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src0.kind);
+  inst.srcOperands[1].kind  = getOperandKind(src1.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = src0.flags;
+  inst.srcOperands[1].flags = src1.flags;
   inst.dstOperands[0].type = inst.srcOperands[0].type = type;
   return inst;
 }

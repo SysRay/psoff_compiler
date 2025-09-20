@@ -6,63 +6,64 @@
 
 namespace compiler::frontend::translate {
 
-struct OperandSrc {
+struct OpSrc {
   eOperandKind    kind;
-  OperandFlagsSrc flags;
+  OperandFlagsSrc flags {0};
+
+  constexpr explicit OpSrc(eOperandKind kind): kind(kind) {}
+
+  constexpr explicit OpSrc(eOperandKind kind, bool negate, bool abs): kind(kind), flags(eRegClass::SGPR, negate, abs) {}
 };
 
-struct OperandDst {
+struct OpDst {
   eOperandKind    kind;
-  OperandFlagsDst flags;
+  OperandFlagsDst flags {0};
+
+  constexpr explicit OpDst(eOperandKind kind): kind(kind) {}
+
+  constexpr explicit OpDst(eOperandKind kind, uint8_t omod, bool clamp, bool negate): kind(kind), flags(eRegClass::SGPR, omod, clamp, negate) {}
 };
 
 namespace create {
 ir::InstCore literalOp(uint32_t);
-ir::InstCore constantOp(eOperandKind dst, uint64_t, ir::OperandType type);
-ir::InstCore constantOp(eOperandKind dst, int16_t, ir::OperandType type);
-ir::InstCore moveOp(eOperandKind dst, eOperandKind src, ir::OperandType type);
-ir::InstCore selectOp(eOperandKind dst, eOperandKind predicate, eOperandKind srcTrue, eOperandKind srcFalse, ir::OperandType type);
-ir::InstCore notOp(eOperandKind dst, eOperandKind src, ir::OperandType type);
-ir::InstCore absOp(eOperandKind dst, eOperandKind src, ir::OperandType type);
-ir::InstCore bitReverseOp(eOperandKind dst, eOperandKind src, ir::OperandType type);
-ir::InstCore bitCountOp(eOperandKind dst, eOperandKind src, ir::OperandType type, bool value);
-ir::InstCore bitFieldMaskOp(eOperandKind dst, eOperandKind size, eOperandKind offset, ir::OperandType type);
-ir::InstCore bitAndOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type);
-ir::InstCore bitAndNOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type);
-ir::InstCore bitNandOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type);
-ir::InstCore bitOrOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type);
-ir::InstCore bitOrNOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type);
-ir::InstCore bitNorOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type);
-ir::InstCore bitXorOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type);
-ir::InstCore bitXnorOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type);
-ir::InstCore findILsbOp(eOperandKind dst, eOperandKind src, ir::OperandType type, bool value);
-ir::InstCore findUMsbOp(eOperandKind dst, eOperandKind src, ir::OperandType type);
-ir::InstCore findSMsbOp(eOperandKind dst, eOperandKind src, ir::OperandType type);
-ir::InstCore signExtendI32Op(eOperandKind dst, eOperandKind src, ir::OperandType type);
-ir::InstCore bitsetOp(eOperandKind dst, eOperandKind src, eOperandKind offset, eOperandKind value, ir::OperandType type);
-ir::InstCore bitFieldInsertOp(eOperandKind dst, eOperandKind value, eOperandKind offset, eOperandKind count, ir::OperandType type);
-ir::InstCore bitUIExtractOp(eOperandKind dst, eOperandKind base, eOperandKind offset, eOperandKind count, ir::OperandType type);
-ir::InstCore bitSIExtractOp(eOperandKind dst, eOperandKind base, eOperandKind offset, eOperandKind count, ir::OperandType type);
-ir::InstCore bitUIExtractOp(eOperandKind dst, eOperandKind base, eOperandKind compact, ir::OperandType type);
-ir::InstCore bitSIExtractOp(eOperandKind dst, eOperandKind base, eOperandKind compact, ir::OperandType type);
-ir::InstCore bitCmpOp(eOperandKind dst, eOperandKind base, ir::OperandType type, eOperandKind index, bool value);
-ir::InstCore cmpIOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type, CmpIPredicate op);
+ir::InstCore constantOp(OpDst dst, uint64_t, ir::OperandType type);
+ir::InstCore constantOp(OpDst dst, int16_t, ir::OperandType type);
+ir::InstCore moveOp(OpDst dst, OpSrc src, ir::OperandType type);
+ir::InstCore selectOp(OpDst dst, OpSrc predicate, OpSrc srcTrue, OpSrc srcFalse, ir::OperandType type);
+ir::InstCore bitReverseOp(OpDst dst, OpSrc src, ir::OperandType type);
+ir::InstCore bitCountOp(OpDst dst, OpSrc src, ir::OperandType type);
+ir::InstCore bitFieldMaskOp(OpDst dst, OpSrc size, OpSrc offset, ir::OperandType type);
+ir::InstCore bitAndOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
+ir::InstCore bitOrOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
+ir::InstCore bitXorOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
+ir::InstCore findILsbOp(OpDst dst, OpSrc src, ir::OperandType type);
+ir::InstCore findUMsbOp(OpDst dst, OpSrc src, ir::OperandType type);
+ir::InstCore findSMsbOp(OpDst dst, OpSrc src, ir::OperandType type);
+ir::InstCore signExtendI32Op(OpDst dst, OpSrc src, ir::OperandType type);
+ir::InstCore bitsetOp(OpDst dst, OpSrc src, OpSrc offset, OpSrc value, ir::OperandType type);
+ir::InstCore bitFieldInsertOp(OpDst dst, OpSrc value, OpSrc offset, OpSrc count, ir::OperandType type);
+ir::InstCore bitUIExtractOp(OpDst dst, OpSrc base, OpSrc offset, OpSrc count, ir::OperandType type);
+ir::InstCore bitSIExtractOp(OpDst dst, OpSrc base, OpSrc offset, OpSrc count, ir::OperandType type);
+ir::InstCore bitUIExtractOp(OpDst dst, OpSrc base, OpSrc compact, ir::OperandType type);
+ir::InstCore bitSIExtractOp(OpDst dst, OpSrc base, OpSrc compact, ir::OperandType type);
+ir::InstCore bitCmpOp(OpDst dst, OpSrc base, ir::OperandType type, OpSrc index);
+ir::InstCore cmpIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type, CmpIPredicate op);
 
-ir::InstCore shiftLUIOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type);
-ir::InstCore shiftRUIOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type);
-ir::InstCore shiftRSIOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type);
+ir::InstCore shiftLUIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
+ir::InstCore shiftRUIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
+ir::InstCore shiftRSIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
 
 // // arith
-ir::InstCore mulIOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type);
-ir::InstCore addIOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type);
-ir::InstCore addcIOp(eOperandKind dst, eOperandKind carryOut, eOperandKind src0, eOperandKind src1, eOperandKind carryIn, ir::OperandType type);
-ir::InstCore subIOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type);
-ir::InstCore subbIOp(eOperandKind dst, eOperandKind carryOut, eOperandKind src0, eOperandKind src1, eOperandKind carryIn, ir::OperandType type);
+ir::InstCore mulIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
+ir::InstCore addIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
+ir::InstCore addcIOp(OpDst dst, OpDst carryOut, OpSrc src0, OpSrc src1, OpSrc carryIn, ir::OperandType type);
+ir::InstCore subIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
+ir::InstCore subbIOp(OpDst dst, OpDst carryOut, OpSrc src0, OpSrc src1, OpSrc carryIn, ir::OperandType type);
 // // Flow control
 ir::InstCore returnOp();
 ir::InstCore barrierOp();
-ir::InstCore jumpAbsOp(eOperandKind addr);
+ir::InstCore jumpAbsOp(OpSrc addr);
 ir::InstCore jumpAbsOp(uint64_t addr);
-ir::InstCore cjumpAbsOp(eOperandKind predicate, bool invert, eOperandKind addr);
+ir::InstCore cjumpAbsOp(OpSrc predicate, bool invert, OpSrc addr);
 } // namespace create
 } // namespace compiler::frontend::translate

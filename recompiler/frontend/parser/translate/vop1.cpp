@@ -14,22 +14,28 @@ bool handleVop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
   using namespace parser;
 
   parser::eOpcode op;
-  eOperandKind    vdst0;
+  eOperandKind    vdst;
   eOperandKind    src0;
+
+  uint8_t omod   = 0;
+  bool    negate = false;
 
   if (extended) { // todo sdst or not
     auto inst = VOP3(getU64(*pCode));
-    op        = (parser::eOpcode)(OPcodeStart_VOP1 + inst.template get<VOP3::Field::OP>());
+    op        = (parser::eOpcode)(OPcodeStart_VOP1 + inst.template get<VOP3::Field::OP>() - OpcodeOffset_VOP1_VOP3);
 
-    vdst0 = (eOperandKind)inst.template get<VOP3::Field::VDST>();
-    src0  = (eOperandKind)inst.template get<VOP3::Field::SRC0>();
+    vdst = (eOperandKind)inst.template get<VOP3::Field::VDST>();
+    src0 = (eOperandKind)inst.template get<VOP3::Field::SRC0>();
+
+    omod   = inst.template get<VOP3::Field::OMOD>();
+    negate = inst.template get<VOP3::Field::NEG>();
     *pCode += 1;
   } else {
     auto inst = VOP1(**pCode);
-    op        = (parser::eOpcode)(OPcodeStart_VOP1 + inst.template get<VOP1::Field::OP>() - OpcodeOffset_VOP1_VOP3);
+    op        = (parser::eOpcode)(OPcodeStart_VOP1 + inst.template get<VOP1::Field::OP>());
 
-    vdst0 = (eOperandKind)inst.template get<VOP1::Field::VDST>();
-    src0  = (eOperandKind)inst.template get<VOP1::Field::SRC0>();
+    vdst = (eOperandKind)inst.template get<VOP1::Field::VDST>();
+    src0 = (eOperandKind)inst.template get<VOP1::Field::SRC0>();
     if (src0 == eOperandKind::Literal) {
       *pCode += 1;
       builder.createInstruction(create::literalOp(**pCode));
@@ -39,8 +45,7 @@ bool handleVop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
   *pCode += 1;
 
   switch (op) {
-    case eOpcode::V_NOP: {
-    } break;
+    case eOpcode::V_NOP: break; // ignore
     case eOpcode::V_MOV_B32: {
     } break;
     case eOpcode::V_READFIRSTLANE_B32: {
