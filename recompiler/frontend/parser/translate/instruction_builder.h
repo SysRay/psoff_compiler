@@ -59,6 +59,8 @@ ir::InstCore addcIOp(eOperandKind dst, eOperandKind carryOut, eOperandKind src0,
 ir::InstCore subIOp(eOperandKind dst, eOperandKind src0, eOperandKind src1, ir::OperandType type);
 ir::InstCore subbIOp(eOperandKind dst, eOperandKind carryOut, eOperandKind src0, eOperandKind src1, eOperandKind carryIn, ir::OperandType type);
 // // Flow control
+ir::InstCore returnOp();
+ir::InstCore barrierOp();
 ir::InstCore jumpAbsOp(eOperandKind addr);
 ir::InstCore jumpAbsOp(uint64_t addr);
 ir::InstCore cjumpAbsOp(eOperandKind predicate, bool invert, eOperandKind addr);

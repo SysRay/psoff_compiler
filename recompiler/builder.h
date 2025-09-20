@@ -29,7 +29,14 @@ class Builder {
     _instructions.reserve(numInstructions);
   }
 
-  auto& createInstruction(ir::InstCore const& instr) { return _instructions.emplace_back(instr); }
+  auto& createInstruction(ir::InstCore&& instr) { return _instructions.emplace_back(std::move(instr)); }
+
+  auto& createVirtualInst(ir::InstCore&& instr) {
+    instr.flags |= ir::Flags<ir::eInstructionFlags>(ir::eInstructionFlags::kVirtual);
+    return _instructions.emplace_back(std::move(instr));
+  }
+
+  // auto& createInstruction(ir::InstCore& instr) { return _instructions.emplace_back(instr); }
 
   bool createShader(frontend::ShaderStage stage, uint32_t id, frontend::ShaderHeader const* header, uint32_t const* gpuRegs);
   bool createShader(ShaderDump_t const&);

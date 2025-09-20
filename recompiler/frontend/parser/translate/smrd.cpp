@@ -11,8 +11,10 @@
 
 namespace compiler::frontend::translate {
 bool handleSmrd(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
+  using namespace parser;
+
   auto       inst = SMRD(**pCode);
-  auto const op   = (parser::eOpcode)inst.template get<SMRD::Field::OP>();
+  auto const op   = (parser::eOpcode)(OPcodeStart_SMRD + inst.template get<SMRD::Field::OP>());
 
   auto const sdst      = (eOperandKind)inst.template get<SMRD::Field::SDST>();
   auto const sBase     = (eOperandKind)inst.template get<SMRD::Field::SBASE>();
@@ -26,6 +28,36 @@ bool handleSmrd(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
   }
 
   *pCode += 1;
-  return {};
+
+  switch (op) {
+    case eOpcode::S_LOAD_DWORD: {
+    } break;
+    case eOpcode::S_LOAD_DWORDX2: {
+    } break;
+    case eOpcode::S_LOAD_DWORDX4: {
+    } break;
+    case eOpcode::S_LOAD_DWORDX8: {
+    } break;
+    case eOpcode::S_LOAD_DWORDX16: {
+    } break;
+    case eOpcode::S_BUFFER_LOAD_DWORD: {
+    } break;
+    case eOpcode::S_BUFFER_LOAD_DWORDX2: {
+    } break;
+    case eOpcode::S_BUFFER_LOAD_DWORDX4: {
+    } break;
+    case eOpcode::S_BUFFER_LOAD_DWORDX8: {
+    } break;
+    case eOpcode::S_BUFFER_LOAD_DWORDX16: {
+    } break;
+    // case eOpcode::S_DCACHE_INV_VOL: {} break; // Does not exist
+    case eOpcode::S_MEMTIME: {
+    } break;
+    case eOpcode::S_DCACHE_INV: {
+    } break;
+    default: throw std::runtime_error(std::format("missing inst {}", debug::getDebug(op))); break;
+  }
+
+  return true;
 }
 } // namespace compiler::frontend::translate

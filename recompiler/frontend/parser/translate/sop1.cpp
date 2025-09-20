@@ -15,7 +15,7 @@ bool handleSop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
   using namespace parser;
 
   auto       inst = SOP1(**pCode);
-  auto const op   = (parser::eOpcode)inst.template get<SOP1::Field::OP>();
+  auto const op   = (parser::eOpcode)(OPcodeStart_SOP1 +inst.template get<SOP1::Field::OP>());
 
   auto const sdst = (eOperandKind)inst.template get<SOP1::Field::SDST>();
   auto const src0 = (eOperandKind)inst.template get<SOP1::Field::SSRC0>();

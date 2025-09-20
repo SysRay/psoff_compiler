@@ -202,6 +202,14 @@ ir::InstCore bitCmpOp(eOperandKind dst, eOperandKind base, ir::OperandType type,
   return inst;
 }
 
+ir::InstCore returnOp() {
+  return ir::getInfo(ir::eInstKind::ReturnOp);
+}
+
+ir::InstCore barrierOp() {
+  return ir::getInfo(ir::eInstKind::BarrierOp);
+}
+
 ir::InstCore jumpAbsOp(eOperandKind addr) {
   auto inst                = ir::getInfo(ir::eInstKind::JumpAbsOp);
   inst.srcOperands[0].kind = getOperandKind(addr);

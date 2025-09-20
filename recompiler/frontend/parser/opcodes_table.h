@@ -882,6 +882,44 @@ enum class eOpcode : InstructionKind_t {
   MAX_ITEM,
 };
 
+constexpr auto OPcodeStart_DS     = (InstructionKind_t)eOpcode::DS_ADD_U32;
+constexpr auto OPcodeStart_EXP    = (InstructionKind_t)eOpcode::EXP;
+constexpr auto OPcodeStart_MIMG   = (InstructionKind_t)eOpcode::IMAGE_LOAD;
+constexpr auto OPcodeStart_MTBUF  = (InstructionKind_t)eOpcode::TBUFFER_LOAD_FORMAT_X;
+constexpr auto OPcodeStart_MUBUF  = (InstructionKind_t)eOpcode::BUFFER_LOAD_FORMAT_X;
+constexpr auto OPcodeStart_SMRD   = (InstructionKind_t)eOpcode::S_LOAD_DWORD;
+constexpr auto OPcodeStart_SOP1   = (InstructionKind_t)eOpcode::S_DUMMY_SOP1;
+constexpr auto OPcodeStart_SOP2   = (InstructionKind_t)eOpcode::S_ADD_U32;
+constexpr auto OPcodeStart_SOPC   = (InstructionKind_t)eOpcode::S_CMP_EQ_I32;
+constexpr auto OPcodeStart_SOPK   = (InstructionKind_t)eOpcode::S_MOVK_I32;
+constexpr auto OPcodeStart_SOPP   = (InstructionKind_t)eOpcode::S_NOP;
+constexpr auto OPcodeStart_VINTRP = (InstructionKind_t)eOpcode::V_INTERP_P1_F32;
+constexpr auto OPcodeStart_VOP1   = (InstructionKind_t)eOpcode::V_NOP;
+constexpr auto OPcodeStart_VOP2   = (InstructionKind_t)eOpcode::V_CNDMASK_B32;
+constexpr auto OPcodeStart_VOP3   = (InstructionKind_t)eOpcode::V_DUMMY_VOP3;
+constexpr auto OPcodeStart_VOPC   = (InstructionKind_t)eOpcode::V_CMP_F_F32;
+
+constexpr auto OPcodeEnd_DS     = (InstructionKind_t)eOpcode::DS_READ_B128;
+constexpr auto OPcodeEnd_EXP    = (InstructionKind_t)eOpcode::EXP;
+constexpr auto OPcodeEnd_MIMG   = (InstructionKind_t)eOpcode::IMAGE_SAMPLE_C_CD_CL_O;
+constexpr auto OPcodeEnd_MTBUF  = (InstructionKind_t)eOpcode::TBUFFER_STORE_FORMAT_XYZW;
+constexpr auto OPcodeEnd_MUBUF  = (InstructionKind_t)eOpcode::BUFFER_WBINVL1;
+constexpr auto OPcodeEnd_SMRD   = (InstructionKind_t)eOpcode::S_DCACHE_INV;
+constexpr auto OPcodeEnd_SOP1   = (InstructionKind_t)eOpcode::S_MOV_FED_B32;
+constexpr auto OPcodeEnd_SOP2   = (InstructionKind_t)eOpcode::S_ABSDIFF_I32;
+constexpr auto OPcodeEnd_SOPC   = (InstructionKind_t)eOpcode::S_SETVSKIP;
+constexpr auto OPcodeEnd_SOPK   = (InstructionKind_t)eOpcode::S_SETREG_IMM32_B32;
+constexpr auto OPcodeEnd_SOPP   = (InstructionKind_t)eOpcode::S_TTRACEDATA;
+constexpr auto OPcodeEnd_VINTRP = (InstructionKind_t)eOpcode::V_INTERP_MOV_F32;
+constexpr auto OPcodeEnd_VOP1   = (InstructionKind_t)eOpcode::V_EXP_LEGACY_F32;
+constexpr auto OPcodeEnd_VOP2   = (InstructionKind_t)eOpcode::V_CVT_PK_I16_I32;
+constexpr auto OPcodeEnd_VOP3   = (InstructionKind_t)eOpcode::V_MAD_I64_I32;
+constexpr auto OPcodeEnd_VOPC   = (InstructionKind_t)eOpcode::V_CMPX_T_U64;
+
+constexpr int16_t OpcodeOffset_VOP1_VOP3 = 0x180;
+constexpr int16_t OpcodeOffset_VOP2_VOP3 = 0x100;
+constexpr int16_t OpcodeOffset_VOPC_VOP3 = 0x0;
+
 constexpr inline InstructionKind_t conv(eOpcode&& code) {
   return (InstructionKind_t)code;
 }

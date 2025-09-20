@@ -14,7 +14,7 @@ bool handleSopp(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
   using namespace parser;
 
   auto       inst = SOPP(**pCode);
-  auto const op   = (parser::eOpcode)inst.template get<SOPP::Field::OP>();
+  auto const op   = (parser::eOpcode)(OPcodeStart_SOPP + inst.template get<SOPP::Field::OP>());
 
   auto const offset = (int16_t)inst.template get<SOPP::Field::SIMM16>();
 
@@ -23,7 +23,7 @@ bool handleSopp(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
   switch (op) {
     case eOpcode::S_NOP: break; // ignore
     case eOpcode::S_ENDPGM: {
-      builder.createInstruction(ir::getInfo(ir::eInstKind::ReturnOp));
+      builder.createInstruction(create::returnOp());
     } break;
     case eOpcode::S_BRANCH: {
       builder.createInstruction(create::jumpAbsOp(4 + pc + 4 * (int64_t)offset));
@@ -53,7 +53,7 @@ bool handleSopp(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
       builder.createInstruction(create::cjumpAbsOp(eOperandKind::ExecZ, true, eOperandKind::CustomTemp0Lo));
     } break;
     case eOpcode::S_BARRIER: {
-      builder.createInstruction(ir::getInfo(ir::eInstKind::BarrierOp));
+      builder.createInstruction(create::barrierOp());
     } break;
     // case eOpcode::S_SETKILL: {} break; // Does not exist
     case eOpcode::S_WAITCNT:

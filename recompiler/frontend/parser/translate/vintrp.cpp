@@ -14,7 +14,7 @@ bool handleVintrp(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
   using namespace parser;
 
   auto       inst = VINTRP(**pCode);
-  auto const op   = (parser::eOpcode)inst.template get<VINTRP::Field::OP>();
+  auto const op   = (parser::eOpcode)(OPcodeStart_VINTRP + inst.template get<VINTRP::Field::OP>());
 
   auto const vdst    = (eOperandKind)inst.template get<VINTRP::Field::VDST>();
   auto const src0    = (eOperandKind)inst.template get<VINTRP::Field::VSRC>();

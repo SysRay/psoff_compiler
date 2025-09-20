@@ -14,7 +14,7 @@ bool handleSopk(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
   using namespace parser;
 
   auto       inst = SOPK(**pCode);
-  auto const op   = (eOpcode)inst.template get<SOPK::Field::OP>();
+  auto const op   = (eOpcode)(OPcodeStart_SOPK + inst.template get<SOPK::Field::OP>());
 
   auto const sdst  = (eOperandKind)inst.template get<SOPK::Field::SDST>();
   auto const imm16 = (int16_t)inst.template get<SOPK::Field::SIMM16>();

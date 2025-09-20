@@ -14,7 +14,7 @@ bool handleSopc(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
   using namespace parser;
 
   auto       inst = SOPC(**pCode);
-  auto const op   = (parser::eOpcode)inst.template get<SOPC::Field::OP>();
+  auto const op   = (parser::eOpcode)(OPcodeStart_SOPC + inst.template get<SOPC::Field::OP>());
 
   auto const src0 = (eOperandKind)inst.template get<SOPC::Field::SSRC0>();
   auto const src1 = (eOperandKind)inst.template get<SOPC::Field::SSRC1>();

@@ -19,7 +19,7 @@ bool handleVop2(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
 
   if (extended) { // todo sdst or not
     auto inst = VOP3(getU64(*pCode));
-    op        = (parser::eOpcode)inst.template get<VOP3::Field::OP>();
+    op        = (parser::eOpcode)(OPcodeStart_VOP2 + inst.template get<VOP3::Field::OP>() - OpcodeOffset_VOP2_VOP3);
 
     vdst0 = (eOperandKind)inst.template get<VOP3::Field::VDST>();
     src0  = (eOperandKind)inst.template get<VOP3::Field::SRC0>();
@@ -27,7 +27,7 @@ bool handleVop2(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
     *pCode += 1;
   } else {
     auto inst = VOP2(**pCode);
-    op        = (parser::eOpcode)inst.template get<VOP2::Field::OP>();
+    op        = (parser::eOpcode)(OPcodeStart_VOP2 + inst.template get<VOP2::Field::OP>());
 
     vdst0 = (eOperandKind)inst.template get<VOP2::Field::VDST>();
     src0  = (eOperandKind)inst.template get<VOP2::Field::SRC0>();

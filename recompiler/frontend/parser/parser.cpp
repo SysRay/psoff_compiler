@@ -98,9 +98,9 @@ bool parseInstruction(Builder& builder, pc_t pc, code_p_t* pCode) {
     case eEncoding::VOP3: {
       auto const header = VOP3(*(codeE_p_t)*pCode);
       auto const op     = header.get<VOP3::Field::OP>();
-      if (op >= 0x180) return handleVop1(builder, pc, pCode, true);
+      if (op >= OpcodeOffset_VOP1_VOP3) return handleVop1(builder, pc, pCode, true);
       if (op >= 0x140) return handleVop3(builder, pc, pCode);
-      if (op >= 0x100) return handleVop2(builder, pc, pCode, true);
+      if (op >= OpcodeOffset_VOP2_VOP3) return handleVop2(builder, pc, pCode, true);
       return handleVopc(builder, pc, pCode, true);
     }
     case eEncoding::VOPC: return handleVopc(builder, pc, pCode, false);
