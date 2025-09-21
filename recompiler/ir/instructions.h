@@ -30,10 +30,22 @@ namespace compiler::ir {
   X(ShiftLUIOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                      \
   X(ShiftRUIOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                      \
   X(ShiftRSIOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                      \
+  X(MaxUIOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                         \
+  X(MaxSIOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                         \
+  X(MaxFOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32), OP(f32)))                                                                                          \
+  X(MaxNOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32), OP(f32)))                                                                                          \
+  X(MinUIOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                         \
+  X(MinSIOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                         \
+  X(MinFOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32), OP(f32)))                                                                                          \
+  X(MinNOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32), OP(f32)))                                                                                          \
   X(CmpIOp, kALU, kNone, DST_OPS(OP(i1)), SRC_OPS(OP(i32), OP(i32)))                                                                                           \
   X(CmpFOp, kALU, kNone, DST_OPS(OP(i1)), SRC_OPS(OP(f32), OP(f32)))                                                                                           \
   X(AddFOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32), OP(f32)))                                                                                          \
+  X(SubFOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32), OP(f32)))                                                                                          \
+  X(MulFOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32), OP(f32)))                                                                                          \
+  X(FmaFOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32), OP(f32), OP(f32)))                                                                                 \
   X(MulIOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                          \
+  X(MulIExtendedOp, kALU, kNone, DST_OPS(OP(i32), OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                         \
   X(AddIOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                          \
   X(AddCarryIOp, kALU, kNone, DST_OPS(OP(i32), OP(i1)), SRC_OPS(OP(i32), OP(i32), OP(i1)))                                                                     \
   X(SubIOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                          \
@@ -57,11 +69,14 @@ namespace compiler::ir {
   X(SqrtOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32)))                                                                                                   \
   X(SinOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32)))                                                                                                    \
   X(CosOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32)))                                                                                                    \
+  X(LdexpOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32), OP(i32)))                                                                                         \
   X(ClampFMinMaxOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32)))                                                                                           \
   X(ClampFZeroOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32)))                                                                                             \
   X(FrexpOp, kALU, kNone, DST_OPS(OP(f32), OP(i32)), SRC_OPS(OP(f32)))                                                                                         \
   X(PackHalf2x16Op, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(f32), OP(f32)))                                                                                  \
   X(UnpackHalf2x16, kALU, kNone, DST_OPS(OP(f32), OP(f32)), SRC_OPS(OP(i32)))                                                                                  \
+  X(PackSnorm2x16Op, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(f32), OP(f32)))                                                                                 \
+  X(PackUnorm2x16Op, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(f32), OP(f32)))                                                                                 \
   X_NO_OPS(ReturnOp, kFlowControl, kHasSideEffects)                                                                                                            \
   X_NO_OPS(BarrierOp, kFlowControl, kHasSideEffects)                                                                                                           \
   X_NO_DST(JumpAbsOp, kFlowControl, kHasSideEffects, SRC_OPS(OP(i64)))                                                                                         \

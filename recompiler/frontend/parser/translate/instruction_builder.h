@@ -10,18 +10,28 @@ struct OpSrc {
   eOperandKind    kind;
   OperandFlagsSrc flags {0};
 
+  constexpr explicit OpSrc(): kind(eOperandKind::SGPR) {}
+
   constexpr explicit OpSrc(eOperandKind kind): kind(kind) {}
 
+  constexpr explicit OpSrc(eOperandKind kind, OperandFlagsSrc flags): kind(kind), flags(flags) {}
+
   constexpr explicit OpSrc(eOperandKind kind, bool negate, bool abs): kind(kind), flags(eRegClass::SGPR, negate, abs) {}
+
+  constexpr OpSrc& operator=(OpSrc const& other) = default;
 };
 
 struct OpDst {
   eOperandKind    kind;
   OperandFlagsDst flags {0};
 
+  constexpr explicit OpDst(): kind(eOperandKind::SGPR) {}
+
   constexpr explicit OpDst(eOperandKind kind): kind(kind) {}
 
   constexpr explicit OpDst(eOperandKind kind, uint8_t omod, bool clamp, bool negate): kind(kind), flags(eRegClass::SGPR, omod, clamp, negate) {}
+
+  constexpr OpDst& operator=(OpDst const& other) = default;
 };
 
 namespace create {
@@ -55,9 +65,14 @@ ir::InstCore shiftRUIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type)
 ir::InstCore shiftRSIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
 
 // // arith
-ir::InstCore mulIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
-ir::InstCore addIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
+ir::InstCore ldexpOp(OpDst dst, OpSrc vsrc, OpSrc vexp, ir::OperandType type);
 ir::InstCore addFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
+ir::InstCore subFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
+ir::InstCore mulFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
+ir::InstCore fmaFOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type);
+ir::InstCore mulIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
+ir::InstCore mulIExtendedOp(OpDst low, OpDst high, OpSrc src0, OpSrc src1, ir::OperandType type);
+ir::InstCore addIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
 ir::InstCore addcIOp(OpDst dst, OpDst carryOut, OpSrc src0, OpSrc src1, OpSrc carryIn, ir::OperandType type);
 ir::InstCore subIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
 ir::InstCore subbIOp(OpDst dst, OpDst carryOut, OpSrc src0, OpSrc src1, OpSrc carryIn, ir::OperandType type);
@@ -72,6 +87,8 @@ ir::InstCore truncFOp(OpDst dst, OpSrc src0);
 ir::InstCore extFOp(OpDst dst, OpSrc src0);
 ir::InstCore packHalf2x16Op(OpDst dst, OpSrc src0, OpSrc src1);
 ir::InstCore unpackHalf2x16(OpDst low, OpDst high, OpSrc src);
+ir::InstCore packSnorm2x16Op(OpDst dst, OpSrc src0, OpSrc src1);
+ir::InstCore packUnorm2x16Op(OpDst dst, OpSrc src0, OpSrc src1);
 
 ir::InstCore truncOp(OpDst dst, OpSrc src0, ir::OperandType type);
 ir::InstCore ceilOp(OpDst dst, OpSrc src0, ir::OperandType type);
@@ -88,6 +105,15 @@ ir::InstCore cosOp(OpDst dst, OpSrc src0);
 ir::InstCore clampFMinMaxOp(OpDst dst, OpSrc src0, ir::OperandType type); ///< Clamp +-inf to +- flat max
 ir::InstCore clampFZeroOp(OpDst dst, OpSrc src0, ir::OperandType type);   ///< Clamp +-inf to Zero
 ir::InstCore frexpOp(OpDst exp, OpDst mant, OpSrc src0, ir::OperandType type);
+
+ir::InstCore maxUIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
+ir::InstCore maxSIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
+ir::InstCore maxFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
+ir::InstCore maxNOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
+ir::InstCore minUIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
+ir::InstCore minSIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
+ir::InstCore minFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
+ir::InstCore minNOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
 
 // // Flow control
 ir::InstCore returnOp();

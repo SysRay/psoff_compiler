@@ -335,6 +335,116 @@ ir::InstCore mulIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   return inst;
 }
 
+ir::InstCore mulIExtendedOp(OpDst low, OpDst high, OpSrc src0, OpSrc src1, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::MulIExtendedOp);
+  inst.dstOperands[0].kind  = getOperandKind(low.kind);
+  inst.dstOperands[1].kind  = getOperandKind(high.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src0.kind);
+  inst.srcOperands[1].kind  = getOperandKind(src1.kind);
+  inst.dstOperands[0].flags = low.flags;
+  inst.dstOperands[1].flags = high.flags;
+  inst.srcOperands[0].flags = src0.flags;
+  inst.srcOperands[1].flags = src1.flags;
+  inst.srcOperands[0].type = inst.srcOperands[1].type = type;
+  return inst;
+}
+
+ir::InstCore maxUIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::MaxUIOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src0.kind);
+  inst.srcOperands[1].kind  = getOperandKind(src1.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = src0.flags;
+  inst.srcOperands[1].flags = src1.flags;
+  inst.dstOperands[0].type = inst.srcOperands[0].type = inst.srcOperands[1].type = type;
+  return inst;
+}
+
+ir::InstCore maxSIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::MaxSIOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src0.kind);
+  inst.srcOperands[1].kind  = getOperandKind(src1.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = src0.flags;
+  inst.srcOperands[1].flags = src1.flags;
+  inst.dstOperands[0].type = inst.srcOperands[0].type = inst.srcOperands[1].type = type;
+  return inst;
+}
+
+ir::InstCore maxFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::MaxFOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src0.kind);
+  inst.srcOperands[1].kind  = getOperandKind(src1.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = src0.flags;
+  inst.srcOperands[1].flags = src1.flags;
+  inst.dstOperands[0].type = inst.srcOperands[0].type = inst.srcOperands[1].type = type;
+  return inst;
+}
+
+ir::InstCore maxNOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::MaxNOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src0.kind);
+  inst.srcOperands[1].kind  = getOperandKind(src1.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = src0.flags;
+  inst.srcOperands[1].flags = src1.flags;
+  inst.dstOperands[0].type = inst.srcOperands[0].type = inst.srcOperands[1].type = type;
+  return inst;
+}
+
+ir::InstCore minUIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::MinUIOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src0.kind);
+  inst.srcOperands[1].kind  = getOperandKind(src1.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = src0.flags;
+  inst.srcOperands[1].flags = src1.flags;
+  inst.dstOperands[0].type = inst.srcOperands[0].type = inst.srcOperands[1].type = type;
+  return inst;
+}
+
+ir::InstCore minSIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::MinSIOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src0.kind);
+  inst.srcOperands[1].kind  = getOperandKind(src1.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = src0.flags;
+  inst.srcOperands[1].flags = src1.flags;
+  inst.dstOperands[0].type = inst.srcOperands[0].type = inst.srcOperands[1].type = type;
+  return inst;
+}
+
+ir::InstCore minFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::MinFOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src0.kind);
+  inst.srcOperands[1].kind  = getOperandKind(src1.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = src0.flags;
+  inst.srcOperands[1].flags = src1.flags;
+  inst.dstOperands[0].type = inst.srcOperands[0].type = inst.srcOperands[1].type = type;
+  return inst;
+}
+
+ir::InstCore minNOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::MinNOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src0.kind);
+  inst.srcOperands[1].kind  = getOperandKind(src1.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = src0.flags;
+  inst.srcOperands[1].flags = src1.flags;
+  inst.dstOperands[0].type = inst.srcOperands[0].type = inst.srcOperands[1].type = type;
+  return inst;
+}
+
 ir::InstCore addIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::AddIOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
@@ -347,6 +457,18 @@ ir::InstCore addIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   return inst;
 }
 
+ir::InstCore ldexpOp(OpDst dst, OpSrc vsrc, OpSrc vexp, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::LdexpOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(vsrc.kind);
+  inst.srcOperands[1].kind  = getOperandKind(vexp.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = vsrc.flags;
+  inst.srcOperands[1].flags = vexp.flags;
+  inst.dstOperands[0].type = inst.srcOperands[0].type = type;
+  return inst;
+}
+
 ir::InstCore addFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::AddFOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
@@ -356,6 +478,44 @@ ir::InstCore addFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   inst.srcOperands[0].flags = src0.flags;
   inst.srcOperands[1].flags = src1.flags;
   inst.dstOperands[0].type = inst.srcOperands[0].type = inst.srcOperands[1].type = type;
+  return inst;
+}
+
+ir::InstCore subFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::SubFOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src0.kind);
+  inst.srcOperands[1].kind  = getOperandKind(src1.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = src0.flags;
+  inst.srcOperands[1].flags = src1.flags;
+  inst.dstOperands[0].type = inst.srcOperands[0].type = inst.srcOperands[1].type = type;
+  return inst;
+}
+
+ir::InstCore mulFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::MulFOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src0.kind);
+  inst.srcOperands[1].kind  = getOperandKind(src1.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = src0.flags;
+  inst.srcOperands[1].flags = src1.flags;
+  inst.dstOperands[0].type = inst.srcOperands[0].type = inst.srcOperands[1].type = type;
+  return inst;
+}
+
+ir::InstCore fmaFOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type) {
+  auto inst                 = ir::getInfo(ir::eInstKind::FmaFOp);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src0.kind);
+  inst.srcOperands[1].kind  = getOperandKind(src1.kind);
+  inst.srcOperands[2].kind  = getOperandKind(src2.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = src0.flags;
+  inst.srcOperands[1].flags = src1.flags;
+  inst.srcOperands[2].flags = src2.flags;
+  inst.dstOperands[0].type = inst.srcOperands[0].type = inst.srcOperands[1].type = inst.srcOperands[2].type = type;
   return inst;
 }
 
@@ -529,6 +689,28 @@ ir::InstCore unpackHalf2x16(OpDst low, OpDst high, OpSrc src) {
   inst.dstOperands[0].flags = low.flags;
   inst.dstOperands[1].flags = high.flags;
   inst.srcOperands[0].flags = src.flags;
+  return inst;
+}
+
+ir::InstCore packSnorm2x16Op(OpDst dst, OpSrc src0, OpSrc src1) {
+  auto inst                 = ir::getInfo(ir::eInstKind::PackSnorm2x16Op);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src0.kind);
+  inst.srcOperands[1].kind  = getOperandKind(src1.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = src0.flags;
+  inst.srcOperands[1].flags = src1.flags;
+  return inst;
+}
+
+ir::InstCore packUnorm2x16Op(OpDst dst, OpSrc src0, OpSrc src1) {
+  auto inst                 = ir::getInfo(ir::eInstKind::PackUnorm2x16Op);
+  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
+  inst.srcOperands[0].kind  = getOperandKind(src0.kind);
+  inst.srcOperands[1].kind  = getOperandKind(src1.kind);
+  inst.dstOperands[0].flags = dst.flags;
+  inst.srcOperands[0].flags = src0.flags;
+  inst.srcOperands[1].flags = src1.flags;
   return inst;
 }
 
