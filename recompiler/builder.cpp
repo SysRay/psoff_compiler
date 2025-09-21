@@ -60,7 +60,7 @@ struct DumpData {
 };
 
 bool Builder::createShader(ShaderDump_t const& dump) {
-  _debugFlags.set(ShaderDebugFlags::ISDUMP);
+  _debugFlags.set(ShaderBuildFlags::ISDUMP);
 
   size_t         start   = 0;
   size_t         end     = dump.size();

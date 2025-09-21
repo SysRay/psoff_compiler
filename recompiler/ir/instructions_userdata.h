@@ -15,4 +15,24 @@ enum class CmpIPredicate : InstructionUserData_t {
   ugt = 8,
   uge = 9,
 };
-}
+
+enum class CmpFPredicate : InstructionUserData_t {
+  AlwaysFalse = 0,
+  OEQ         = 1,
+  OGT         = 2,
+  OGE         = 3,
+  OLT         = 4,
+  OLE         = 5,
+  ONE         = 6,
+  ORD         = 7,
+  UEQ         = 8,
+  UGT         = 9,
+  UGE         = 10,
+  ULT         = 11,
+  ULE         = 12,
+  UNE         = 13,
+  UNO         = 14,
+  AlwaysTrue  = 15,
+};
+
+} // namespace compiler

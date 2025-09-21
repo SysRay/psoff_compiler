@@ -3,6 +3,7 @@
 #include "ir/config.h"
 
 #include <array>
+#include <assert.h>
 #include <string>
 #include <utility>
 
@@ -32,6 +33,9 @@ enum class eOperandKind : OperandKind_t {
   ConstUInt  = 129, //< 1..64
   ConstSInt  = 193, ///< -1..-64
   ConstFloat = 240, ///< 0.5f, -0.5f, 1.0f, -1.0f, 2.0f, -2.0f, 4.0f, -4.0f
+  INV_2PI    = 248,
+  SDWA       = 249,
+  DPP        = 250,
   VccZ       = 251,
   ExecZ      = 252,
   Scc        = 253,
@@ -41,7 +45,14 @@ enum class eOperandKind : OperandKind_t {
 };
 
 constexpr inline eOperandKind getUImm(uint8_t value) {
+  assert(value <= 64);
   return eOperandKind((OperandKind_t)eOperandKind::ConstZero + value);
+}
+
+enum class FIMM : uint8_t { f0_5, fn0_5, f1_0, fn1_0, f2_0, fn2_0, f4_0, fn4_0 };
+
+constexpr inline eOperandKind getFImm(FIMM value) {
+  return eOperandKind((OperandKind_t)eOperandKind::ConstFloat + (uint8_t)value);
 }
 
 constexpr inline eOperandKind getOperandKind(OperandKind_t kind) {

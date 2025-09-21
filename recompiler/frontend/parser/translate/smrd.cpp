@@ -53,8 +53,7 @@ bool handleSmrd(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
     // case eOpcode::S_DCACHE_INV_VOL: {} break; // Does not exist
     case eOpcode::S_MEMTIME: {
     } break;
-    case eOpcode::S_DCACHE_INV: {
-    } break;
+    case eOpcode::S_DCACHE_INV: {} break; // ignore
     default: throw std::runtime_error(std::format("missing inst {}", debug::getDebug(op))); break;
   }
 

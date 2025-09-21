@@ -31,12 +31,37 @@ namespace compiler::ir {
   X(ShiftRUIOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                      \
   X(ShiftRSIOp, kBIT, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                      \
   X(CmpIOp, kALU, kNone, DST_OPS(OP(i1)), SRC_OPS(OP(i32), OP(i32)))                                                                                           \
-  X(AddF32Op, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32), OP(f32)))                                                                                        \
+  X(CmpFOp, kALU, kNone, DST_OPS(OP(i1)), SRC_OPS(OP(f32), OP(f32)))                                                                                           \
+  X(AddFOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32), OP(f32)))                                                                                          \
   X(MulIOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                          \
   X(AddIOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                          \
   X(AddCarryIOp, kALU, kNone, DST_OPS(OP(i32), OP(i1)), SRC_OPS(OP(i32), OP(i32), OP(i1)))                                                                     \
   X(SubIOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(i32), OP(i32)))                                                                                          \
   X(SubBurrowIOp, kALU, kNone, DST_OPS(OP(i32), OP(i1)), SRC_OPS(OP(i32), OP(i32), OP(i1)))                                                                    \
+  X(FPToSIOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(f32)))                                                                                                 \
+  X(SIToFPOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(i32)))                                                                                                 \
+  X(FPToUIOp, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(f32)))                                                                                                 \
+  X(UIToFPOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(i32)))                                                                                                 \
+  X(SI4ToFloat, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(i32)))                                                                                               \
+  X(TruncFOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f64)))                                                                                                 \
+  X(ExtFOp, kALU, kNone, DST_OPS(OP(f64)), SRC_OPS(OP(f32)))                                                                                                   \
+  X(TruncOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32)))                                                                                                  \
+  X(CeilOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32)))                                                                                                   \
+  X(RoundEvenOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32)))                                                                                              \
+  X(FractOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32)))                                                                                                  \
+  X(FloorOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32)))                                                                                                  \
+  X(Exp2Op, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32)))                                                                                                   \
+  X(Log2Op, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32)))                                                                                                   \
+  X(RcpOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32)))                                                                                                    \
+  X(RsqrtOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32)))                                                                                                  \
+  X(SqrtOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32)))                                                                                                   \
+  X(SinOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32)))                                                                                                    \
+  X(CosOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32)))                                                                                                    \
+  X(ClampFMinMaxOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32)))                                                                                           \
+  X(ClampFZeroOp, kALU, kNone, DST_OPS(OP(f32)), SRC_OPS(OP(f32)))                                                                                             \
+  X(FrexpOp, kALU, kNone, DST_OPS(OP(f32), OP(i32)), SRC_OPS(OP(f32)))                                                                                         \
+  X(PackHalf2x16Op, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(f32), OP(f32)))                                                                                  \
+  X(UnpackHalf2x16, kALU, kNone, DST_OPS(OP(f32), OP(f32)), SRC_OPS(OP(i32)))                                                                                  \
   X_NO_OPS(ReturnOp, kFlowControl, kHasSideEffects)                                                                                                            \
   X_NO_OPS(BarrierOp, kFlowControl, kHasSideEffects)                                                                                                           \
   X_NO_DST(JumpAbsOp, kFlowControl, kHasSideEffects, SRC_OPS(OP(i64)))                                                                                         \

@@ -48,6 +48,7 @@ ir::InstCore bitUIExtractOp(OpDst dst, OpSrc base, OpSrc compact, ir::OperandTyp
 ir::InstCore bitSIExtractOp(OpDst dst, OpSrc base, OpSrc compact, ir::OperandType type);
 ir::InstCore bitCmpOp(OpDst dst, OpSrc base, ir::OperandType type, OpSrc index);
 ir::InstCore cmpIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type, CmpIPredicate op);
+ir::InstCore cmpFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type, CmpFPredicate op);
 
 ir::InstCore shiftLUIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
 ir::InstCore shiftRUIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
@@ -56,9 +57,38 @@ ir::InstCore shiftRSIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type)
 // // arith
 ir::InstCore mulIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
 ir::InstCore addIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
+ir::InstCore addFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
 ir::InstCore addcIOp(OpDst dst, OpDst carryOut, OpSrc src0, OpSrc src1, OpSrc carryIn, ir::OperandType type);
 ir::InstCore subIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
 ir::InstCore subbIOp(OpDst dst, OpDst carryOut, OpSrc src0, OpSrc src1, OpSrc carryIn, ir::OperandType type);
+
+ir::InstCore convFPToSIOp(OpDst dst, ir::OperandType dstType, OpSrc src0, ir::OperandType srcType);
+ir::InstCore convSIToFPOp(OpDst dst, ir::OperandType dstType, OpSrc src0, ir::OperandType srcType);
+ir::InstCore convFPToUIOp(OpDst dst, ir::OperandType dstType, OpSrc src0, ir::OperandType srcType);
+ir::InstCore convUIToFPOp(OpDst dst, ir::OperandType dstType, OpSrc src0, ir::OperandType srcType);
+ir::InstCore convSI4ToFloat(OpDst dst, OpSrc src0);
+
+ir::InstCore truncFOp(OpDst dst, OpSrc src0);
+ir::InstCore extFOp(OpDst dst, OpSrc src0);
+ir::InstCore packHalf2x16Op(OpDst dst, OpSrc src0, OpSrc src1);
+ir::InstCore unpackHalf2x16(OpDst low, OpDst high, OpSrc src);
+
+ir::InstCore truncOp(OpDst dst, OpSrc src0, ir::OperandType type);
+ir::InstCore ceilOp(OpDst dst, OpSrc src0, ir::OperandType type);
+ir::InstCore roundEvenOp(OpDst dst, OpSrc src0, ir::OperandType type);
+ir::InstCore fractOp(OpDst dst, OpSrc src0, ir::OperandType type);
+ir::InstCore floorOp(OpDst dst, OpSrc src0, ir::OperandType type);
+ir::InstCore rcpOp(OpDst dst, OpSrc src0, ir::OperandType type);
+ir::InstCore rsqrtOp(OpDst dst, OpSrc src0, ir::OperandType type);
+ir::InstCore sqrtOp(OpDst dst, OpSrc src0, ir::OperandType type);
+ir::InstCore exp2Op(OpDst dst, OpSrc src0);
+ir::InstCore log2Op(OpDst dst, OpSrc src0);
+ir::InstCore sinOp(OpDst dst, OpSrc src0);
+ir::InstCore cosOp(OpDst dst, OpSrc src0);
+ir::InstCore clampFMinMaxOp(OpDst dst, OpSrc src0, ir::OperandType type); ///< Clamp +-inf to +- flat max
+ir::InstCore clampFZeroOp(OpDst dst, OpSrc src0, ir::OperandType type);   ///< Clamp +-inf to Zero
+ir::InstCore frexpOp(OpDst exp, OpDst mant, OpSrc src0, ir::OperandType type);
+
 // // Flow control
 ir::InstCore returnOp();
 ir::InstCore barrierOp();

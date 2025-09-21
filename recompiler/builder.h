@@ -15,13 +15,14 @@ constexpr size_t MEMORY_SIZE = 1_MB;
 
 using ShaderDump_t = std::vector<uint8_t>;
 
-enum class ShaderDebugFlags : uint16_t {
+enum class ShaderBuildFlags : uint16_t {
   ISDUMP = (1 << 0),
+  ISNEO  = (1 << 1),
 };
 
 class Builder {
   public:
-  Builder(size_t numInstructions = 0, util::Flags<ShaderDebugFlags> const& flags = {})
+  Builder(size_t numInstructions = 0, util::Flags<ShaderBuildFlags> const& flags = {})
       : _buffer(std::make_unique_for_overwrite<uint8_t[]>(MEMORY_SIZE)), _debugFlags(flags) {
     if (numInstructions != 0) {
       numInstructions = 2048;
@@ -45,13 +46,16 @@ class Builder {
 
   std::string_view getName() const { return _name; }
 
+  // // Getter for flags
+  bool isNeoMode() const { return _debugFlags.is_set(ShaderBuildFlags::ISNEO); }
+
   private:
   std::unique_ptr<uint8_t[]>          _buffer;
   std::pmr::monotonic_buffer_resource _pool {_buffer.get(), MEMORY_SIZE};
 
   std::pmr::vector<ir::InstCore> _instructions {&_pool};
 
-  util::Flags<ShaderDebugFlags> _debugFlags = {};
+  util::Flags<ShaderBuildFlags> _debugFlags = {};
   frontend::ShaderInput         _shaderInput;
 
   char _name[32] = {'\0'};
