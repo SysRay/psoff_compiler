@@ -12,7 +12,7 @@
 
 namespace compiler::frontend::translate {
 
-bool isSDST(parser::eOpcode op) {
+static bool isSDST(parser::eOpcode op) {
   using namespace parser;
 
   if (op == eOpcode::V_ADD_I32 || op == eOpcode::V_SUB_I32 || op == eOpcode::V_SUBREV_I32 || op == eOpcode::V_ADDC_U32 || op == eOpcode::V_SUBB_U32 ||

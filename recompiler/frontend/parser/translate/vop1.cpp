@@ -231,7 +231,7 @@ bool handleVop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
       builder.createVirtualInst(create::fractOp(vdst, src0, ir::OperandType::f64()));
     } break;
     case eOpcode::V_FREXP_EXP_I32_F32: {
-      // amdllpc translated frexp to
+      // amdllpc translates frexp to
       // v_frexp_exp_i32_f32_e32 v1, v0
       // v_frexp_mant_f32_e32 v0, v0
       builder.createVirtualInst(create::frexpOp(vdst, OpDst(eOperandKind::CustomTemp0Lo), src0, ir::OperandType::f32()));

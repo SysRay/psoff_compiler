@@ -70,6 +70,7 @@ ir::InstCore addFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
 ir::InstCore subFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
 ir::InstCore mulFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
 ir::InstCore fmaFOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type);
+ir::InstCore fmaIOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type);
 ir::InstCore mulIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
 ir::InstCore mulIExtendedOp(OpDst low, OpDst high, OpSrc src0, OpSrc src1, ir::OperandType type);
 ir::InstCore addIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
@@ -106,12 +107,21 @@ ir::InstCore clampFMinMaxOp(OpDst dst, OpSrc src0, ir::OperandType type); ///< C
 ir::InstCore clampFZeroOp(OpDst dst, OpSrc src0, ir::OperandType type);   ///< Clamp +-inf to Zero
 ir::InstCore frexpOp(OpDst exp, OpDst mant, OpSrc src0, ir::OperandType type);
 
+ir::InstCore medUIOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type);
+ir::InstCore medSIOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type);
+ir::InstCore medFOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type);
+ir::InstCore max3UIOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type);
 ir::InstCore maxUIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
+ir::InstCore max3SIOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type);
 ir::InstCore maxSIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
+ir::InstCore max3FOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type);
 ir::InstCore maxFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
 ir::InstCore maxNOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
+ir::InstCore min3UIOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type);
 ir::InstCore minUIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
+ir::InstCore min3SIOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type);
 ir::InstCore minSIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
+ir::InstCore min3FOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type);
 ir::InstCore minFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
 ir::InstCore minNOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
 
