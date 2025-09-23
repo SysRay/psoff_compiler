@@ -218,6 +218,13 @@ ir::InstCore returnOp() {
   return ir::getInfo(ir::eInstKind::ReturnOp);
 }
 
+ir::InstCore discardOp(OpSrc predicate) {
+  auto inst                 = ir::getInfo(ir::eInstKind::DiscardOp);
+  inst.srcOperands[0].kind  = getOperandKind(predicate.kind);
+  inst.srcOperands[0].flags = predicate.flags;
+  return inst;
+}
+
 ir::InstCore barrierOp() {
   return ir::getInfo(ir::eInstKind::BarrierOp);
 }

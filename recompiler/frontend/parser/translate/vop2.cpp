@@ -35,7 +35,7 @@ bool handleVop2(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
     auto instS = VOP3_SDST(getU64(*pCode));
     op         = (eOpcode)(OPcodeStart_VOP2 + inst.template get<VOP3::Field::OP>() - OpcodeOffset_VOP2_VOP3);
 
-    auto const vdst_ = (eOperandKind)inst.template get<VOP3::Field::VDST>();
+    auto const vdst_ = (eOperandKind)((OperandKind_t)eOperandKind::VGPR + inst.template get<VOP3::Field::VDST>());
     auto const src0_ = (eOperandKind)inst.template get<VOP3::Field::SRC0>();
     auto const src1_ = (eOperandKind)inst.template get<VOP3::Field::SRC1>();
     auto const src2_ = (eOperandKind)inst.template get<VOP3::Field::SRC2>();
@@ -52,7 +52,7 @@ bool handleVop2(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
       src1 = OpSrc(src1_, negate[1], false);
       src2 = OpSrc(src2_, negate[2], false);
       vdst = OpDst(vdst_, omod, false, false);
-      sdst = OpDst(sdst_);
+      sdst = OpDst(sdst_, omod, false, false);
     } else {
       src0 = OpSrc(src0_, negate[0], abs[0]);
       src1 = OpSrc(src1_, negate[1], abs[1]);
@@ -64,10 +64,10 @@ bool handleVop2(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
     auto inst = VOP2(**pCode);
     op        = (eOpcode)(OPcodeStart_VOP2 + inst.template get<VOP2::Field::OP>());
 
-    vdst = OpDst((eOperandKind)inst.template get<VOP2::Field::VDST>());
+    vdst = OpDst((eOperandKind)((OperandKind_t)eOperandKind::VGPR + inst.template get<VOP2::Field::VDST>()));
     sdst = OpDst(eOperandKind::VccLo);
     src0 = OpSrc((eOperandKind)inst.template get<VOP2::Field::SRC0>());
-    src1 = OpSrc((eOperandKind)inst.template get<VOP2::Field::VSRC1>());
+    src1 = OpSrc((eOperandKind)((OperandKind_t)eOperandKind::VGPR + inst.template get<VOP2::Field::VSRC1>()));
     src2 = OpSrc(eOperandKind::VccLo);
     if (src0.kind == eOperandKind::Literal || src1.kind == eOperandKind::Literal) {
       *pCode += 1;

@@ -88,6 +88,7 @@ namespace compiler::ir {
   X(PackSnorm2x16Op, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(f32), OP(f32)))                                                                                 \
   X(PackUnorm2x16Op, kALU, kNone, DST_OPS(OP(i32)), SRC_OPS(OP(f32), OP(f32)))                                                                                 \
   X_NO_OPS(ReturnOp, kFlowControl, kHasSideEffects)                                                                                                            \
+  X_NO_DST(DiscardOp, kFlowControl, kHasSideEffects, SRC_OPS(OP(i1)))                                                                                          \
   X_NO_OPS(BarrierOp, kFlowControl, kHasSideEffects)                                                                                                           \
   X_NO_DST(JumpAbsOp, kFlowControl, kHasSideEffects, SRC_OPS(OP(i64)))                                                                                         \
   X_NO_DST(CondJumpAbsOp, kFlowControl, kHasSideEffects, SRC_OPS(OP(i1), OP(i64)))                                                                             \

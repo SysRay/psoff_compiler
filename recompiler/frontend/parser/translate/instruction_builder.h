@@ -127,6 +127,7 @@ ir::InstCore minNOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type);
 
 // // Flow control
 ir::InstCore returnOp();
+ir::InstCore discardOp(OpSrc predicate);
 ir::InstCore barrierOp();
 ir::InstCore jumpAbsOp(OpSrc addr);
 ir::InstCore jumpAbsOp(uint64_t addr);

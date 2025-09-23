@@ -4,16 +4,18 @@
 
 namespace compiler {
 enum class CmpIPredicate : InstructionUserData_t {
-  eq  = 0,
-  ne  = 1,
-  slt = 2,
-  sle = 3,
-  sgt = 4,
-  sge = 5,
-  ult = 6,
-  ule = 7,
-  ugt = 8,
-  uge = 9,
+  AlwaysFalse = 0,
+  eq          = 1,
+  ne          = 2,
+  slt         = 3,
+  sle         = 4,
+  sgt         = 5,
+  sge         = 6,
+  ult         = 7,
+  ule         = 8,
+  ugt         = 9,
+  uge         = 10,
+  AlwaysTrue  = 11,
 };
 
 enum class CmpFPredicate : InstructionUserData_t {

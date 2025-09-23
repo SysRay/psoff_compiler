@@ -22,7 +22,7 @@ bool handleVop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
     auto inst = VOP3(getU64(*pCode));
     op        = (parser::eOpcode)(OPcodeStart_VOP1 + inst.template get<VOP3::Field::OP>() - OpcodeOffset_VOP1_VOP3);
 
-    auto const vdst_ = (eOperandKind)inst.template get<VOP3::Field::VDST>();
+    auto const vdst_ = (eOperandKind)((OperandKind_t)eOperandKind::VGPR + inst.template get<VOP3::Field::VDST>());
     auto const src0_ = (eOperandKind)inst.template get<VOP3::Field::SRC0>();
 
     auto const           omod   = inst.template get<VOP3::Field::OMOD>();
@@ -37,7 +37,7 @@ bool handleVop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
     auto inst = VOP1(**pCode);
     op        = (parser::eOpcode)(OPcodeStart_VOP1 + inst.template get<VOP1::Field::OP>());
 
-    vdst = OpDst((eOperandKind)inst.template get<VOP1::Field::VDST>());
+    vdst = OpDst((eOperandKind)((OperandKind_t)eOperandKind::VGPR + inst.template get<VOP1::Field::VDST>()));
     src0 = OpSrc((eOperandKind)inst.template get<VOP1::Field::SRC0>());
     if (src0.kind == eOperandKind::Literal) {
       *pCode += 1;
