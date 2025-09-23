@@ -4,6 +4,8 @@
 #include "translate/encodings.h"
 #include "translate/translate.h"
 
+#include <stdexcept>
+
 namespace compiler::frontend::parser {
 enum eEncodingMask : uint32_t {
   eEncodingMask_9b = 0xff800000,
@@ -21,8 +23,8 @@ static constexpr uint32_t getEncodingBits(eEncoding encoding) {
     case eEncoding::SOP2: return 0x80000000;
     case eEncoding::SOPP: return 0xbf800000;
     case eEncoding::SOPC: return 0xbf000000;
-    case eEncoding::EXP: return 0xc4000000;
-    case eEncoding::VINTRP: return 0xd4000000;
+    case eEncoding::EXP: return 0xf8000000;
+    case eEncoding::VINTRP: return 0xc8000000;
     case eEncoding::DS: return 0xd8000000;
     case eEncoding::MUBUF: return 0xe0000000;
     case eEncoding::MTBUF: return 0xe8000000;
@@ -104,7 +106,7 @@ bool parseInstruction(Builder& builder, pc_t pc, code_p_t* pCode) {
       return handleVopc(builder, pc, pCode, true);
     }
     case eEncoding::VOPC: return handleVopc(builder, pc, pCode, false);
-    default: return {};
+    default: throw std::runtime_error("wrong encoding"); return false;
   }
 }
 } // namespace compiler::frontend::parser

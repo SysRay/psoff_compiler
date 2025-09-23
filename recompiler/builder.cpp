@@ -2,6 +2,7 @@
 
 #include "alpaca/alpaca.h"
 #include "frontend/parser/parser.h"
+#include "ir/debug_strings.h"
 
 #include <filesystem>
 
@@ -80,9 +81,21 @@ bool Builder::createShader(ShaderDump_t const& dump) {
   // todo how to handle fetchInstructions getFetch callback?
   uint32_t const* pCode   = data.instructions.data();
   auto            curCode = pCode;
-  while (curCode < (pCode + data.instructions.size())) {
-    auto const pc = (frontend::parser::pc_t)curCode;
-    frontend::parser::parseInstruction(*this, pc, &curCode);
+  try {
+    while (curCode < (pCode + data.instructions.size())) {
+      auto const pc = (frontend::parser::pc_t)curCode;
+      frontend::parser::parseInstruction(*this, pc, &curCode);
+    }
+  } catch (std::runtime_error const& ex) {
+    printf("%s error:%s", _name, ex.what());
+    return {};
+  }
+
+  // todo move dump instructions
+  {
+    for (auto const& inst: _instructions) {
+      ir::debug::getDebug(std::cout, inst);
+    }
   }
   return false;
 }

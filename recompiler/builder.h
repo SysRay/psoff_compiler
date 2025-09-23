@@ -58,7 +58,7 @@ class Builder {
   util::Flags<ShaderBuildFlags> _debugFlags = {};
   frontend::ShaderInput         _shaderInput;
 
-  char _name[32] = {'\0'};
+  char _name[32] = {"dump"};
 };
 
 } // namespace compiler

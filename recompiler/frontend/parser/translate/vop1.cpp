@@ -79,7 +79,7 @@ bool handleVop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
       builder.createVirtualInst(create::unpackHalf2x16(vdst, OpDst(eOperandKind::CustomTemp0Lo), src0));
     } break;
     case eOpcode::V_CVT_RPI_I32_F32: {
-      builder.createVirtualInst(create::addFOp(OpDst(vdst.kind), src0, OpSrc(getFImm(FIMM::f0_5)), ir::OperandType::f32()));
+      builder.createVirtualInst(create::addFOp(OpDst(vdst.kind), src0, OpSrc(eOperandKind::ConstFloat_0_5), ir::OperandType::f32()));
       builder.createVirtualInst(create::floorOp(OpDst(vdst.kind), OpSrc(vdst.kind), ir::OperandType::f32()));
       builder.createVirtualInst(create::convFPToSIOp(vdst, ir::OperandType::i32(), OpSrc(vdst.kind), ir::OperandType::f32()));
     } break;

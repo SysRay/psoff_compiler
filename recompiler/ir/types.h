@@ -34,7 +34,6 @@ struct OperandType {
     i32,
     i64,
     // floats
-    f16,
     f32,
     f64
   };
@@ -111,7 +110,7 @@ struct OperandType {
 
   static constexpr OperandType i64() { return scalar(eBase::i64); }
 
-  static constexpr OperandType f16() { return scalar(eBase::f16); }
+  //static constexpr OperandType f16() { return scalar(eBase::f16); }
 
   static constexpr OperandType f32() { return scalar(eBase::f32); }
 
@@ -129,14 +128,12 @@ struct OperandType {
       case eBase::f32: return 4;
       case eBase::i64:
       case eBase::f64: return 8;
-      case eBase::f16: return 2;
     }
     return 0;
   }
 
   static constexpr bool is_float_base(eBase b) {
     switch (b) {
-      case eBase::f16:
       case eBase::f32:
       case eBase::f64: return true;
       default: return false;

@@ -34,6 +34,8 @@ int main(int argc, char* argv[]) {
     return 2;
   }
 
+  file.read((char*)data.data(), fsize);
+
   // // Build Shader
   compiler::Builder builder(1000);
   builder.createShader(data);
