@@ -1,5 +1,7 @@
 #include "debug_strings.h"
 
+#include "frontend.h"
+#include "ir/ir.h"
 #include "shader_types.h"
 
 #include <iostream>
@@ -124,7 +126,88 @@ std::string_view getDebug(eSwizzle swizzle) {
   }
 }
 
-void printOperand(std::ostream& os, OperandFlagsDst const& op) {}
+static void printKind(std::ostream& os, eOperandKind kind) {
+  if (kind.isConstI()) {
+    os << kind.getConstI();
+  } else if (kind.isConstF()) {
+    os << kind.getConstF();
+  } else if (kind.isSGPR()) {
+    auto const start = kind.getSGPR();
+    os << "s" << std::dec << start;
+  } else if (kind.isVGPR()) {
+    auto const start = kind.getVGPR();
+    auto const end   = start;
+    os << "s" << std::dec << start;
+  } else {
+    switch (kind.base()) {
+      case eOperandKind::eBase::VccLo: os << "VCC_LO"; break;
+      case eOperandKind::eBase::VccHi: os << "VCC_HI"; break;
+      case eOperandKind::eBase::CustomTemp0Lo: os << "TEMP0_LO"; break;
+      case eOperandKind::eBase::CustomTemp0Hi: os << "TEMP0_HI"; break;
+      case eOperandKind::eBase::CustomTemp1Lo: os << "TEMP1_LO"; break;
+      case eOperandKind::eBase::CustomTemp1Hi: os << "TEMP1_HI"; break;
+      case eOperandKind::eBase::M0: os << "M0"; break;
+      case eOperandKind::eBase::CustomVskip: os << "VSKIP"; break;
+      case eOperandKind::eBase::ExecLo: os << "EXEC_LO"; break;
+      case eOperandKind::eBase::ExecHi: os << "EXEC_HI"; break;
+      case eOperandKind::eBase::INV_2PI: os << "INV_2PI"; break;
+      case eOperandKind::eBase::SDWA: os << "SDWA"; break;
+      case eOperandKind::eBase::DPP: os << "DPP"; break;
+      case eOperandKind::eBase::VccZ: os << "VCCZ"; break;
+      case eOperandKind::eBase::ExecZ: os << "EXECZ"; break;
+      case eOperandKind::eBase::Scc: os << "SCC"; break;
+      case eOperandKind::eBase::LdsDirect: os << "DIRECT"; break;
+      case eOperandKind::eBase::Literal: os << "LITERAL"; break;
+      default: os << "UNK" << std::dec << (uint16_t)kind.base(); break;
+    }
+  }
+}
 
-void printOperand(std::ostream& os, OperandFlagsSrc const& op) {}
+void printOperandDst(std::ostream& os, ir::Operand const& op) {
+  auto const flags = OperandFlagsDst(op.flags);
+  auto       kind  = eOperandKind::import(op.kind);
+  if (kind.base() == eOperandKind::eBase::ConstZero) {
+    printf("0x%x\n", op.kind);
+    assert(kind.isConstI());
+  }
+  if (flags.getNegate()) { // custom type
+    os << "-(";
+  }
+  if (flags.getClamp()) {
+    os << "clamp{";
+  }
+  if (flags.hasMultiply()) {
+    os << flags.getMultiply() << "*";
+  }
+  printKind(os, kind);
+
+  if (flags.getClamp()) {
+    os << "}";
+  }
+  if (flags.getNegate()) { // custom type
+    os << ")";
+  }
+}
+
+void printOperandSrc(std::ostream& os, ir::Operand const& op) {
+  auto const flags = OperandFlagsSrc(op.flags);
+  auto       kind  = eOperandKind::import(op.kind);
+
+  if (flags.getNegate()) {
+    os << "-(";
+  }
+  if (flags.getAbsolute()) {
+    os << "abs(";
+  }
+
+  printKind(os, kind);
+
+  if (flags.getAbsolute()) {
+    os << ")";
+  }
+  if (flags.getNegate()) {
+    os << ")";
+  }
+}
+
 } // namespace compiler::frontend::debug

@@ -4,10 +4,11 @@
 
 #include <string_view>
 
-namespace compiler::frontend {
+namespace compiler::ir {
+struct Operand;
+}
 
-struct OperandFlagsDst;
-struct OperandFlagsSrc;
+namespace compiler::frontend {
 
 namespace debug {
 void dumpResource(ResourceVBuffer const&);
@@ -16,7 +17,7 @@ void dumpResource(ResourceSampler const&);
 
 std::string_view getDebug(eSwizzle swizzle);
 
-void printOperand(std::ostream& os, OperandFlagsDst const& op);
-void printOperand(std::ostream& os, OperandFlagsSrc const& op);
+void printOperandDst(std::ostream& os, ir::Operand const& op);
+void printOperandSrc(std::ostream& os, ir::Operand const& op);
 } // namespace debug
 } // namespace compiler::frontend

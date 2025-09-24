@@ -16,9 +16,9 @@ bool handleSop2(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
   auto       inst = SOP2(**pCode);
   auto const op   = (parser::eOpcode)(OPcodeStart_SOP2 + inst.template get<SOP2::Field::OP>());
 
-  auto const sdst = OpDst(eOperandKind::create((OperandKind_t)inst.template get<SOP2::Field::SDST>()));
-  auto const src0 = OpSrc(eOperandKind::create((OperandKind_t)inst.template get<SOP2::Field::SSRC0>()));
-  auto const src1 = OpSrc(eOperandKind::create((OperandKind_t)inst.template get<SOP2::Field::SSRC1>()));
+  auto const sdst = OpDst(eOperandKind((eOperandKind_t)inst.template get<SOP2::Field::SDST>()));
+  auto const src0 = OpSrc(eOperandKind((eOperandKind_t)inst.template get<SOP2::Field::SSRC0>()));
+  auto const src1 = OpSrc(eOperandKind((eOperandKind_t)inst.template get<SOP2::Field::SSRC1>()));
 
   if (src0.kind.isLiteral() || src1.kind.isLiteral()) {
     *pCode += 1;

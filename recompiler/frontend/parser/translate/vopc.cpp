@@ -22,9 +22,9 @@ bool handleVopc(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
     auto inst = VOP3_SDST(getU64(*pCode));
     op        = (parser::eOpcode)(OPcodeStart_VOPC + inst.template get<VOP3_SDST::Field::OP>() - OpcodeOffset_VOPC_VOP3);
 
-    auto const sdst_ = eOperandKind::create((OperandKind_t)inst.template get<VOP3_SDST::Field::SDST>());
-    auto const src0_ = eOperandKind::create((OperandKind_t)inst.template get<VOP3_SDST::Field::SRC0>());
-    auto const src1_ = eOperandKind::create((OperandKind_t)inst.template get<VOP3_SDST::Field::SRC1>());
+    auto const sdst_ = eOperandKind((eOperandKind_t)inst.template get<VOP3_SDST::Field::SDST>());
+    auto const src0_ = eOperandKind((eOperandKind_t)inst.template get<VOP3_SDST::Field::SRC0>());
+    auto const src1_ = eOperandKind((eOperandKind_t)inst.template get<VOP3_SDST::Field::SRC1>());
 
     auto const           omod   = inst.template get<VOP3_SDST::Field::OMOD>();
     std::bitset<3> const negate = inst.template get<VOP3_SDST::Field::NEG>();
@@ -37,7 +37,7 @@ bool handleVopc(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
     auto inst = VOPC(**pCode);
     op        = (parser::eOpcode)(OPcodeStart_VOPC + inst.template get<VOPC::Field::OP>());
     sdst      = OpDst(eOperandKind::VCC());
-    src0      = OpSrc(eOperandKind::create((OperandKind_t)inst.template get<VOPC::Field::SRC0>()));
+    src0      = OpSrc(eOperandKind((eOperandKind_t)inst.template get<VOPC::Field::SRC0>()));
     src1      = OpSrc(eOperandKind::VGPR(inst.template get<VOPC::Field::VSRC1>()));
 
     if (src0.kind.isLiteral() || src1.kind.isLiteral()) {

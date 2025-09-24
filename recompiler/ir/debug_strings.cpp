@@ -1,5 +1,6 @@
 #include "debug_strings.h"
 
+#include "frontend/debug_strings.h"
 #include "instructions.h"
 
 #include <assert.h>
@@ -34,7 +35,7 @@ static void printIMM(std::ostream& os, uint64_t value, OperandType type) {
           os << (int64_t)value;
       } else {
         if (value > 10000)
-          os << std::hex << value;
+          os << "0x" << std::hex << value;
         else
           os << value;
       }
@@ -50,7 +51,8 @@ static void printIMM(std::ostream& os, uint64_t value, OperandType type) {
 
 static void getDst(std::ostream& os, InstCore const& op) {
   for (uint8_t n = 0; n < op.numDst; ++n) {
-    os << " d" << (size_t)n; // todo
+    os << " ";
+    frontend::debug::printOperandDst(os, op.dstOperands[n]);
   }
 }
 
@@ -61,15 +63,18 @@ static void getSrc(std::ostream& os, InstCore const& op) {
   }
 
   for (uint8_t n = 0; n < op.numSrc; ++n) {
-    os << " s" << (size_t)n; // todo
+    os << " ";
+    frontend::debug::printOperandSrc(os, op.srcOperands[n]);
   }
 }
 
 static void getDebug_generic(std::ostream& os, InstCore const& op) {
   os << isVirtual(op) << getInstrKindStr((eInstKind)op.kind) << " ";
-  getDst(os, op);
-  os << ",";
-  getSrc(os, op);
+  if (op.numDst > 0 || op.numSrc > 0) {
+    getDst(os, op);
+    os << ",";
+    getSrc(os, op);
+  }
   os << std::endl;
 }
 

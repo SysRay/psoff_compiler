@@ -23,7 +23,7 @@ bool handleVop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
     op        = (parser::eOpcode)(OPcodeStart_VOP1 + inst.template get<VOP3::Field::OP>() - OpcodeOffset_VOP1_VOP3);
 
     auto const vdst_ = eOperandKind::VGPR(inst.template get<VOP3::Field::VDST>());
-    auto const src0_ = eOperandKind::create((OperandKind_t)inst.template get<VOP3::Field::SRC0>());
+    auto const src0_ = eOperandKind((eOperandKind_t)inst.template get<VOP3::Field::SRC0>());
 
     auto const           omod   = inst.template get<VOP3::Field::OMOD>();
     std::bitset<3> const negate = inst.template get<VOP3::Field::NEG>();
@@ -38,7 +38,7 @@ bool handleVop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
     op        = (parser::eOpcode)(OPcodeStart_VOP1 + inst.template get<VOP1::Field::OP>());
 
     vdst = OpDst(eOperandKind::VGPR(inst.template get<VOP1::Field::VDST>()));
-    src0 = OpSrc(eOperandKind::create((OperandKind_t)inst.template get<VOP1::Field::SRC0>()));
+    src0 = OpSrc(eOperandKind((eOperandKind_t)inst.template get<VOP1::Field::SRC0>()));
     if (src0.kind.isLiteral()) {
       *pCode += 1;
       builder.createInstruction(create::literalOp(**pCode));
@@ -80,7 +80,7 @@ bool handleVop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
     } break;
     case eOpcode::V_CVT_RPI_I32_F32: {
       builder.createVirtualInst(
-          create::addFOp(OpDst(vdst.kind), src0, OpSrc(eOperandKind::create((OperandKind_t)eOperandKind::eBase::ConstFloat_0_5)), ir::OperandType::f32()));
+          create::addFOp(OpDst(vdst.kind), src0, OpSrc(eOperandKind((eOperandKind_t)eOperandKind::eBase::ConstFloat_0_5)), ir::OperandType::f32()));
       builder.createVirtualInst(create::floorOp(OpDst(vdst.kind), OpSrc(vdst.kind), ir::OperandType::f32()));
       builder.createVirtualInst(create::convFPToSIOp(vdst, ir::OperandType::i32(), OpSrc(vdst.kind), ir::OperandType::f32()));
     } break;

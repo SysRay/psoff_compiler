@@ -21,9 +21,9 @@ bool handleVop3(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
   OpSrc src0, src1, src2;
   {
     auto const vdst_ = eOperandKind::VGPR(inst.template get<VOP3::Field::VDST>());
-    auto const src0_ = eOperandKind::create((OperandKind_t)inst.template get<VOP3::Field::SRC0>());
-    auto const src1_ = eOperandKind::create((OperandKind_t)inst.template get<VOP3::Field::SRC1>());
-    auto const src2_ = eOperandKind::create((OperandKind_t)inst.template get<VOP3::Field::SRC2>());
+    auto const src0_ = eOperandKind((eOperandKind_t)inst.template get<VOP3::Field::SRC0>());
+    auto const src1_ = eOperandKind((eOperandKind_t)inst.template get<VOP3::Field::SRC1>());
+    auto const src2_ = eOperandKind((eOperandKind_t)inst.template get<VOP3::Field::SRC2>());
 
     auto const           omod   = inst.template get<VOP3::Field::OMOD>();
     std::bitset<3> const negate = inst.template get<VOP3::Field::NEG>();

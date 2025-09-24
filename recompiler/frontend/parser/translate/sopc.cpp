@@ -16,8 +16,8 @@ bool handleSopc(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
   auto       inst = SOPC(**pCode);
   auto const op   = (parser::eOpcode)(OPcodeStart_SOPC + inst.template get<SOPC::Field::OP>());
 
-  auto const src0 = OpSrc(eOperandKind::create((OperandKind_t)inst.template get<SOPC::Field::SSRC0>()));
-  auto const src1 = OpSrc(eOperandKind::create((OperandKind_t)inst.template get<SOPC::Field::SSRC1>()));
+  auto const src0 = OpSrc(eOperandKind((eOperandKind_t)inst.template get<SOPC::Field::SSRC0>()));
+  auto const src1 = OpSrc(eOperandKind((eOperandKind_t)inst.template get<SOPC::Field::SSRC1>()));
 
   if (src0.kind.isLiteral() || src1.kind.isLiteral()) {
     *pCode += 1;
