@@ -10,13 +10,13 @@ struct OpSrc {
   eOperandKind    kind;
   OperandFlagsSrc flags {0};
 
-  constexpr explicit OpSrc(): kind(eOperandKind::SGPR) {}
+  constexpr explicit OpSrc(): kind(eOperandKind::SGPR(0)) {}
 
   constexpr explicit OpSrc(eOperandKind kind): kind(kind) {}
 
   constexpr explicit OpSrc(eOperandKind kind, OperandFlagsSrc flags): kind(kind), flags(flags) {}
 
-  constexpr explicit OpSrc(eOperandKind kind, bool negate, bool abs): kind(kind), flags(eRegClass::SGPR, negate, abs) {}
+  constexpr explicit OpSrc(eOperandKind kind, bool negate, bool abs): kind(kind), flags(negate, abs) {}
 
   constexpr OpSrc& operator=(OpSrc const& other) = default;
 };
@@ -25,11 +25,11 @@ struct OpDst {
   eOperandKind    kind;
   OperandFlagsDst flags {0};
 
-  constexpr explicit OpDst(): kind(eOperandKind::SGPR) {}
+  constexpr explicit OpDst(): kind(eOperandKind::SGPR(0)) {}
 
   constexpr explicit OpDst(eOperandKind kind): kind(kind) {}
 
-  constexpr explicit OpDst(eOperandKind kind, uint8_t omod, bool clamp, bool negate): kind(kind), flags(eRegClass::SGPR, omod, clamp, negate) {}
+  constexpr explicit OpDst(eOperandKind kind, uint8_t omod, bool clamp, bool negate): kind(kind), flags( omod, clamp, negate) {}
 
   constexpr OpDst& operator=(OpDst const& other) = default;
 };

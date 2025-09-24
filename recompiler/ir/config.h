@@ -20,7 +20,4 @@ namespace compiler::config {
 static constexpr uint32_t kMaxOps    = 5;
 static constexpr uint32_t kMaxSrcOps = 3;
 static constexpr uint32_t kMaxDstOps = 2;
-
-constexpr uint32_t kOperandKindBits  = 9;
-constexpr uint32_t kOperandFlagsBits = 7;
 } // namespace compiler::config

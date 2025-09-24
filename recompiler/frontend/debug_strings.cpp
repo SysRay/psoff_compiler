@@ -123,4 +123,8 @@ std::string_view getDebug(eSwizzle swizzle) {
     case eSwizzle::A: return "A";
   }
 }
+
+void printOperand(std::ostream& os, OperandFlagsDst const& op) {}
+
+void printOperand(std::ostream& os, OperandFlagsSrc const& op) {}
 } // namespace compiler::frontend::debug

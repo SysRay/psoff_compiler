@@ -22,9 +22,9 @@ bool handleVopc(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
     auto inst = VOP3_SDST(getU64(*pCode));
     op        = (parser::eOpcode)(OPcodeStart_VOPC + inst.template get<VOP3_SDST::Field::OP>() - OpcodeOffset_VOPC_VOP3);
 
-    auto const sdst_ = (eOperandKind)inst.template get<VOP3_SDST::Field::SDST>();
-    auto const src0_ = (eOperandKind)inst.template get<VOP3_SDST::Field::SRC0>();
-    auto const src1_ = (eOperandKind)inst.template get<VOP3_SDST::Field::SRC1>();
+    auto const sdst_ = eOperandKind::create((OperandKind_t)inst.template get<VOP3_SDST::Field::SDST>());
+    auto const src0_ = eOperandKind::create((OperandKind_t)inst.template get<VOP3_SDST::Field::SRC0>());
+    auto const src1_ = eOperandKind::create((OperandKind_t)inst.template get<VOP3_SDST::Field::SRC1>());
 
     auto const           omod   = inst.template get<VOP3_SDST::Field::OMOD>();
     std::bitset<3> const negate = inst.template get<VOP3_SDST::Field::NEG>();
@@ -36,11 +36,11 @@ bool handleVopc(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
   } else {
     auto inst = VOPC(**pCode);
     op        = (parser::eOpcode)(OPcodeStart_VOPC + inst.template get<VOPC::Field::OP>());
-    sdst      = OpDst(eOperandKind::VccLo);
-    src0      = OpSrc((eOperandKind)inst.template get<VOPC::Field::SRC0>());
-    src1      = OpSrc((eOperandKind)((OperandKind_t)eOperandKind::VGPR + inst.template get<VOPC::Field::VSRC1>()));
+    sdst      = OpDst(eOperandKind::VCC());
+    src0      = OpSrc(eOperandKind::create((OperandKind_t)inst.template get<VOPC::Field::SRC0>()));
+    src1      = OpSrc(eOperandKind::VGPR(inst.template get<VOPC::Field::VSRC1>()));
 
-    if (src0.kind == eOperandKind::Literal || src1.kind == eOperandKind::Literal) {
+    if (src0.kind.isLiteral() || src1.kind.isLiteral()) {
       *pCode += 1;
       builder.createInstruction(create::literalOp(**pCode));
     }
@@ -62,81 +62,81 @@ bool handleVopc(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
   if (op >= eOpcode::V_CMP_F_F32 && op <= eOpcode::V_CMP_T_F32) {
     auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMP_F_F32;
     builder.createInstruction(create::cmpFOp(OpDst(sdst.kind), src0, src1, ir::OperandType::f32(), cmpOpsF[opIndex]));
-    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::ExecLo), ir::OperandType::i1()));
+    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::EXEC()), ir::OperandType::i1()));
   } else if (op >= eOpcode::V_CMPX_F_F32 && op <= eOpcode::V_CMPX_T_F32) {
     auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPX_F_F32;
     builder.createInstruction(create::cmpFOp(OpDst(sdst.kind), src0, src1, ir::OperandType::f32(), cmpOpsF[opIndex]));
-    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::ExecLo), ir::OperandType::i1()));
-    builder.createInstruction(create::moveOp(OpDst(eOperandKind::ExecLo), OpSrc(sdst.kind), ir::OperandType::i1()));
+    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::EXEC()), ir::OperandType::i1()));
+    builder.createInstruction(create::moveOp(OpDst(eOperandKind::EXEC()), OpSrc(sdst.kind), ir::OperandType::i1()));
   } else if (op >= eOpcode::V_CMP_F_F64 && op <= eOpcode::V_CMP_T_F64) {
     auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMP_F_F64;
     builder.createInstruction(create::cmpFOp(OpDst(sdst.kind), src0, src1, ir::OperandType::f64(), cmpOpsF[opIndex]));
-    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::ExecLo), ir::OperandType::i1()));
+    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::EXEC()), ir::OperandType::i1()));
   } else if (op >= eOpcode::V_CMPX_F_F64 && op <= eOpcode::V_CMPX_T_F64) {
     auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPX_F_F32;
     builder.createInstruction(create::cmpFOp(OpDst(sdst.kind), src0, src1, ir::OperandType::f64(), cmpOpsF[opIndex]));
-    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::ExecLo), ir::OperandType::i1()));
-    builder.createInstruction(create::moveOp(OpDst(eOperandKind::ExecLo), OpSrc(sdst.kind), ir::OperandType::i1()));
+    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::EXEC()), ir::OperandType::i1()));
+    builder.createInstruction(create::moveOp(OpDst(eOperandKind::EXEC()), OpSrc(sdst.kind), ir::OperandType::i1()));
   } else if (op >= eOpcode::V_CMPS_F_F32 && op <= eOpcode::V_CMPS_T_F32) {
     auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPS_F_F32;
     builder.createInstruction(create::cmpFOp(OpDst(sdst.kind), src0, src1, ir::OperandType::f32(), cmpOpsF[opIndex]));
-    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::ExecLo), ir::OperandType::i1()));
+    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::EXEC()), ir::OperandType::i1()));
   } else if (op >= eOpcode::V_CMPSX_F_F32 && op <= eOpcode::V_CMPSX_T_F32) {
     auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPSX_F_F32;
     builder.createInstruction(create::cmpFOp(OpDst(sdst.kind), src0, src1, ir::OperandType::f32(), cmpOpsF[opIndex]));
-    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::ExecLo), ir::OperandType::i1()));
-    builder.createInstruction(create::moveOp(OpDst(eOperandKind::ExecLo), OpSrc(sdst.kind), ir::OperandType::i1()));
+    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::EXEC()), ir::OperandType::i1()));
+    builder.createInstruction(create::moveOp(OpDst(eOperandKind::EXEC()), OpSrc(sdst.kind), ir::OperandType::i1()));
   } else if (op >= eOpcode::V_CMPS_F_F64 && op <= eOpcode::V_CMPS_T_F64) {
     auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPS_F_F64;
     builder.createInstruction(create::cmpFOp(OpDst(sdst.kind), src0, src1, ir::OperandType::f64(), cmpOpsF[opIndex]));
-    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::ExecLo), ir::OperandType::i1()));
+    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::EXEC()), ir::OperandType::i1()));
   } else if (op >= eOpcode::V_CMPSX_F_F64 && op <= eOpcode::V_CMPSX_T_F64) {
     auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPSX_F_F64;
     builder.createInstruction(create::cmpFOp(OpDst(sdst.kind), src0, src1, ir::OperandType::f64(), cmpOpsF[opIndex]));
-    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::ExecLo), ir::OperandType::i1()));
-    builder.createInstruction(create::moveOp(OpDst(eOperandKind::ExecLo), OpSrc(sdst.kind), ir::OperandType::i1()));
+    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::EXEC()), ir::OperandType::i1()));
+    builder.createInstruction(create::moveOp(OpDst(eOperandKind::EXEC()), OpSrc(sdst.kind), ir::OperandType::i1()));
   } //
   else if (op >= eOpcode::V_CMP_F_I32 && op <= eOpcode::V_CMP_T_I32) {
     auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMP_F_I32;
     builder.createInstruction(create::cmpIOp(OpDst(sdst.kind), src0, src1, ir::OperandType::i32(), cmdOpsSI[opIndex]));
-    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::ExecLo), ir::OperandType::i1()));
+    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::EXEC()), ir::OperandType::i1()));
   } else if (op >= eOpcode::V_CMP_CLASS_F32) { // todo
   } else if (op >= eOpcode::V_CMPX_F_I32 && op <= eOpcode::V_CMPX_T_I32) {
     auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPX_F_I32;
     builder.createInstruction(create::cmpIOp(OpDst(sdst.kind), src0, src1, ir::OperandType::i32(), cmdOpsSI[opIndex]));
-    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::ExecLo), ir::OperandType::i1()));
-    builder.createInstruction(create::moveOp(OpDst(eOperandKind::ExecLo), OpSrc(sdst.kind), ir::OperandType::i1()));
+    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::EXEC()), ir::OperandType::i1()));
+    builder.createInstruction(create::moveOp(OpDst(eOperandKind::EXEC()), OpSrc(sdst.kind), ir::OperandType::i1()));
   } else if (op >= eOpcode::V_CMPX_CLASS_F32) { // todo
   } else if (op >= eOpcode::V_CMP_F_I64 && op <= eOpcode::V_CMP_T_I64) {
     auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMP_F_I64;
     builder.createInstruction(create::cmpIOp(OpDst(sdst.kind), src0, src1, ir::OperandType::i32(), cmdOpsSI[opIndex]));
-    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::ExecLo), ir::OperandType::i1()));
+    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::EXEC()), ir::OperandType::i1()));
   } else if (op >= eOpcode::V_CMP_CLASS_F64) { // todo
   } else if (op >= eOpcode::V_CMPX_F_I64 && op <= eOpcode::V_CMPX_T_I64) {
     auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPX_F_I64;
     builder.createInstruction(create::cmpIOp(OpDst(sdst.kind), src0, src1, ir::OperandType::i32(), cmdOpsSI[opIndex]));
-    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::ExecLo), ir::OperandType::i1()));
-    builder.createInstruction(create::moveOp(OpDst(eOperandKind::ExecLo), OpSrc(sdst.kind), ir::OperandType::i1()));
+    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::EXEC()), ir::OperandType::i1()));
+    builder.createInstruction(create::moveOp(OpDst(eOperandKind::EXEC()), OpSrc(sdst.kind), ir::OperandType::i1()));
   } else if (op >= eOpcode::V_CMPX_CLASS_F64) { // todo
   } //
   else if (op >= eOpcode::V_CMP_F_U32 && op <= eOpcode::V_CMP_T_U32) {
     auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMP_F_U32;
     builder.createInstruction(create::cmpIOp(OpDst(sdst.kind), src0, src1, ir::OperandType::i32(), cmdOpsUI[opIndex]));
-    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::ExecLo), ir::OperandType::i1()));
+    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::EXEC()), ir::OperandType::i1()));
   } else if (op >= eOpcode::V_CMPX_F_U32 && op <= eOpcode::V_CMPX_T_U32) {
     auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPX_F_U32;
     builder.createInstruction(create::cmpIOp(OpDst(sdst.kind), src0, src1, ir::OperandType::i32(), cmdOpsUI[opIndex]));
-    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::ExecLo), ir::OperandType::i1()));
-    builder.createInstruction(create::moveOp(OpDst(eOperandKind::ExecLo), OpSrc(sdst.kind), ir::OperandType::i1()));
+    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::EXEC()), ir::OperandType::i1()));
+    builder.createInstruction(create::moveOp(OpDst(eOperandKind::EXEC()), OpSrc(sdst.kind), ir::OperandType::i1()));
   } else if (op >= eOpcode::V_CMP_F_U64 && op <= eOpcode::V_CMP_T_U64) {
     auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMP_F_U64;
     builder.createInstruction(create::cmpIOp(OpDst(sdst.kind), src0, src1, ir::OperandType::i32(), cmdOpsUI[opIndex]));
-    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::ExecLo), ir::OperandType::i1()));
+    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::EXEC()), ir::OperandType::i1()));
   } else if (op >= eOpcode::V_CMPX_F_U64 && op <= eOpcode::V_CMPX_T_U64) {
     auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPX_F_U64;
     builder.createInstruction(create::cmpIOp(OpDst(sdst.kind), src0, src1, ir::OperandType::i32(), cmdOpsUI[opIndex]));
-    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::ExecLo), ir::OperandType::i1()));
-    builder.createInstruction(create::moveOp(OpDst(eOperandKind::ExecLo), OpSrc(sdst.kind), ir::OperandType::i1()));
+    builder.createInstruction(create::bitAndOp(sdst, OpSrc(sdst.kind), OpSrc(eOperandKind::EXEC()), ir::OperandType::i1()));
+    builder.createInstruction(create::moveOp(OpDst(eOperandKind::EXEC()), OpSrc(sdst.kind), ir::OperandType::i1()));
   } else {
     throw std::runtime_error(std::format("missing inst {}", debug::getDebug(op)));
   }

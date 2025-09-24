@@ -35,12 +35,12 @@ bool handleVop2(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
     auto instS = VOP3_SDST(getU64(*pCode));
     op         = (eOpcode)(OPcodeStart_VOP2 + inst.template get<VOP3::Field::OP>() - OpcodeOffset_VOP2_VOP3);
 
-    auto const vdst_ = (eOperandKind)((OperandKind_t)eOperandKind::VGPR + inst.template get<VOP3::Field::VDST>());
-    auto const src0_ = (eOperandKind)inst.template get<VOP3::Field::SRC0>();
-    auto const src1_ = (eOperandKind)inst.template get<VOP3::Field::SRC1>();
-    auto const src2_ = (eOperandKind)inst.template get<VOP3::Field::SRC2>();
+    auto const vdst_ = eOperandKind::VGPR(inst.template get<VOP3::Field::VDST>());
+    auto const src0_ = eOperandKind::create((OperandKind_t)inst.template get<VOP3::Field::SRC0>());
+    auto const src1_ = eOperandKind::create((OperandKind_t)inst.template get<VOP3::Field::SRC1>());
+    auto const src2_ = eOperandKind::create((OperandKind_t)inst.template get<VOP3::Field::SRC2>());
 
-    auto const sdst_ = (eOperandKind)instS.template get<VOP3_SDST::Field::SDST>();
+    auto const sdst_ = eOperandKind::create((OperandKind_t)instS.template get<VOP3_SDST::Field::SDST>());
 
     auto const           omod   = inst.template get<VOP3::Field::OMOD>();
     std::bitset<3> const negate = inst.template get<VOP3::Field::NEG>();
@@ -64,12 +64,12 @@ bool handleVop2(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
     auto inst = VOP2(**pCode);
     op        = (eOpcode)(OPcodeStart_VOP2 + inst.template get<VOP2::Field::OP>());
 
-    vdst = OpDst((eOperandKind)((OperandKind_t)eOperandKind::VGPR + inst.template get<VOP2::Field::VDST>()));
-    sdst = OpDst(eOperandKind::VccLo);
-    src0 = OpSrc((eOperandKind)inst.template get<VOP2::Field::SRC0>());
-    src1 = OpSrc((eOperandKind)((OperandKind_t)eOperandKind::VGPR + inst.template get<VOP2::Field::VSRC1>()));
-    src2 = OpSrc(eOperandKind::VccLo);
-    if (src0.kind == eOperandKind::Literal || src1.kind == eOperandKind::Literal) {
+    vdst = OpDst(eOperandKind::VGPR(inst.template get<VOP2::Field::VDST>()));
+    sdst = OpDst(eOperandKind::VCC());
+    src0 = OpSrc(eOperandKind::create((OperandKind_t)inst.template get<VOP2::Field::SRC0>()));
+    src1 = OpSrc(eOperandKind::VGPR(inst.template get<VOP2::Field::VSRC1>()));
+    src2 = OpSrc(eOperandKind::VCC());
+    if (src0.kind.isLiteral() || src1.kind.isLiteral()) {
       *pCode += 1;
       builder.createVirtualInst(create::literalOp(**pCode));
     }
@@ -102,34 +102,34 @@ bool handleVop2(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
       builder.createVirtualInst(create::mulFOp(vdst, src0, src1, ir::OperandType::f32()));
     } break;
     case eOpcode::V_MUL_I32_I24: {
-      builder.createVirtualInst(
-          create::bitSIExtractOp(OpDst(eOperandKind::CustomTemp0Lo), src0, OpSrc(getUImm(0)), OpSrc(getUImm(24)), ir::OperandType::i32()));
-      builder.createVirtualInst(
-          create::bitSIExtractOp(OpDst(eOperandKind::CustomTemp1Lo), src1, OpSrc(getUImm(0)), OpSrc(getUImm(24)), ir::OperandType::i32()));
-      builder.createVirtualInst(create::mulIOp(vdst, OpSrc(eOperandKind::CustomTemp0Lo), OpSrc(eOperandKind::CustomTemp1Lo), ir::OperandType::i32()));
+      builder.createVirtualInst(create::bitSIExtractOp(OpDst(eOperandKind::Temp0()), src0, OpSrc(eOperandKind::createImm(0)),
+                                                       OpSrc(eOperandKind::createImm(24)), ir::OperandType::i32()));
+      builder.createVirtualInst(create::bitSIExtractOp(OpDst(eOperandKind::Temp1()), src1, OpSrc(eOperandKind::createImm(0)),
+                                                       OpSrc(eOperandKind::createImm(24)), ir::OperandType::i32()));
+      builder.createVirtualInst(create::mulIOp(vdst, OpSrc(eOperandKind::Temp0()), OpSrc(eOperandKind::Temp1()), ir::OperandType::i32()));
     } break;
     case eOpcode::V_MUL_HI_I32_I24: {
+      builder.createVirtualInst(create::bitSIExtractOp(OpDst(eOperandKind::Temp0()), src0, OpSrc(eOperandKind::createImm(0)),
+                                                       OpSrc(eOperandKind::createImm(24)), ir::OperandType::i32()));
+      builder.createVirtualInst(create::bitSIExtractOp(OpDst(eOperandKind::Temp1()), src1, OpSrc(eOperandKind::createImm(0)),
+                                                       OpSrc(eOperandKind::createImm(24)), ir::OperandType::i32()));
       builder.createVirtualInst(
-          create::bitSIExtractOp(OpDst(eOperandKind::CustomTemp0Lo), src0, OpSrc(getUImm(0)), OpSrc(getUImm(24)), ir::OperandType::i32()));
-      builder.createVirtualInst(
-          create::bitSIExtractOp(OpDst(eOperandKind::CustomTemp1Lo), src1, OpSrc(getUImm(0)), OpSrc(getUImm(24)), ir::OperandType::i32()));
-      builder.createVirtualInst(create::mulIExtendedOp(OpDst(eOperandKind::CustomTemp0Lo), vdst, OpSrc(eOperandKind::CustomTemp0Lo),
-                                                       OpSrc(eOperandKind::CustomTemp1Lo), ir::OperandType::i32()));
+          create::mulIExtendedOp(OpDst(eOperandKind::Temp0()), vdst, OpSrc(eOperandKind::Temp0()), OpSrc(eOperandKind::Temp1()), ir::OperandType::i32()));
     } break;
     case eOpcode::V_MUL_U32_U24: {
-      builder.createVirtualInst(
-          create::bitUIExtractOp(OpDst(eOperandKind::CustomTemp0Lo), src0, OpSrc(getUImm(0)), OpSrc(getUImm(24)), ir::OperandType::i32()));
-      builder.createVirtualInst(
-          create::bitUIExtractOp(OpDst(eOperandKind::CustomTemp1Lo), src1, OpSrc(getUImm(0)), OpSrc(getUImm(24)), ir::OperandType::i32()));
-      builder.createVirtualInst(create::mulIOp(vdst, OpSrc(eOperandKind::CustomTemp0Lo), OpSrc(eOperandKind::CustomTemp1Lo), ir::OperandType::i32()));
+      builder.createVirtualInst(create::bitUIExtractOp(OpDst(eOperandKind::Temp0()), src0, OpSrc(eOperandKind::createImm(0)),
+                                                       OpSrc(eOperandKind::createImm(24)), ir::OperandType::i32()));
+      builder.createVirtualInst(create::bitUIExtractOp(OpDst(eOperandKind::Temp1()), src1, OpSrc(eOperandKind::createImm(0)),
+                                                       OpSrc(eOperandKind::createImm(24)), ir::OperandType::i32()));
+      builder.createVirtualInst(create::mulIOp(vdst, OpSrc(eOperandKind::Temp0()), OpSrc(eOperandKind::Temp1()), ir::OperandType::i32()));
     } break;
     case eOpcode::V_MUL_HI_U32_U24: {
+      builder.createVirtualInst(create::bitUIExtractOp(OpDst(eOperandKind::Temp0()), src0, OpSrc(eOperandKind::createImm(0)),
+                                                       OpSrc(eOperandKind::createImm(24)), ir::OperandType::i32()));
+      builder.createVirtualInst(create::bitUIExtractOp(OpDst(eOperandKind::Temp1()), src1, OpSrc(eOperandKind::createImm(0)),
+                                                       OpSrc(eOperandKind::createImm(24)), ir::OperandType::i32()));
       builder.createVirtualInst(
-          create::bitUIExtractOp(OpDst(eOperandKind::CustomTemp0Lo), src0, OpSrc(getUImm(0)), OpSrc(getUImm(24)), ir::OperandType::i32()));
-      builder.createVirtualInst(
-          create::bitUIExtractOp(OpDst(eOperandKind::CustomTemp1Lo), src1, OpSrc(getUImm(0)), OpSrc(getUImm(24)), ir::OperandType::i32()));
-      builder.createVirtualInst(create::mulIExtendedOp(OpDst(eOperandKind::CustomTemp0Lo), vdst, OpSrc(eOperandKind::CustomTemp0Lo),
-                                                       OpSrc(eOperandKind::CustomTemp1Lo), ir::OperandType::i32()));
+          create::mulIExtendedOp(OpDst(eOperandKind::Temp0()), vdst, OpSrc(eOperandKind::Temp0()), OpSrc(eOperandKind::Temp1()), ir::OperandType::i32()));
     } break;
     case eOpcode::V_MIN_LEGACY_F32: {
       builder.createVirtualInst(create::minNOp(vdst, src1, src0, ir::OperandType::f32()));
@@ -191,12 +191,12 @@ bool handleVop2(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
     case eOpcode::V_MADMK_F32: {
       builder.createVirtualInst(create::literalOp(**pCode));
       *pCode += 1;
-      builder.createVirtualInst(create::fmaFOp(vdst, src0, OpSrc(eOperandKind::Literal, src2.flags), src1, ir::OperandType::f32()));
+      builder.createVirtualInst(create::fmaFOp(vdst, src0, OpSrc(eOperandKind::Literal(), src2.flags), src1, ir::OperandType::f32()));
     } break;
     case eOpcode::V_MADAK_F32: {
       builder.createVirtualInst(create::literalOp(**pCode));
       *pCode += 1;
-      builder.createVirtualInst(create::fmaFOp(vdst, src0, src1, OpSrc(eOperandKind::Literal, src2.flags), ir::OperandType::f32()));
+      builder.createVirtualInst(create::fmaFOp(vdst, src0, src1, OpSrc(eOperandKind::Literal(), src2.flags), ir::OperandType::f32()));
     } break;
     case eOpcode::V_BCNT_U32_B32: {
       builder.createVirtualInst(create::bitCountOp(OpDst(vdst.kind), src0, ir::OperandType::i32()));

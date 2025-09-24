@@ -7,12 +7,9 @@
 namespace compiler::ir {
 
 struct Operand {
-  struct {
-    OperandKind_t  kind: config::kOperandKindBits   = 0;
-    OperandFlags_t flags: config::kOperandFlagsBits = 0;
-  };
+  OperandKind_t  kind  = 0;
+  OperandFlags_t flags = 0;
 
-  // uint16_t    value; ///< some opcodes have const values (offset, base)
   OperandType type = OperandType::i32();
 };
 

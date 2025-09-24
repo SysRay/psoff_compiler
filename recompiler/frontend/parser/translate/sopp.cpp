@@ -29,28 +29,28 @@ bool handleSopp(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
       builder.createInstruction(create::jumpAbsOp(4 + pc + 4 * (int64_t)offset));
     } break;
     case eOpcode::S_CBRANCH_SCC0: {
-      builder.createInstruction(create::constantOp(OpDst(eOperandKind::CustomTemp0Lo), 4 + pc + 4 * (int64_t)offset, ir::OperandType::i64()));
-      builder.createInstruction(create::cjumpAbsOp(OpSrc(eOperandKind::Scc), true, OpSrc(eOperandKind::CustomTemp0Lo)));
+      builder.createInstruction(create::constantOp(OpDst(eOperandKind::Temp0()), 4 + pc + 4 * (int64_t)offset, ir::OperandType::i64()));
+      builder.createInstruction(create::cjumpAbsOp(OpSrc(eOperandKind::SCC()), true, OpSrc(eOperandKind::Temp0())));
     } break;
     case eOpcode::S_CBRANCH_SCC1: {
-      builder.createInstruction(create::constantOp(OpDst(eOperandKind::CustomTemp0Lo), 4 + pc + 4 * (int64_t)offset, ir::OperandType::i64()));
-      builder.createInstruction(create::cjumpAbsOp(OpSrc(eOperandKind::Scc), false, OpSrc(eOperandKind::CustomTemp0Lo)));
+      builder.createInstruction(create::constantOp(OpDst(eOperandKind::Temp0()), 4 + pc + 4 * (int64_t)offset, ir::OperandType::i64()));
+      builder.createInstruction(create::cjumpAbsOp(OpSrc(eOperandKind::SCC()), false, OpSrc(eOperandKind::Temp0())));
     } break;
     case eOpcode::S_CBRANCH_VCCZ: {
-      builder.createInstruction(create::constantOp(OpDst(eOperandKind::CustomTemp0Lo), 4 + pc + 4 * (int64_t)offset, ir::OperandType::i64()));
-      builder.createInstruction(create::cjumpAbsOp(OpSrc(eOperandKind::VccZ), false, OpSrc(eOperandKind::CustomTemp0Lo)));
+      builder.createInstruction(create::constantOp(OpDst(eOperandKind::Temp0()), 4 + pc + 4 * (int64_t)offset, ir::OperandType::i64()));
+      builder.createInstruction(create::cjumpAbsOp(OpSrc(eOperandKind::VCC(), true, false), false, OpSrc(eOperandKind::Temp0())));
     } break;
     case eOpcode::S_CBRANCH_VCCNZ: {
-      builder.createInstruction(create::constantOp(OpDst(eOperandKind::CustomTemp0Lo), 4 + pc + 4 * (int64_t)offset, ir::OperandType::i64()));
-      builder.createInstruction(create::cjumpAbsOp(OpSrc(eOperandKind::VccZ), true, OpSrc(eOperandKind::CustomTemp0Lo)));
+      builder.createInstruction(create::constantOp(OpDst(eOperandKind::Temp0()), 4 + pc + 4 * (int64_t)offset, ir::OperandType::i64()));
+      builder.createInstruction(create::cjumpAbsOp(OpSrc(eOperandKind::VCC()), true, OpSrc(eOperandKind::Temp0())));
     } break;
     case eOpcode::S_CBRANCH_EXECZ: {
-      builder.createInstruction(create::constantOp(OpDst(eOperandKind::CustomTemp0Lo), 4 + pc + 4 * (int64_t)offset, ir::OperandType::i64()));
-      builder.createInstruction(create::cjumpAbsOp(OpSrc(eOperandKind::ExecZ), false, OpSrc(eOperandKind::CustomTemp0Lo)));
+      builder.createInstruction(create::constantOp(OpDst(eOperandKind::Temp0()), 4 + pc + 4 * (int64_t)offset, ir::OperandType::i64()));
+      builder.createInstruction(create::cjumpAbsOp(OpSrc(eOperandKind::EXEC(), true, false), false, OpSrc(eOperandKind::Temp0())));
     } break;
     case eOpcode::S_CBRANCH_EXECNZ: {
-      builder.createInstruction(create::constantOp(OpDst(eOperandKind::CustomTemp0Lo), 4 + pc + 4 * (int64_t)offset, ir::OperandType::i64()));
-      builder.createInstruction(create::cjumpAbsOp(OpSrc(eOperandKind::ExecZ), true, OpSrc(eOperandKind::CustomTemp0Lo)));
+      builder.createInstruction(create::constantOp(OpDst(eOperandKind::Temp0()), 4 + pc + 4 * (int64_t)offset, ir::OperandType::i64()));
+      builder.createInstruction(create::cjumpAbsOp(OpSrc(eOperandKind::EXEC()), true, OpSrc(eOperandKind::Temp0())));
     } break;
     case eOpcode::S_BARRIER: {
       builder.createInstruction(create::barrierOp());

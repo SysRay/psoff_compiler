@@ -22,8 +22,8 @@ bool handleVop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
     auto inst = VOP3(getU64(*pCode));
     op        = (parser::eOpcode)(OPcodeStart_VOP1 + inst.template get<VOP3::Field::OP>() - OpcodeOffset_VOP1_VOP3);
 
-    auto const vdst_ = (eOperandKind)((OperandKind_t)eOperandKind::VGPR + inst.template get<VOP3::Field::VDST>());
-    auto const src0_ = (eOperandKind)inst.template get<VOP3::Field::SRC0>();
+    auto const vdst_ = eOperandKind::VGPR(inst.template get<VOP3::Field::VDST>());
+    auto const src0_ = eOperandKind::create((OperandKind_t)inst.template get<VOP3::Field::SRC0>());
 
     auto const           omod   = inst.template get<VOP3::Field::OMOD>();
     std::bitset<3> const negate = inst.template get<VOP3::Field::NEG>();
@@ -37,9 +37,9 @@ bool handleVop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
     auto inst = VOP1(**pCode);
     op        = (parser::eOpcode)(OPcodeStart_VOP1 + inst.template get<VOP1::Field::OP>());
 
-    vdst = OpDst((eOperandKind)((OperandKind_t)eOperandKind::VGPR + inst.template get<VOP1::Field::VDST>()));
-    src0 = OpSrc((eOperandKind)inst.template get<VOP1::Field::SRC0>());
-    if (src0.kind == eOperandKind::Literal) {
+    vdst = OpDst(eOperandKind::VGPR(inst.template get<VOP1::Field::VDST>()));
+    src0 = OpSrc(eOperandKind::create((OperandKind_t)inst.template get<VOP1::Field::SRC0>()));
+    if (src0.kind.isLiteral()) {
       *pCode += 1;
       builder.createInstruction(create::literalOp(**pCode));
     }
@@ -73,13 +73,14 @@ bool handleVop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
     } break;
       // case eOpcode::V_MOV_FED_B32: break; // Does not exist
     case eOpcode::V_CVT_F16_F32: {
-      builder.createVirtualInst(create::packHalf2x16Op(vdst, src0, OpSrc(eOperandKind::ConstZero)));
+      builder.createVirtualInst(create::packHalf2x16Op(vdst, src0, OpSrc(eOperandKind::createImm(0))));
     } break;
     case eOpcode::V_CVT_F32_F16: {
-      builder.createVirtualInst(create::unpackHalf2x16(vdst, OpDst(eOperandKind::CustomTemp0Lo), src0));
+      builder.createVirtualInst(create::unpackHalf2x16(vdst, OpDst(eOperandKind::Temp0()), src0));
     } break;
     case eOpcode::V_CVT_RPI_I32_F32: {
-      builder.createVirtualInst(create::addFOp(OpDst(vdst.kind), src0, OpSrc(eOperandKind::ConstFloat_0_5), ir::OperandType::f32()));
+      builder.createVirtualInst(
+          create::addFOp(OpDst(vdst.kind), src0, OpSrc(eOperandKind::create((OperandKind_t)eOperandKind::eBase::ConstFloat_0_5)), ir::OperandType::f32()));
       builder.createVirtualInst(create::floorOp(OpDst(vdst.kind), OpSrc(vdst.kind), ir::OperandType::f32()));
       builder.createVirtualInst(create::convFPToSIOp(vdst, ir::OperandType::i32(), OpSrc(vdst.kind), ir::OperandType::f32()));
     } break;
@@ -97,19 +98,23 @@ bool handleVop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
       builder.createVirtualInst(create::extFOp(vdst, src0));
     } break;
     case eOpcode::V_CVT_F32_UBYTE0: {
-      builder.createInstruction(create::bitUIExtractOp(vdst, src0, OpSrc(getUImm(0)), OpSrc(getUImm(8)), ir::OperandType::i32()));
+      builder.createInstruction(
+          create::bitUIExtractOp(vdst, src0, OpSrc(eOperandKind::createImm(0)), OpSrc(eOperandKind::createImm(8)), ir::OperandType::i32()));
       builder.createVirtualInst(create::convUIToFPOp(vdst, ir::OperandType::f32(), OpSrc(vdst.kind), ir::OperandType::i32()));
     } break;
     case eOpcode::V_CVT_F32_UBYTE1: {
-      builder.createInstruction(create::bitUIExtractOp(vdst, OpSrc(src0), OpSrc(getUImm(8)), OpSrc(getUImm(8)), ir::OperandType::i32()));
+      builder.createInstruction(
+          create::bitUIExtractOp(vdst, OpSrc(src0), OpSrc(eOperandKind::createImm(8)), OpSrc(eOperandKind::createImm(8)), ir::OperandType::i32()));
       builder.createVirtualInst(create::convUIToFPOp(vdst, ir::OperandType::f32(), OpSrc(vdst.kind), ir::OperandType::i32()));
     } break;
     case eOpcode::V_CVT_F32_UBYTE2: {
-      builder.createInstruction(create::bitUIExtractOp(vdst, OpSrc(src0), OpSrc(getUImm(16)), OpSrc(getUImm(8)), ir::OperandType::i32()));
+      builder.createInstruction(
+          create::bitUIExtractOp(vdst, OpSrc(src0), OpSrc(eOperandKind::createImm(16)), OpSrc(eOperandKind::createImm(8)), ir::OperandType::i32()));
       builder.createVirtualInst(create::convUIToFPOp(vdst, ir::OperandType::f32(), OpSrc(vdst.kind), ir::OperandType::i32()));
     } break;
     case eOpcode::V_CVT_F32_UBYTE3: {
-      builder.createInstruction(create::bitUIExtractOp(vdst, OpSrc(src0), OpSrc(getUImm(24)), OpSrc(getUImm(8)), ir::OperandType::i32()));
+      builder.createInstruction(
+          create::bitUIExtractOp(vdst, OpSrc(src0), OpSrc(eOperandKind::createImm(24)), OpSrc(eOperandKind::createImm(8)), ir::OperandType::i32()));
       builder.createVirtualInst(create::convUIToFPOp(vdst, ir::OperandType::f32(), OpSrc(vdst.kind), ir::OperandType::i32()));
     } break;
     case eOpcode::V_CVT_U32_F64: {
@@ -222,10 +227,10 @@ bool handleVop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
     } break;
     // case eOpcode::V_FFBH_I32: {} break; // todo
     case eOpcode::V_FREXP_EXP_I32_F64: {
-      builder.createVirtualInst(create::frexpOp(vdst, OpDst(eOperandKind::CustomTemp0Lo), src0, ir::OperandType::f64()));
+      builder.createVirtualInst(create::frexpOp(vdst, OpDst(eOperandKind::Temp0()), src0, ir::OperandType::f64()));
     } break;
     case eOpcode::V_FREXP_MANT_F64: {
-      builder.createVirtualInst(create::frexpOp(OpDst(eOperandKind::CustomTemp0Lo), vdst, src0, ir::OperandType::f64()));
+      builder.createVirtualInst(create::frexpOp(OpDst(eOperandKind::Temp0()), vdst, src0, ir::OperandType::f64()));
     } break;
     case eOpcode::V_FRACT_F64: {
       builder.createVirtualInst(create::fractOp(vdst, src0, ir::OperandType::f64()));
@@ -234,10 +239,10 @@ bool handleVop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
       // amdllpc translates frexp to
       // v_frexp_exp_i32_f32_e32 v1, v0
       // v_frexp_mant_f32_e32 v0, v0
-      builder.createVirtualInst(create::frexpOp(vdst, OpDst(eOperandKind::CustomTemp0Lo), src0, ir::OperandType::f32()));
+      builder.createVirtualInst(create::frexpOp(vdst, OpDst(eOperandKind::Temp0()), src0, ir::OperandType::f32()));
     } break;
     case eOpcode::V_FREXP_MANT_F32: {
-      builder.createVirtualInst(create::frexpOp(OpDst(eOperandKind::CustomTemp0Lo), vdst, src0, ir::OperandType::f32()));
+      builder.createVirtualInst(create::frexpOp(OpDst(eOperandKind::Temp0()), vdst, src0, ir::OperandType::f32()));
     } break;
     // case eOpcode::V_CLREXCP: {} break; // does not exist
     // case eOpcode::V_MOVRELD_B32: {} break; // todo

@@ -6,7 +6,7 @@ namespace compiler::frontend::translate::create {
 ir::InstCore literalOp(uint32_t value) {
   auto inst                = ir::getInfo(ir::eInstKind::ConstantOp);
   inst.srcConstant.value   = value;
-  inst.dstOperands[0].kind = getOperandKind(eOperandKind::Literal);
+  inst.dstOperands[0].kind = getOperandKind(eOperandKind::Literal());
   inst.dstOperands[0].type = inst.srcConstant.type = ir::OperandType::i32();
   return inst;
 }
@@ -250,7 +250,7 @@ ir::InstCore cjumpAbsOp(OpSrc predicate, bool invert, OpSrc addr) {
   inst.srcOperands[1].kind  = getOperandKind(addr.kind);
   inst.srcOperands[0].flags = predicate.flags;
   inst.srcOperands[1].flags = addr.flags;
-  if (invert) inst.srcOperands[0].flags = OperandFlagsSrc(eRegClass::SGPR, true, false);
+  if (invert) inst.srcOperands[0].flags = OperandFlagsSrc(true, false);
   return inst;
 }
 
