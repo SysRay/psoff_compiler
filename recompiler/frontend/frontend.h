@@ -85,7 +85,7 @@ struct eOperandKind {
 
   constexpr bool isConstI() const noexcept { return (eKind)_v.bits.kind == eKind::ConstantI; }
 
-  constexpr bool isSGPR() const noexcept { return (eBase)_v.bits.base >= eBase::SGPR && (eBase)_v.bits.base <= eBase::VccLo; }
+  constexpr bool isSGPR() const noexcept { return (eBase)_v.bits.base >= eBase::SGPR && (eBase)_v.bits.base < eBase::VccLo; }
 
   constexpr uint16_t getSGPR() const noexcept { return (uint16_t)_v.bits.base - (uint16_t)eBase::SGPR; }
 

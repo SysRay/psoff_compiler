@@ -11,7 +11,7 @@ constexpr inline uint64_t getU64(uint32_t const* pCode) {
 #define VOP1_FIELDS(X)                                                                                                                                         \
   X(SRC0, 0, 9)                                                                                                                                                \
   X(OP, 9, 8)                                                                                                                                                  \
-  X(VDST, 25, 8)
+  X(VDST, 17, 8)
 DEFINE_BITFIELD_STRUCT(VOP1, uint32_t, VOP1_FIELDS)
 
 #define VOP2_FIELDS(X)                                                                                                                                         \

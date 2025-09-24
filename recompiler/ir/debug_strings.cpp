@@ -13,7 +13,7 @@ static std::string_view isVirtual(InstCore const& op) {
   if (op.isVirtual()) {
     return "v_";
   }
-  return {};
+  return "s_";
 }
 
 static void printIMM(std::ostream& os, uint64_t value, OperandType type) {
@@ -68,12 +68,28 @@ static void getSrc(std::ostream& os, InstCore const& op) {
   }
 }
 
+static void printTypes(std::ostream& os, InstCore const& op) {
+  os << "\t(";
+  for (uint8_t n = 0; n < op.numDst; ++n) {
+    frontend::debug::printType(os, op.dstOperands[n].type);
+    if (n < op.numDst - 1) os << ", ";
+  }
+
+  for (uint8_t n = 0; n < op.numSrc; ++n) {
+    os << ", ";
+    frontend::debug::printType(os, op.srcOperands[n].type);
+  }
+  os << ")";
+}
+
 static void getDebug_generic(std::ostream& os, InstCore const& op) {
   os << isVirtual(op) << getInstrKindStr((eInstKind)op.kind) << " ";
   if (op.numDst > 0 || op.numSrc > 0) {
     getDst(os, op);
     os << ",";
     getSrc(os, op);
+
+    printTypes(os, op);
   }
   os << std::endl;
 }

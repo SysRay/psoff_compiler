@@ -55,7 +55,7 @@ struct OperandType {
   // ---- construction -------------------------------------------------------
 
   static constexpr OperandType scalar(eBase b) {
-    return OperandType(__OperandTypeData {.bits = {.base = (uint8_t)b, .kind = (uint8_t)eKind::Scalar, .lanes = 0}});
+    return OperandType(__OperandTypeData {.bits = {.base = (uint8_t)b, .kind = (uint8_t)eKind::Scalar, .lanes = 1}});
   }
 
   static constexpr OperandType vector(eBase b, std::uint8_t lanes) {
@@ -82,10 +82,12 @@ struct OperandType {
 
   constexpr bool is_float() const noexcept { return is_float_base((eBase)_v.bits.base); }
 
+  constexpr bool is_64bit() const noexcept { return base_size((eBase)_v.bits.base) == 8; }
+
   // eBase element size in bytes
   constexpr std::uint8_t base_size_bytes() const noexcept { return base_size((eBase)_v.bits.base); }
 
-  // Vector columns; scalar -> 0; vector -> lanes>=2; matrix -> columns
+  // Vector columns; scalar -> 1; vector -> lanes>=2; matrix -> columns
   constexpr std::uint16_t cols() const noexcept { return _v.bits.lanes; }
 
   // Total byte size if known at compile time (matrices = rows*cols*base)
@@ -110,7 +112,7 @@ struct OperandType {
 
   static constexpr OperandType i64() { return scalar(eBase::i64); }
 
-  //static constexpr OperandType f16() { return scalar(eBase::f16); }
+  // static constexpr OperandType f16() { return scalar(eBase::f16); }
 
   static constexpr OperandType f32() { return scalar(eBase::f32); }
 
