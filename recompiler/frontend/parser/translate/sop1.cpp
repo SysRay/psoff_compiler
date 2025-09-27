@@ -147,10 +147,12 @@ InstructionKind_t handleSop1(Builder& builder, parser::pc_t pc, parser::code_p_t
         auto pCode   = (uint32_t const*)fetchMapping->host;
         auto curCode = pCode;
 
-        while (curCode < (pCode + fetchMapping->size_dw)) {
+        while (true) {
           auto const pc      = fetchAddr + (frontend::parser::pc_t)curCode - (frontend::parser::pc_t)pCode;
           auto const fetchOp = (eOpcode)frontend::parser::parseInstruction(builder, pc, &curCode);
           if (fetchOp == eOpcode::S_SETPC_B64) break;
+
+          if (curCode >= (pCode + SPEC_FETCHSHADER_MAX_SIZE_DW)) throw std::runtime_error("fetch shader: reached max size");
         }
 
         fetchMapping->size_dw = curCode - pCode;

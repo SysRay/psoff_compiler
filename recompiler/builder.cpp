@@ -125,7 +125,7 @@ bool Builder::createDump(frontend::ShaderHeader const* header, uint32_t const* g
     auto& item = data.shaders[n];
     item.pc    = itemHost.pc;
     item.instructions.resize(itemHost.size_dw);
-    std::memcpy(data.shaders[0].instructions.data(), (void*)itemHost.host, sizeof(uint32_t) * item.instructions.size());
+    std::memcpy(item.instructions.data(), (void*)itemHost.host, sizeof(uint32_t) * item.instructions.size());
   }
   // -
 

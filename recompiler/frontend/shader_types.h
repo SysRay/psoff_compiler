@@ -9,6 +9,7 @@ constexpr uint8_t SPEC_SLOTS_PER_CHUNK             = 32;
 constexpr uint8_t SPEC_TOTAL_USER_SGPR             = 16;
 constexpr uint8_t SPEC_NUM_INTERNAL_GLOBAL_BUFFERS = 0x0C;
 constexpr uint8_t SPEC_SRT_MAX_SIZE                = 8;
+constexpr uint8_t SPEC_FETCHSHADER_MAX_SIZE_DW     = 1000; ///< Limit fetsh shader parsing
 
 enum class ShaderStage : uint8_t { Compute, Vertex, VertexExport, VertexLocal, Fragment, Geometry, Copy, TessellationCtrl, TessellationEval };
 
