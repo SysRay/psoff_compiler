@@ -22,6 +22,12 @@ static std::string_view getFileTpye(frontend::ShaderStage stage) {
   }
 }
 
+void Builder::print() const {
+  for (auto const& inst: _instructions) {
+    ir::debug::getDebug(std::cout, inst);
+  }
+}
+
 bool Builder::createShader(frontend::ShaderStage stage, uint32_t id, frontend::ShaderHeader const* header, uint32_t const* gpuRegs) {
   { // Create name
     size_t const len = std::format("{}_{:#x}_{}", getFileTpye(stage), header->hash0, id).copy(_name, sizeof(_name) - 1);
@@ -51,7 +57,7 @@ bool Builder::createShader(frontend::ShaderStage stage, uint32_t id, frontend::S
     case ShaderStage::TessellationEval: __INIT(ShaderTessEvalData) break;
   }
 #undef __INIT
-  return false;
+  return true;
 }
 
 struct DumpData {
@@ -78,7 +84,6 @@ bool Builder::createShader(ShaderDump_t const& dump) {
 
   _shaderInput = data.shaderInput;
 
-  // todo how to handle fetchInstructions getFetch callback?
   uint32_t const* pCode   = data.instructions.data();
   auto            curCode = pCode;
   try {
@@ -91,13 +96,7 @@ bool Builder::createShader(ShaderDump_t const& dump) {
     return {};
   }
 
-  // todo move dump instructions
-  {
-    for (auto const& inst: _instructions) {
-      ir::debug::getDebug(std::cout, inst);
-    }
-  }
-  return false;
+  return true;
 }
 
 bool Builder::createDump(frontend::ShaderHeader const* header, uint32_t const* gpuRegs) const {

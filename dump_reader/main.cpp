@@ -39,6 +39,7 @@ int main(int argc, char* argv[]) {
   // // Build Shader
   compiler::Builder builder(1000);
   builder.createShader(data);
+  builder.print();
 
   return 0;
 }

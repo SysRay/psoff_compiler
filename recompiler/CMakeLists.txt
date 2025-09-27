@@ -1,6 +1,5 @@
 add_library(psOff_recompiler STATIC
   builder.cpp
-  ir/instructions.cpp
   ir/debug_strings.cpp
 
   frontend/shader_types.cpp

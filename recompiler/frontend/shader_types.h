@@ -1,4 +1,6 @@
 #pragma once
+#include "include/common.h"
+
 #include <array>
 #include <stdint.h>
 
@@ -26,7 +28,7 @@ enum class FpDenormMode : uint8_t {
   InOutAllow      = 3,
 };
 
-struct ShaderHeader {
+PACK(struct ShaderHeader {
   uint8_t  signature[7];
   uint8_t  version;
   uint32_t pssl_or_cg  : 1;
@@ -44,9 +46,9 @@ struct ShaderHeader {
   uint32_t hash0;
   uint32_t hash1;
   uint32_t crc32;
-} __attribute__((packed));
+});
 
-struct ResourceVBuffer {
+PACK(struct ResourceVBuffer {
   uint64_t base          : 44; // [43:0]    base byte address
   uint64_t mtype_L1s     : 2;  // [45:44]   mtype for scalar L1
   uint64_t mtype_L2      : 2;  // [47:46]   mtype for L2
@@ -69,9 +71,9 @@ struct ResourceVBuffer {
   uint64_t reserved2    : 1; // [122]     reserved
   uint64_t mtype        : 3; // [125:123] mtype for L1
   uint64_t type         : 2; // [127:126] type (must be 0 for buffer)
-} __attribute__((packed));
+});
 
-struct ResourceTBuffer {
+PACK(struct ResourceTBuffer {
   uint64_t baseaddr256  : 38; // [37:0]
   uint64_t mtype_L2     : 2;  // [39:38]
   uint64_t min_lod      : 12; // [51:40] (fixed-point 4.8)
@@ -105,9 +107,9 @@ struct ResourceTBuffer {
   uint64_t counter_bank_id : 8;  // [211:204]
   uint64_t LOD_hdw_cnt_en  : 1;  // [212]
   uint64_t reserved4       : 43; // [255:213]
-} __attribute__((packed));
+});
 
-struct ResourceSampler {
+PACK(struct ResourceSampler {
   // Bits 0–31
   uint64_t clamp_x            : 3; // [2:0]
   uint64_t clamp_y            : 3; // [5:3]
@@ -143,7 +145,7 @@ struct ResourceSampler {
   uint64_t border_color_ptr  : 12; // [107:96]
   uint64_t reserved2         : 18; // [125:108]
   uint64_t border_color_type : 2;  // [127:126]
-} __attribute__((packed));
+});
 
 static_assert(sizeof(ResourceVBuffer) == 4 * sizeof(uint32_t));
 static_assert(sizeof(ResourceTBuffer) == 8 * sizeof(uint32_t));

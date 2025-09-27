@@ -2,6 +2,7 @@
 
 #include "types.h"
 
+#include <array>
 #include <type_traits>
 
 namespace compiler::ir {
@@ -30,11 +31,11 @@ struct alignas(64) InstCore {
     uint8_t numSrc : 4;
   };
 
-  Operand dstOperands[config::kMaxDstOps];
+  std::array<Operand, config::kMaxDstOps> dstOperands;
 
   union {
-    Operand      srcOperands[config::kMaxSrcOps];
-    InstConstant srcConstant;
+    std::array<Operand, config::kMaxSrcOps> srcOperands;
+    InstConstant                            srcConstant;
   };
 
   inline bool isValid() const { return group != eInstructionGroup::kUnknown; }

@@ -47,7 +47,12 @@ class Builder {
   std::string_view getName() const { return _name; }
 
   // // Getter for flags
-  bool isNeoMode() const { return _debugFlags.is_set(ShaderBuildFlags::ISNEO); }
+  template <ShaderBuildFlags item>
+  constexpr bool is_set() const {
+    return _debugFlags.is_set(item);
+  }
+
+  void print() const;
 
   private:
   std::unique_ptr<uint8_t[]>          _buffer;
