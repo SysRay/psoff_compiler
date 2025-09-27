@@ -8,7 +8,7 @@
 #include <stdexcept>
 
 namespace compiler::frontend::translate {
-bool handleMubuf(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
+InstructionKind_t handleMubuf(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
   using namespace parser;
 
   auto       inst = MUBUF(getU64(*pCode));
@@ -131,6 +131,6 @@ bool handleMubuf(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
     } break;
     default: throw std::runtime_error(std::format("missing inst {}", debug::getDebug(op))); break;
   }
-  return true;
+  return conv(op);
 }
 } // namespace compiler::frontend::translate

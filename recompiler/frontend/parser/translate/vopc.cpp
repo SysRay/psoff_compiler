@@ -11,7 +11,7 @@
 #include <stdexcept>
 
 namespace compiler::frontend::translate {
-bool handleVopc(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool extended) {
+InstructionKind_t handleVopc(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool extended) {
   using namespace parser;
 
   parser::eOpcode op;
@@ -141,6 +141,6 @@ bool handleVopc(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
     throw std::runtime_error(std::format("missing inst {}", debug::getDebug(op)));
   }
 
-  return true;
+  return conv(op);
 }
 } // namespace compiler::frontend::translate

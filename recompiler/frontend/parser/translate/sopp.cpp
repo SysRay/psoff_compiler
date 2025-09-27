@@ -10,7 +10,7 @@
 #include <stdexcept>
 
 namespace compiler::frontend::translate {
-bool handleSopp(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
+InstructionKind_t handleSopp(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
   using namespace parser;
 
   auto       inst = SOPP(**pCode);
@@ -80,6 +80,6 @@ bool handleSopp(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
     // case eOpcode::S_CBRANCH_CDBGSYS_AND_USER: {} break;// Does not exist
     default: throw std::runtime_error(std::format("missing inst {}", debug::getDebug(op))); break;
   }
-  return true;
+  return conv(op);
 }
 } // namespace compiler::frontend::translate

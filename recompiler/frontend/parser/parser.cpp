@@ -80,7 +80,7 @@ static eEncoding getEncoding(code_t code) {
   return eEncoding::UNK;
 }
 
-bool parseInstruction(Builder& builder, pc_t pc, code_p_t* pCode) {
+InstructionKind_t parseInstruction(Builder& builder, pc_t pc, code_p_t* pCode) {
   using namespace translate;
   switch (getEncoding(**pCode)) {
     case eEncoding::SOP1: return handleSop1(builder, pc, pCode);
@@ -106,7 +106,7 @@ bool parseInstruction(Builder& builder, pc_t pc, code_p_t* pCode) {
       return handleVopc(builder, pc, pCode, true);
     }
     case eEncoding::VOPC: return handleVopc(builder, pc, pCode, false);
-    default: throw std::runtime_error("wrong encoding"); return false;
+    default: throw std::runtime_error("wrong encoding"); return 0;
   }
 }
 } // namespace compiler::frontend::parser

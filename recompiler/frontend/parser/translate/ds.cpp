@@ -8,7 +8,7 @@
 #include <stdexcept>
 
 namespace compiler::frontend::translate {
-bool handleDs(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
+InstructionKind_t handleDs(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
   using namespace parser;
 
   auto       inst = DS(getU64(*pCode));
@@ -300,6 +300,6 @@ bool handleDs(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
     default: throw std::runtime_error(std::format("missing inst {}", debug::getDebug(op))); break;
   }
 
-  return true;
+  return conv(op);
 }
 } // namespace compiler::frontend::translate

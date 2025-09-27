@@ -1,23 +1,23 @@
 #include "shader_input.h"
 
+#include "builder.h"
 #include "include/si_ci_vi_merged_offset.h"
 #include "parser/registers.h"
 
 namespace compiler::frontend {
-extern uint64_t getAddr(uint64_t addr);
 
 uint64_t getShaderBase(ShaderStage stage, uint32_t const* gpuRegs) {
   using namespace Pal::Gfx6::Chip;
   switch (stage) {
-    case ShaderStage::Compute: return getAddr(((uint64_t)gpuRegs[mmCOMPUTE_PGM_HI] << 40u) | ((uint64_t)gpuRegs[mmCOMPUTE_PGM_LO] << 8u));
-    case ShaderStage::Vertex: return getAddr(((uint64_t)gpuRegs[mmSPI_SHADER_PGM_HI_VS] << 40u) | ((uint64_t)gpuRegs[mmSPI_SHADER_PGM_LO_VS] << 8u));
-    case ShaderStage::VertexExport: return getAddr(((uint64_t)gpuRegs[mmSPI_SHADER_PGM_HI_ES] << 40u) | ((uint64_t)gpuRegs[mmSPI_SHADER_PGM_LO_ES] << 8u));
-    case ShaderStage::VertexLocal: return getAddr(((uint64_t)gpuRegs[mmSPI_SHADER_PGM_HI_LS] << 40u) | ((uint64_t)gpuRegs[mmSPI_SHADER_PGM_LO_LS] << 8u));
-    case ShaderStage::Fragment: return getAddr(((uint64_t)gpuRegs[mmSPI_SHADER_PGM_HI_PS] << 40u) | ((uint64_t)gpuRegs[mmSPI_SHADER_PGM_LO_PS] << 8u));
-    case ShaderStage::Geometry: return getAddr(((uint64_t)gpuRegs[mmSPI_SHADER_PGM_HI_GS] << 40u) | ((uint64_t)gpuRegs[mmSPI_SHADER_PGM_LO_GS] << 8u));
-    case ShaderStage::Copy: return getAddr(((uint64_t)gpuRegs[mmSPI_SHADER_PGM_HI_VS] << 40u) | ((uint64_t)gpuRegs[mmSPI_SHADER_PGM_LO_VS] << 8u));
-    case ShaderStage::TessellationCtrl: return getAddr(((uint64_t)gpuRegs[mmSPI_SHADER_PGM_HI_HS] << 40u) | ((uint64_t)gpuRegs[mmSPI_SHADER_PGM_LO_HS] << 8u));
-    case ShaderStage::TessellationEval: return getAddr(((uint64_t)gpuRegs[mmSPI_SHADER_PGM_HI_VS] << 40u) | ((uint64_t)gpuRegs[mmSPI_SHADER_PGM_LO_VS] << 8u));
+    case ShaderStage::Compute: return (((uint64_t)gpuRegs[mmCOMPUTE_PGM_HI] << 40u) | ((uint64_t)gpuRegs[mmCOMPUTE_PGM_LO] << 8u));
+    case ShaderStage::Vertex: return (((uint64_t)gpuRegs[mmSPI_SHADER_PGM_HI_VS] << 40u) | ((uint64_t)gpuRegs[mmSPI_SHADER_PGM_LO_VS] << 8u));
+    case ShaderStage::VertexExport: return (((uint64_t)gpuRegs[mmSPI_SHADER_PGM_HI_ES] << 40u) | ((uint64_t)gpuRegs[mmSPI_SHADER_PGM_LO_ES] << 8u));
+    case ShaderStage::VertexLocal: return (((uint64_t)gpuRegs[mmSPI_SHADER_PGM_HI_LS] << 40u) | ((uint64_t)gpuRegs[mmSPI_SHADER_PGM_LO_LS] << 8u));
+    case ShaderStage::Fragment: return (((uint64_t)gpuRegs[mmSPI_SHADER_PGM_HI_PS] << 40u) | ((uint64_t)gpuRegs[mmSPI_SHADER_PGM_LO_PS] << 8u));
+    case ShaderStage::Geometry: return (((uint64_t)gpuRegs[mmSPI_SHADER_PGM_HI_GS] << 40u) | ((uint64_t)gpuRegs[mmSPI_SHADER_PGM_LO_GS] << 8u));
+    case ShaderStage::Copy: return (((uint64_t)gpuRegs[mmSPI_SHADER_PGM_HI_VS] << 40u) | ((uint64_t)gpuRegs[mmSPI_SHADER_PGM_LO_VS] << 8u));
+    case ShaderStage::TessellationCtrl: return (((uint64_t)gpuRegs[mmSPI_SHADER_PGM_HI_HS] << 40u) | ((uint64_t)gpuRegs[mmSPI_SHADER_PGM_LO_HS] << 8u));
+    case ShaderStage::TessellationEval: return (((uint64_t)gpuRegs[mmSPI_SHADER_PGM_HI_VS] << 40u) | ((uint64_t)gpuRegs[mmSPI_SHADER_PGM_LO_VS] << 8u));
   }
 }
 

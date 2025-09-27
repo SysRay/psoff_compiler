@@ -57,13 +57,27 @@ bool Builder::createShader(frontend::ShaderStage stage, uint32_t id, frontend::S
     case ShaderStage::TessellationEval: __INIT(ShaderTessEvalData) break;
   }
 #undef __INIT
-  return true;
+
+  uint64_t const base     = getShaderBase(_shaderInput.stage, gpuRegs);
+  auto const     baseHost = getAddr(base);
+
+  // Register mapping
+  _hostMapping[0].pc      = base;
+  _hostMapping[0].host    = baseHost;
+  _hostMapping[0].size_dw = header->length / sizeof(uint32_t);
+
+  return processBinary();
 }
 
 struct DumpData {
   frontend::ShaderInput shaderInput;
-  std::vector<uint32_t> instructions;
-  std::vector<uint32_t> fetchInstructions;
+
+  struct InstData {
+    uint64_t              pc {};
+    std::vector<uint32_t> instructions {};
+  };
+
+  std::array<InstData, 2> shaders;
 };
 
 bool Builder::createShader(ShaderDump_t const& dump) {
@@ -84,19 +98,19 @@ bool Builder::createShader(ShaderDump_t const& dump) {
 
   _shaderInput = data.shaderInput;
 
-  uint32_t const* pCode   = data.instructions.data();
-  auto            curCode = pCode;
-  try {
-    while (curCode < (pCode + data.instructions.size())) {
-      auto const pc = (frontend::parser::pc_t)curCode;
-      frontend::parser::parseInstruction(*this, pc, &curCode);
-    }
-  } catch (std::runtime_error const& ex) {
-    printf("%s error:%s", _name, ex.what());
-    return {};
+  // Register mapping
+  for (uint8_t n = 0; n < data.shaders.size(); ++n) {
+    auto const& item = data.shaders[n];
+
+    auto& itemHost = _hostMapping[n];
+    itemHost.pc    = item.pc;
+
+    if (item.instructions.empty()) continue;
+    itemHost.host    = (uint64_t)item.instructions.data();
+    itemHost.size_dw = item.instructions.size();
   }
 
-  return true;
+  return processBinary();
 }
 
 bool Builder::createDump(frontend::ShaderHeader const* header, uint32_t const* gpuRegs) const {
@@ -104,12 +118,15 @@ bool Builder::createDump(frontend::ShaderHeader const* header, uint32_t const* g
   DumpData data {.shaderInput = _shaderInput};
 
   // Collect memory
-  {
-    uint64_t const base = getShaderBase(_shaderInput.stage, gpuRegs);
-    data.instructions.resize(header->length / sizeof(uint32_t));
-    std::memcpy(data.instructions.data(), (uint32_t const*)base, header->length);
+  for (uint8_t n = 0; n < _hostMapping.size(); ++n) {
+    auto const& itemHost = _hostMapping[n];
+    if (itemHost.host == 0) continue;
+
+    auto& item = data.shaders[n];
+    item.pc    = itemHost.pc;
+    item.instructions.resize(itemHost.size_dw);
+    std::memcpy(data.shaders[0].instructions.data(), (void*)itemHost.host, sizeof(uint32_t) * item.instructions.size());
   }
-  // todo fetch shader
   // -
 
   std::filesystem::create_directory("shader_dumps");
@@ -133,4 +150,40 @@ bool Builder::createDump(frontend::ShaderHeader const* header, uint32_t const* g
   return true;
 }
 
+HostMapping* Builder::getHostMapping(uint64_t pc) {
+  { // Search existing
+    auto it = std::find_if(_hostMapping.begin(), _hostMapping.end(), [pc](auto const& item) { return item.pc == pc; });
+    if (it != _hostMapping.end()) {
+      return &*it;
+    }
+  }
+  { // Search free
+    auto it = std::find_if(_hostMapping.begin(), _hostMapping.end(), [](auto const& item) { return item.pc == 0; });
+    if (it != _hostMapping.end()) {
+      it->pc   = pc;
+      it->host = getAddr(pc);
+      return &*it;
+    }
+  }
+  return nullptr;
+}
+
+bool Builder::processBinary() {
+  auto const      pcStart = _hostMapping[0].pc;
+  uint32_t const* pCode   = (uint32_t const*)_hostMapping[0].host;
+  auto const      size    = _hostMapping[0].size_dw;
+  if (pCode == nullptr) return false;
+
+  auto curCode = pCode;
+  try {
+    while (curCode < (pCode + size)) {
+      auto const pc = pcStart + (frontend::parser::pc_t)curCode - (frontend::parser::pc_t)pCode;
+      frontend::parser::parseInstruction(*this, pc, &curCode);
+    }
+  } catch (std::runtime_error const& ex) {
+    printf("%s error:%s", _name, ex.what());
+    return {};
+  }
+  return true;
+}
 } // namespace compiler

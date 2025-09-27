@@ -21,7 +21,7 @@ static bool isSDST(parser::eOpcode op) {
   return false;
 }
 
-bool handleVop2(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool extended) {
+InstructionKind_t handleVop2(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool extended) {
   using namespace parser;
 
   eOpcode op;
@@ -242,6 +242,6 @@ bool handleVop2(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
       // case eOpcode::V_CVT_PK_I16_I32: { } break; // todo
     default: throw std::runtime_error(std::format("missing inst {}", debug::getDebug(op))); break;
   }
-  return true;
+  return conv(op);
 }
 } // namespace compiler::frontend::translate

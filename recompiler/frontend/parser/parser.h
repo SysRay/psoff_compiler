@@ -13,6 +13,6 @@ using codeE_t   = uint64_t;
 using code_p_t  = code_t const*;
 using codeE_p_t = codeE_t const*;
 
-bool parseInstruction(Builder& builder, pc_t, code_p_t*);
+InstructionKind_t parseInstruction(Builder& builder, pc_t, code_p_t*);
 
 } // namespace compiler::frontend::parser

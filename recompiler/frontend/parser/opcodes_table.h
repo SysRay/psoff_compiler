@@ -920,7 +920,7 @@ constexpr int16_t OpcodeOffset_VOP1_VOP3 = 0x180;
 constexpr int16_t OpcodeOffset_VOP2_VOP3 = 0x100;
 constexpr int16_t OpcodeOffset_VOPC_VOP3 = 0x0;
 
-constexpr inline InstructionKind_t conv(eOpcode&& code) {
+constexpr inline InstructionKind_t conv(eOpcode code) {
   return (InstructionKind_t)code;
 }
 } // namespace compiler::frontend::parser

@@ -11,7 +11,7 @@
 #include <stdexcept>
 
 namespace compiler::frontend::translate {
-bool handleVop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool extended) {
+InstructionKind_t handleVop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool extended) {
   using namespace parser;
 
   parser::eOpcode op;
@@ -252,6 +252,6 @@ bool handleVop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode, bool
     // case eOpcode::V_EXP_LEGACY_F32: {} break; // does not exist
     default: throw std::runtime_error(std::format("missing inst {}", debug::getDebug(op))); break;
   }
-  return true;
+  return conv(op);
 }
 } // namespace compiler::frontend::translate

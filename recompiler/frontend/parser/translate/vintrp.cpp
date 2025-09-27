@@ -10,7 +10,7 @@
 #include <stdexcept>
 
 namespace compiler::frontend::translate {
-bool handleVintrp(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
+InstructionKind_t handleVintrp(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
   using namespace parser;
 
   auto       inst = VINTRP(**pCode);
@@ -26,6 +26,6 @@ bool handleVintrp(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
     builder.createInstruction(create::literalOp(**pCode));
   }
   *pCode += 1;
-  return true;
+  return conv(op);
 }
 } // namespace compiler::frontend::translate

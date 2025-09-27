@@ -11,7 +11,7 @@
 #include <stdexcept>
 
 namespace compiler::frontend::translate {
-bool handleVop3(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
+InstructionKind_t handleVop3(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
   using namespace parser;
 
   auto       inst = VOP3(getU64(*pCode));
@@ -169,6 +169,6 @@ bool handleVop3(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
       // case eOpcode::V_MAD_I64_I32: {} break;// todo
     default: throw std::runtime_error(std::format("missing inst {}", debug::getDebug(op))); break;
   }
-  return true;
+  return conv(op);
 }
 } // namespace compiler::frontend::translate

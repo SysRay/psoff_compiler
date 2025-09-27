@@ -11,7 +11,7 @@
 #include <stdexcept>
 
 namespace compiler::frontend::translate {
-bool handleExp(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
+InstructionKind_t handleExp(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
   using namespace parser;
 
   auto inst = EXP(getU64(*pCode));
@@ -42,6 +42,6 @@ bool handleExp(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
   } else if (target >= 0x20 && target <= 0x3F) { //  output params
     auto const pos = target - 0x20;
   }
-  return true;
+  return conv(eOpcode::EXP);
 }
 } // namespace compiler::frontend::translate

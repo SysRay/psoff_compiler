@@ -11,7 +11,7 @@
 
 namespace compiler::frontend::translate {
 
-bool handleSop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
+InstructionKind_t handleSop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
   using namespace parser;
 
   auto       inst = SOP1(**pCode);
@@ -130,8 +130,33 @@ bool handleSop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
       builder.createInstruction(create::jumpAbsOp(src0));
     } break;
     case eOpcode::S_SWAPPC_B64: {
-      builder.createInstruction(create::constantOp(sdst, 4 + pc, ir::OperandType::i64()));
-      builder.createInstruction(create::jumpAbsOp(src0));
+      builder.createInstruction(create::constantOp(sdst, 4 + pc, ir::OperandType::i64())); // Save current pc
+
+      if (builder.getShaderInput().getLogicalStage() == ShaderLogicalStage::Vertex) {
+        assert(src0.kind.isSGPR());
+
+        auto const srcId = src0.kind.getSGPR();
+        if (srcId >= builder.getShaderInput().userSGPRSize) {
+          throw std::runtime_error("fetch shader: not in user data");
+        }
+
+        auto const fetchAddr    = (((pc_t)builder.getShaderInput().userSGPR[1 + srcId] << 32) | (pc_t)builder.getShaderInput().userSGPR[srcId]);
+        auto       fetchMapping = builder.getHostMapping(fetchAddr);
+        if (fetchMapping == nullptr) throw std::runtime_error("fetch shader: no addr");
+
+        auto pCode   = (uint32_t const*)fetchMapping->host;
+        auto curCode = pCode;
+
+        while (curCode < (pCode + fetchMapping->size_dw)) {
+          auto const pc      = fetchAddr + (frontend::parser::pc_t)curCode - (frontend::parser::pc_t)pCode;
+          auto const fetchOp = (eOpcode)frontend::parser::parseInstruction(builder, pc, &curCode);
+          if (fetchOp == eOpcode::S_SETPC_B64) break;
+        }
+
+        fetchMapping->size_dw = curCode - pCode;
+      } else {
+        builder.createInstruction(create::jumpAbsOp(src0));
+      }
     } break;
     // case eOpcode::S_RFE_B64: break; // Does not exist
     case eOpcode::S_AND_SAVEEXEC_B64: {
@@ -190,6 +215,6 @@ bool handleSop1(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
     default: throw std::runtime_error(std::format("missing inst {}", debug::getDebug(op))); break;
   }
 
-  return true;
+  return conv(op);
 }
 } // namespace compiler::frontend::translate

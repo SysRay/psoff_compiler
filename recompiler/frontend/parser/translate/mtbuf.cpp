@@ -8,7 +8,7 @@
 #include <stdexcept>
 
 namespace compiler::frontend::translate {
-bool handleMtbuf(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
+InstructionKind_t handleMtbuf(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
   using namespace parser;
 
   auto       inst = MTBUF(getU64(*pCode));
@@ -36,6 +36,6 @@ bool handleMtbuf(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
 
     default: throw std::runtime_error(std::format("missing inst {}", debug::getDebug(op))); break;
   }
-  return true;
+  return conv(op);
 }
 } // namespace compiler::frontend::translate
