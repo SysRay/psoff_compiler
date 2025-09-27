@@ -47,7 +47,7 @@ class Builder {
   auto& createInstruction(ir::InstCore&& instr) { return _instructions.emplace_back(std::move(instr)); }
 
   auto& createVirtualInst(ir::InstCore&& instr) {
-    instr.flags |= ir::Flags<ir::eInstructionFlags>(ir::eInstructionFlags::kVirtual);
+    instr.flags |= ir::eInstructionFlags::kVirtual;
     return _instructions.emplace_back(std::move(instr));
   }
 

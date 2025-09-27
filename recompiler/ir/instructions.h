@@ -104,7 +104,8 @@ struct InstDef {
   std::string_view name;
 };
 
-constexpr auto makeInstDef(eInstKind kind, eInstructionGroup group, eInstructionFlags flags, auto&& dstOps, auto&& srcOps, std::string_view name) {
+constexpr auto makeInstDef(eInstKind kind, eInstructionGroup group, util::Flags<ir::eInstructionFlags> flags, auto&& dstOps, auto&& srcOps,
+                           std::string_view name) {
   // Helper to convert container to std::array
   auto toArray = []<typename Container>(const auto& container) -> Container {
     Container result {};
@@ -120,7 +121,7 @@ constexpr auto makeInstDef(eInstKind kind, eInstructionGroup group, eInstruction
         ir::InstCore {
             .kind        = conv(kind),
             .group       = group,
-            .flags       = Flags<eInstructionFlags>(flags),
+            .flags       = flags,
             .numDst      = (uint8_t)dstOps.size(),
             .numSrc      = (uint8_t)srcOps.size(),
             .dstOperands = toArray.template operator()<decltype(ir::InstCore::dstOperands)>(dstOps),
@@ -141,16 +142,16 @@ constexpr Operand f64 {.type = OperandType::f64()};
 
 #define __OPS(...) __VA_ARGS__
 #define __INST(kind, group, flags, dstOps, srcOps)                                                                                                             \
-  makeInstDef(eInstKind::kind, eInstructionGroup::group, eInstructionFlags::flags, std::array {dstOps}, std::array {srcOps}, #kind)
+  makeInstDef(eInstKind::kind, eInstructionGroup::group, {eInstructionFlags::flags}, std::array {dstOps}, std::array {srcOps}, #kind)
 
 #define __INST_NO_OPS(kind, group, flags)                                                                                                                      \
-  makeInstDef(eInstKind::kind, eInstructionGroup::group, eInstructionFlags::flags, std::array<Operand, 0> {}, std::array<Operand, 0> {}, #kind)
+  makeInstDef(eInstKind::kind, eInstructionGroup::group, {eInstructionFlags::flags}, std::array<Operand, 0> {}, std::array<Operand, 0> {}, #kind)
 
 #define __INST_NO_DST(kind, group, flags, srcOps)                                                                                                              \
-  makeInstDef(eInstKind::kind, eInstructionGroup::group, eInstructionFlags::flags, std::array<Operand, 0> {}, std::array {srcOps}, #kind)
+  makeInstDef(eInstKind::kind, eInstructionGroup::group, {eInstructionFlags::flags}, std::array<Operand, 0> {}, std::array {srcOps}, #kind)
 
 #define __INST_NO_SRC(kind, group, flags, dstOps)                                                                                                              \
-  makeInstDef(eInstKind::kind, eInstructionGroup::group, eInstructionFlags::flags, std::array {dstOps}, std::array<Operand, 0> {}, #kind)
+  makeInstDef(eInstKind::kind, eInstructionGroup::group, {eInstructionFlags::flags}, std::array {dstOps}, std::array<Operand, 0> {}, #kind)
 
 using namespace compiler::ir::ops;
 static constexpr std::array kInstTable = {

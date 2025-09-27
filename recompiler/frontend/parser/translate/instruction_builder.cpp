@@ -240,7 +240,7 @@ ir::InstCore jumpAbsOp(uint64_t addr) {
   auto inst              = ir::getInfo(ir::eInstKind::JumpAbsOp);
   inst.srcConstant.value = addr;
   inst.srcConstant.type  = ir::OperandType::i64();
-  inst.flags |= ir::Flags<ir::eInstructionFlags>(ir::eInstructionFlags::kConstant);
+  inst.flags |= ir::eInstructionFlags::kConstant;
   return inst;
 }
 

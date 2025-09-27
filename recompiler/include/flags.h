@@ -4,50 +4,55 @@
 #include <type_traits>
 
 namespace compiler::util {
-template <typename Enum>
+template <typename T>
 class Flags {
-  static_assert(std::is_enum_v<Enum>, "Template parameter must be an enum class");
-  using Underlying = std::underlying_type_t<Enum>;
+  static_assert(std::is_enum_v<T>, "Template parameter must be an enum class");
+  using Underlying_t = std::underlying_type_t<T>;
 
-  Underlying flags = 0;
+  Underlying_t flags = 0;
 
   public:
   constexpr Flags() = default;
 
-  constexpr explicit Flags(Enum flag) { set(flag); }
+  constexpr explicit Flags(T flag) { set(flag); }
 
-  constexpr Flags(std::initializer_list<Enum> flags) {
-    for (Enum flag: flags) {
+  constexpr Flags(std::initializer_list<T> flags) {
+    for (T flag: flags) {
       set(flag);
     }
   }
 
-  constexpr void set(Enum flag) noexcept { flags |= static_cast<Underlying>(flag); }
+  constexpr void set(T flag) noexcept { flags |= static_cast<Underlying_t>(flag); }
 
-  constexpr void clear(Enum flag) noexcept { flags &= ~static_cast<Underlying>(flag); }
+  constexpr void clear(T flag) noexcept { flags &= ~static_cast<Underlying_t>(flag); }
 
-  [[nodiscard]] constexpr bool is_set(Enum flag) const noexcept { return (flags & static_cast<Underlying>(flag)) != 0; }
+  [[nodiscard]] constexpr bool is_set(T flag) const noexcept { return (flags & static_cast<Underlying_t>(flag)) != 0; }
 
   constexpr void reset() noexcept { flags = 0; }
 
-  [[nodiscard]] constexpr Flags operator|(Enum flag) const noexcept {
+  [[nodiscard]] constexpr Flags operator|(T flag) const noexcept {
     Flags result = *this;
     result.set(flag);
     return result;
   }
 
-  constexpr Flags& operator|=(Enum flag) noexcept {
+  constexpr Flags& operator|=(T flag) noexcept {
     set(flag);
     return *this;
   }
 
-  [[nodiscard]] constexpr Flags operator&(Enum flag) const noexcept {
+  constexpr Flags& operator=(T flag) noexcept {
+    flags = (Underlying_t)flag;
+    return *this;
+  }
+
+  [[nodiscard]] constexpr Flags operator&(T flag) const noexcept {
     Flags result;
     if (is_set(flag)) result.set(flag);
     return result;
   }
 
-  constexpr Flags& operator&=(Enum flag) noexcept {
+  constexpr Flags& operator&=(T flag) noexcept {
     if (!is_set(flag)) set(flag);
     return *this;
   }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "include/flags.h"
 #include "types.h"
 
 #include <array>
@@ -20,9 +21,9 @@ struct InstConstant {
 };
 
 struct alignas(64) InstCore {
-  InstructionKind_t  kind;
-  eInstructionGroup  group = eInstructionGroup::kUnknown;
-  InstructionFlags_t flags;
+  InstructionKind_t                  kind;
+  eInstructionGroup                  group = eInstructionGroup::kUnknown;
+  util::Flags<ir::eInstructionFlags> flags;
 
   InstructionUserData_t userData = 0;
 
@@ -39,15 +40,6 @@ struct alignas(64) InstCore {
   };
 
   inline bool isValid() const { return group != eInstructionGroup::kUnknown; }
-
-  // // Flags
-  constexpr inline bool hasSideEffects() const { return (flags & (InstructionFlags_t)eInstructionFlags::kHasSideEffects) != 0; }
-
-  constexpr inline bool writesExec() const { return (flags & (InstructionFlags_t)eInstructionFlags::kWritesEXEC) != 0; }
-
-  constexpr inline bool isVirtual() const { return (flags & (InstructionFlags_t)eInstructionFlags::kVirtual) != 0; }
-
-  constexpr bool isBarrier() const { return (flags & (InstructionFlags_t)eInstructionFlags::kBarrier) != 0; }
 };
 
 static_assert(sizeof(InstCore) <= 64); ///< cache lines

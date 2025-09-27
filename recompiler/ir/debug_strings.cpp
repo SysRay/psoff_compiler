@@ -10,7 +10,7 @@
 
 namespace compiler::ir::debug {
 static std::string_view isVirtual(InstCore const& op) {
-  if (op.isVirtual()) {
+  if (op.flags.is_set(eInstructionFlags::kVirtual)) {
     return "v_";
   }
   return "s_";
