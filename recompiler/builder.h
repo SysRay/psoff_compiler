@@ -60,6 +60,8 @@ class Builder {
 
   HostMapping* getHostMapping(uint64_t pc);
 
+  auto& getInstructions() { return _instructions; }
+
   // // Getter for flags
   template <ShaderBuildFlags item>
   constexpr bool is_set() const {

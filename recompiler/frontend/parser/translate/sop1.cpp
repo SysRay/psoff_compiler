@@ -156,6 +156,16 @@ InstructionKind_t handleSop1(Builder& builder, parser::pc_t pc, parser::code_p_t
         }
 
         fetchMapping->size_dw = curCode - pCode;
+
+        //  remove setpc
+        auto& instructions = builder.getInstructions();
+        while (true) {
+          auto const& item    = instructions.back();
+          bool const  isSetpc = item.kind == conv(ir::eInstKind::JumpAbsOp);
+          instructions.pop_back();
+          if (isSetpc) break;
+          if (instructions.empty()) throw std::runtime_error("fetch shader: couldn't find setpc");
+        }
       } else {
         builder.createInstruction(create::jumpAbsOp(src0));
       }
