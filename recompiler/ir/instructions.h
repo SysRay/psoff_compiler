@@ -98,6 +98,10 @@ constexpr inline InstructionKind_t conv(eInstKind code) {
   return (InstructionKind_t)code;
 }
 
+constexpr inline eInstKind conv(InstructionKind_t code) {
+  return (eInstKind)code;
+}
+
 namespace internal {
 struct InstDef {
   InstCore         core;
@@ -236,7 +240,7 @@ static constexpr std::array kInstTable = {
     __INST(PackUnorm2x16Op, kALU, kNone, __OPS(i32), __OPS(f32, f32)),
     __INST_NO_OPS(ReturnOp, kFlowControl, kHasSideEffects),
     __INST_NO_DST(DiscardOp, kFlowControl, kHasSideEffects, __OPS(i1)),
-    __INST_NO_OPS(BarrierOp, kFlowControl, kHasSideEffects),
+    __INST_NO_OPS(BarrierOp, kBarrier, kHasSideEffects),
     __INST_NO_DST(JumpAbsOp, kFlowControl, kHasSideEffects, __OPS(i64)),
     __INST_NO_DST(CondJumpAbsOp, kFlowControl, kHasSideEffects, __OPS(i1, i64)),
     __INST_NO_SRC(ConstantOp, kConstant, kConstant, __OPS(f32)),
@@ -259,7 +263,7 @@ inline constexpr const ir::InstCore& getInfo(eInstKind instr) {
   return internal::kInstTable[(std::underlying_type<eInstKind>::type)instr].core;
 }
 
-inline constexpr std::string_view getInstrKindStr(eInstKind instr) {
+inline constexpr const std::string_view getInstrKindStr(eInstKind instr) {
   return internal::kInstTable[(std::underlying_type<eInstKind>::type)instr].name;
 }
 

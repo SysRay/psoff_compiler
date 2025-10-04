@@ -62,6 +62,8 @@ class Builder {
 
   auto& getInstructions() { return _instructions; }
 
+  auto& getTempBuffer() { return _poolTemp; }
+
   // // Getter for flags
   template <ShaderBuildFlags item>
   constexpr bool is_set() const {
@@ -76,6 +78,7 @@ class Builder {
   private:
   std::unique_ptr<uint8_t[]>          _buffer;
   std::pmr::monotonic_buffer_resource _pool {_buffer.get(), MEMORY_SIZE};
+  std::pmr::monotonic_buffer_resource _poolTemp {_buffer.get(), MEMORY_SIZE};
 
   std::pmr::vector<ir::InstCore> _instructions {&_pool};
 

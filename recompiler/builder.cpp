@@ -3,6 +3,7 @@
 #include "alpaca/alpaca.h"
 #include "frontend/parser/parser.h"
 #include "ir/debug_strings.h"
+#include "ir/passes/passes.h"
 
 #include <filesystem>
 
@@ -174,15 +175,30 @@ bool Builder::processBinary() {
   auto const      size    = _hostMapping[0].size_dw;
   if (pCode == nullptr) return false;
 
-  auto curCode = pCode;
-  try {
-    while (curCode < (pCode + size)) {
-      auto const pc = pcStart + (frontend::parser::pc_t)curCode - (frontend::parser::pc_t)pCode;
-      frontend::parser::parseInstruction(*this, pc, &curCode);
+  {
+    // parse instructions
+    ir::passes::pcmapping_t pcMapping {&_poolTemp}; // map pc to instructions for resolving jmp
+    pcMapping.reserve(_hostMapping[0].size_dw);
+
+    auto curCode = pCode;
+    try {
+      while (curCode < (pCode + size)) {
+        auto const pc = pcStart + (frontend::parser::pc_t)curCode - (frontend::parser::pc_t)pCode;
+        pcMapping.push_back({pc, _instructions.size()});
+        frontend::parser::parseInstruction(*this, pc, &curCode);
+      }
+    } catch (std::runtime_error const& ex) {
+      printf("%s error:%s", _name, ex.what());
+      return {};
     }
-  } catch (std::runtime_error const& ex) {
-    printf("%s error:%s", _name, ex.what());
-    return {};
+
+    // create code regions
+    if (!ir::passes::createRegions(*this, pcMapping)) {
+      printf("Couldn't create regions");
+      return false;
+    }
+
+    _poolTemp.release();
   }
   return true;
 }
