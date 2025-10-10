@@ -32,7 +32,9 @@ uint64_t getAddr(uint64_t addr); ///< User implementation
 class Builder {
   public:
   Builder(size_t numInstructions = 0, util::Flags<ShaderBuildFlags> const& flags = {})
-      : _buffer(std::make_unique_for_overwrite<uint8_t[]>(MEMORY_SIZE)), _debugFlags(flags) {
+      : _buffer(std::make_unique_for_overwrite<uint8_t[]>(MEMORY_SIZE)),
+        _bufferTemp(std::make_unique_for_overwrite<uint8_t[]>(MEMORY_SIZE)),
+        _debugFlags(flags) {
     if (numInstructions != 0) {
       numInstructions = 2048;
     }
@@ -77,8 +79,9 @@ class Builder {
 
   private:
   std::unique_ptr<uint8_t[]>          _buffer;
+  std::unique_ptr<uint8_t[]>          _bufferTemp;
   std::pmr::monotonic_buffer_resource _pool {_buffer.get(), MEMORY_SIZE};
-  std::pmr::monotonic_buffer_resource _poolTemp {_buffer.get(), MEMORY_SIZE};
+  std::pmr::monotonic_buffer_resource _poolTemp {_bufferTemp.get(), MEMORY_SIZE};
 
   std::pmr::vector<ir::InstCore> _instructions {&_pool};
 

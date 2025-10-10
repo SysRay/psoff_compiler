@@ -159,8 +159,8 @@ constexpr Operand f64 {.type = OperandType::f64()};
 
 using namespace compiler::ir::ops;
 static constexpr std::array kInstTable = {
-    __INST(MoveOp, kUnknown, kNone, __OPS(i32), __OPS(i32)),
-    __INST(SelectOp, kUnknown, kNone, __OPS(i32), __OPS(i1, i32, i32)),
+    __INST(MoveOp, kALU, kNone, __OPS(i32), __OPS(i32)),
+    __INST(SelectOp, kALU, kNone, __OPS(i32), __OPS(i1, i32, i32)),
     __INST(BitReverseOp, kBIT, kNone, __OPS(i32), __OPS(i32)),
     __INST(BitCountOp, kBIT, kNone, __OPS(i32), __OPS(i32)),
     __INST(BitAndOp, kBIT, kNone, __OPS(i32), __OPS(i32, i32)),

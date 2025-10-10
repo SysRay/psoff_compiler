@@ -27,7 +27,7 @@ add_library(psOff_recompiler STATIC
   frontend/parser/translate/vop3.cpp
   frontend/parser/translate/vopc.cpp
 
-  ir/passes/nodes.cpp
+  ir/passes/regions.cpp
   ir/passes/util/region_graph.cpp
 )
 

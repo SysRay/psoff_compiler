@@ -21,7 +21,7 @@ struct InstConstant {
 };
 
 struct alignas(64) InstCore {
-  InstructionKind_t                  kind;
+  InstructionKind_t                  kind  = -1;
   eInstructionGroup                  group = eInstructionGroup::kUnknown;
   util::Flags<ir::eInstructionFlags> flags;
 
@@ -40,6 +40,8 @@ struct alignas(64) InstCore {
   };
 
   inline bool isValid() const { return group != eInstructionGroup::kUnknown; }
+
+  inline bool isConstant() const { return flags.is_set(ir::eInstructionFlags::kConstant); }
 };
 
 static_assert(sizeof(InstCore) <= 64); ///< cache lines
