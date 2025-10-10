@@ -138,7 +138,7 @@ constexpr auto makeInstDef(eInstKind kind, eInstructionGroup group, util::Flags<
 namespace compiler::ir::ops {
 constexpr Operand i1 {.type = OperandType::i1()};
 constexpr Operand i32 {.type = OperandType::i32()};
-constexpr Operand i64 {.type = OperandType::i32()};
+constexpr Operand i64 {.type = OperandType::i64()};
 constexpr Operand f32 {.type = OperandType::f32()};
 constexpr Operand f64 {.type = OperandType::f64()};
 // ...

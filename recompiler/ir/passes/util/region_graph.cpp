@@ -1,5 +1,7 @@
 #include "region_graph.h"
 
+#include "../../debug_strings.h"
+
 #include <algorithm>
 #include <ostream>
 
@@ -71,27 +73,6 @@ std::pair<regionid_t, uint32_t> RegionBuilder::findRegion(uint32_t index) const 
   return {it->start, it->end};
 }
 
-void RegionBuilder::dump(std::ostream& os) const {
-  for (const auto& r: _regions) {
-    os << "Region [" << r.start << ", " << r.end << ")\n";
-    auto succ = getSuccessors(r.start);
-    auto pred = getPredecessors(r.start);
-
-    os << "  Succ: ";
-    for (auto s: succ)
-      os << "[" << s << "]";
-    os << "\n  Pred: ";
-    for (auto p: pred)
-      os << "[" << p << "]";
-    os << "\n";
-
-    if (r.hasTrueSucc()) os << "  True -> [" << r.trueSucc << "]\n";
-    if (r.hasFalseSucc()) os << "  False -> [" << r.falseSucc << "]\n";
-    os << "  hasJump: " << r.hasJump << "\n";
-    os << "-------------------------\n";
-  }
-}
-
 regionid_t RegionBuilder::getRegionIndex(uint32_t pos) const {
   auto it = std::upper_bound(_regions.begin(), _regions.end(), pos, [](uint32_t val, const Region& reg) { return val < reg.start; });
   if (it == _regions.begin()) return 0;
@@ -127,5 +108,31 @@ std::pair<regionid_t, uint32_t> RegionBuilder::splitRegionAround(uint32_t pos) {
   if (idx + 1 != _regions.size() - 1) std::swap(_regions[idx + 1], _regions.back());
 
   return {reg.start, after.start};
+}
+
+void RegionBuilder::dump(std::ostream& os, std::span<ir::InstCore const> instructions) const {
+  for (const auto& r: _regions) {
+    os << "Region [" << r.start << ", " << r.end << ")\n";
+    auto succ = getSuccessors(r.start);
+    auto pred = getPredecessors(r.start);
+
+    os << "  Succ: ";
+    for (auto s: succ)
+      os << "[" << s << "]";
+    os << "\n  Pred: ";
+    for (auto p: pred)
+      os << "[" << p << "]";
+    os << "\n";
+
+    if (r.hasTrueSucc()) os << "  True -> [" << r.trueSucc << "]\n";
+    if (r.hasFalseSucc()) os << "  False -> [" << r.falseSucc << "]\n";
+    os << "  hasJump: " << r.hasJump << "\n";
+    os << "-------------------------\n";
+
+    for (auto n = r.start; n < r.end; ++n) {
+      os << '\t';
+      ir::debug::getDebug(os, instructions[n]);
+    }
+  }
 }
 } // namespace compiler::ir

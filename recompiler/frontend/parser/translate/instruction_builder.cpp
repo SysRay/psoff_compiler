@@ -250,7 +250,7 @@ ir::InstCore cjumpAbsOp(OpSrc predicate, bool invert, OpSrc addr) {
   inst.srcOperands[1].kind  = getOperandKind(addr.kind);
   inst.srcOperands[0].flags = predicate.flags;
   inst.srcOperands[1].flags = addr.flags;
-  if (invert) inst.srcOperands[0].flags = OperandFlagsSrc(true, false);
+  if (invert) inst.srcOperands[0].flags |= OperandFlagsSrc(true, false);
   return inst;
 }
 

@@ -1,11 +1,12 @@
 #pragma once
+
 #include <cstdint>
 #include <memory_resource>
-#include <string_view>
+#include <span>
 #include <vector>
 
 namespace compiler::ir {
-
+struct InstCore;
 using regionid_t = uint32_t;
 
 class RegionBuilder {
@@ -34,7 +35,7 @@ class RegionBuilder {
 
   auto getNumRegions() const { return _regions.size(); }
 
-  void dump(std::ostream& os) const;
+  void dump(std::ostream& os, std::span<ir::InstCore const> const instructions) const;
 
   private:
   struct Region {

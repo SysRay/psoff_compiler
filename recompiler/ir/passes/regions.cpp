@@ -27,7 +27,9 @@ class Evaluate {
     std::cout << "\n";
 
     auto const [start, end] = _regions.findRegion(index);
-    return findInstruction(reg, index, start);
+    auto const res          = findInstruction(reg, index, start);
+    if (res) std::cout << "result: 0x" << std::hex << res->value << "\n";
+    return res;
   }
 
   private:
@@ -125,6 +127,10 @@ bool createRegions(Builder& builder, pcmapping_t const& mapping) {
       default: break;
     }
   }
+
+  regions.dump(std::cout, std::span<ir::InstCore const>(instructions.data(), instructions.size()));
+
+  // todo transform to structured, ssa
   return true;
 }
 } // namespace compiler::ir::passes
