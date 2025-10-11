@@ -17,8 +17,8 @@ static std::string_view isVirtual(InstCore const& op) {
 }
 
 static void printIMM(std::ostream& os, InstConstant const& value) {
-  assert(!type.is_vector());
-  assert(!type.is_array());
+  assert(!value.type.is_vector());
+  assert(!value.type.is_array());
 
   switch (value.type.base()) {
     case OperandType::eBase::i1: {

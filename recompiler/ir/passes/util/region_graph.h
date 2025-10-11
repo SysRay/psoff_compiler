@@ -72,7 +72,6 @@ class RegionBuilder {
 
   regionid_t getRegionIndex(uint32_t pos) const;
 
-  regionsit_t getRegion(uint32_t pos);
   regionsit_t splitRegion(uint32_t pos);
 };
 } // namespace compiler::ir

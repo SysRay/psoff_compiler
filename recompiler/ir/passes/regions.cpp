@@ -1,6 +1,7 @@
 #include "../debug_strings.h"
 #include "../instructions.h"
 #include "builder.h"
+#include "frontend/frontend.h" // todo move to global compare
 #include "passes.h"
 #include "util/region_graph.h"
 
@@ -22,9 +23,9 @@ class Evaluate {
     auto const& instructions = _builder.getInstructions();
     auto const& instr        = instructions[index];
 
-    // std::cout << "get const for ";
+    //  std::cout << "get const for ";
     // ir::debug::getDebug(std::cout, instructions[index]);
-    // std::cout << "\n";
+    //  std::cout << "\n";
 
     auto const [start, end] = _regions.findRegion(index);
     auto const res          = findInstruction(reg, index, start);
@@ -82,7 +83,8 @@ std::optional<InstConstant> Evaluate::findInstruction(Operand const& reg, uint32
 
     for (uint8_t d = 0; d < instr.numDst; d++) {
       // todo handle multiple regs (64bit, arrays)
-      if (instr.dstOperands[d].kind == reg.kind) {
+      // move to frontend compare
+      if (frontend::eOperandKind::import(instr.dstOperands[d].kind).base() == frontend::eOperandKind::import(reg.kind).base()) {
         return check(i, region);
       }
     }
@@ -141,7 +143,12 @@ bool createRegions(Builder& builder, pcmapping_t const& mapping) {
     }
   });
 
-  // todo transform to structured, ssa
+  // // transform to hierarchical structured graph
+  // ref: "Perfect Reconstructability of Control Flow from Demand Dependence Graphs"
+  // Structurizer graphBuilder(regions);
+  // auto         root = graphBuilder.build();
+  // graphBuilder.dump(std::cout, root);
+
   return true;
 }
 } // namespace compiler::ir::passes

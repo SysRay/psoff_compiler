@@ -1,6 +1,5 @@
-#include "region_graph.h"
-
 #include "../../debug_strings.h"
+#include "structured_graph.h"
 
 #include <algorithm>
 #include <ostream>
@@ -13,20 +12,19 @@ void RegionBuilder::addReturn(regionid_t from) {
 }
 
 void RegionBuilder::addJump(regionid_t from, regionid_t to) {
-  auto itfrom = splitRegion(from + 1);
-  auto itto   = splitRegion(to);
-
+  auto itfrom      = splitRegion(from + 1);
   auto before      = std::prev(itfrom);
-  before->trueSucc = itto->start;
+  before->trueSucc = to;
   before->hasJump  = true;
+  printf("asd %u\n", before->start);
+  auto itto = splitRegion(to);
 }
 
 void RegionBuilder::addCondJump(regionid_t from, regionid_t to) {
-  auto itfrom = splitRegion(from + 1);
-  auto itto   = splitRegion(to);
-
+  auto itfrom      = splitRegion(from + 1);
   auto before      = std::prev(itfrom);
-  before->trueSucc = itto->start;
+  before->trueSucc = to;
+  auto itto        = splitRegion(to);
 }
 
 std::vector<regionid_t> RegionBuilder::getSuccessors(regionid_t start) const {
@@ -69,22 +67,18 @@ regionid_t RegionBuilder::getRegionIndex(uint32_t pos) const {
   return std::distance(_regions.begin(), it);
 }
 
-RegionBuilder::regionsit_t RegionBuilder::getRegion(uint32_t pos) {
+RegionBuilder::regionsit_t RegionBuilder::splitRegion(uint32_t pos) {
   auto it = std::upper_bound(_regions.begin(), _regions.end(), pos, [](uint32_t val, const Region& reg) { return val < reg.start; });
   if (it != _regions.begin()) --it;
-  return it;
-}
-
-RegionBuilder::regionsit_t RegionBuilder::splitRegion(uint32_t pos) {
-  auto it = getRegion(pos);
-  if (pos >= it->end || pos <= it->start) return std::next(it);
+  if (pos >= it->end || pos <= it->start) return it;
 
   printf("split range @%u [%u,%u) to [%u,%u) [%u,%u)\n", pos, it->start, it->end, it->start, pos, pos, it->end);
 
-  Region after(pos, it->end);
-  it->end = pos;
+  Region after = *it;
+  after.start  = pos;
+  after.end    = it->end;
 
-  auto const start = it->start;
+  *it = Region(it->start, pos);
   return _regions.insert(1 + it, after);
 }
 
