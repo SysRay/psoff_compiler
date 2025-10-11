@@ -22,13 +22,13 @@ class Evaluate {
     auto const& instructions = _builder.getInstructions();
     auto const& instr        = instructions[index];
 
-    std::cout << "get const for ";
-    ir::debug::getDebug(std::cout, instructions[index]);
-    std::cout << "\n";
+    // std::cout << "get const for ";
+    // ir::debug::getDebug(std::cout, instructions[index]);
+    // std::cout << "\n";
 
     auto const [start, end] = _regions.findRegion(index);
     auto const res          = findInstruction(reg, index, start);
-    if (res) std::cout << "result: 0x" << std::hex << res->value << "\n";
+    // if (res) std::cout << "result: 0x" << std::hex << res->value_u64 << "\n";
     return res;
   }
 
@@ -37,9 +37,9 @@ class Evaluate {
   std::optional<InstConstant> findInstruction(Operand const& reg, uint32_t index, regionid_t currentBlock);
 
   std::optional<InstConstant> evaluate(ir::InstCore const& instr, std::span<InstConstant> inputs) {
-    std::cout << "<- evaluate ";
-    ir::debug::getDebug(std::cout, instr);
-    std::cout << "\n";
+    // std::cout << "<- evaluate ";
+    // ir::debug::getDebug(std::cout, instr);
+    // std::cout << "\n";
 
     // todo move this to instructions
     // todo actual evaluate
@@ -55,9 +55,9 @@ std::optional<InstConstant> Evaluate::check(uint32_t index, regionid_t region) {
   auto const& instructions = _builder.getInstructions();
   auto const& instr        = instructions[index];
 
-  std::cout << "\tcheck ";
-  ir::debug::getDebug(std::cout, instr);
-  std::cout << "\n";
+  // std::cout << "\tcheck ";
+  // ir::debug::getDebug(std::cout, instr);
+  // std::cout << "\n";
 
   if (instr.isConstant()) {
     return instr.srcConstant;
@@ -113,22 +113,33 @@ bool createRegions(Builder& builder, pcmapping_t const& mapping) {
         auto const targetPc = Evaluate(builder, regions).check(n, inst.srcOperands[0]);
         if (!targetPc) return false;
 
-        auto const targetIt = std::upper_bound(mapping.begin(), mapping.end(), targetPc->value, [](uint64_t val, auto const& b) { return val < b.first; });
-        regions.addJump(n, std::distance(mapping.begin(), targetIt));
+        auto const targetIt = std::lower_bound(mapping.begin(), mapping.end(), targetPc->value_u64, [](auto const& b, uint64_t val) { return b.first < val; });
+        regions.addJump(n, targetIt->second);
       } break;
       case eInstKind::CondJumpAbsOp: {
         auto const targetPc = Evaluate(builder, regions).check(n, inst.srcOperands[1]);
         if (!targetPc) return false;
 
-        auto const targetIt = std::upper_bound(mapping.begin(), mapping.end(), targetPc->value, [](uint64_t val, auto const& b) { return val < b.first; });
-        regions.addCondJump(n, std::distance(mapping.begin(), targetIt));
+        auto const targetIt = std::lower_bound(mapping.begin(), mapping.end(), targetPc->value_u64, [](auto const& b, uint64_t val) { return b.first < val; });
+        regions.addCondJump(n, targetIt->second);
       } break;
 
       default: break;
     }
   }
 
-  regions.dump(std::cout, std::span<ir::InstCore const>(instructions.data(), instructions.size()));
+  regions.for_each([&](uint32_t start, uint32_t end, void* region) {
+    regions.dump(std::cout, region);
+    for (auto n = start; n < end; ++n) {
+      auto it = std::find_if(mapping.begin(), mapping.end(), [n](auto const& item) { return item.second == n; });
+      if (it == mapping.end())
+        std::cout << "\t";
+      else
+        std::cout << std::hex << it->first;
+      std::cout << '\t' << std::dec << n << "| ";
+      ir::debug::getDebug(std::cout, instructions[n]);
+    }
+  });
 
   // todo transform to structured, ssa
   return true;

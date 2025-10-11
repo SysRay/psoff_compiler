@@ -24,8 +24,10 @@ static std::string_view getFileTpye(frontend::ShaderStage stage) {
 }
 
 void Builder::print() const {
-  for (auto const& inst: _instructions) {
-    ir::debug::getDebug(std::cout, inst);
+  std::cout << "\nInstructions:\n";
+  for (size_t n = 0; n < _instructions.size(); ++n) {
+    std::cout << std::dec << n << "| ";
+    ir::debug::getDebug(std::cout, _instructions[n]);
   }
 }
 

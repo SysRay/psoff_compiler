@@ -8,29 +8,25 @@
 namespace compiler::ir {
 
 void RegionBuilder::addReturn(regionid_t from) {
-  auto [beforeStart, afterStart] = splitRegionAround(from + 1);
-
-  auto& before   = _regions[getRegionIndex(beforeStart)];
-  before.hasJump = true;
+  auto itfrom     = splitRegion(from + 1);
+  itfrom->hasJump = true;
 }
 
 void RegionBuilder::addJump(regionid_t from, regionid_t to) {
-  auto [beforeStart, afterStart] = splitRegionAround(from + 1);
-  regionid_t toStart             = splitRegionAt(to);
+  auto itfrom = splitRegion(from + 1);
+  auto itto   = splitRegion(to);
 
-  auto& before    = _regions[getRegionIndex(beforeStart)];
-  before.trueSucc = toStart;
-  before.hasJump  = true;
+  auto before      = std::prev(itfrom);
+  before->trueSucc = itto->start;
+  before->hasJump  = true;
 }
 
 void RegionBuilder::addCondJump(regionid_t from, regionid_t to) {
-  auto [beforeStart, afterStart] = splitRegionAround(from + 1);
-  regionid_t toStart             = splitRegionAt(to);
+  auto itfrom = splitRegion(from + 1);
+  auto itto   = splitRegion(to);
 
-  auto& before     = _regions[getRegionIndex(beforeStart)];
-  before.trueSucc  = toStart;
-  before.falseSucc = afterStart;
-  before.hasJump   = true;
+  auto before      = std::prev(itfrom);
+  before->trueSucc = itto->start;
 }
 
 std::vector<regionid_t> RegionBuilder::getSuccessors(regionid_t start) const {
@@ -41,10 +37,10 @@ std::vector<regionid_t> RegionBuilder::getSuccessors(regionid_t start) const {
   if (!r.hasJump) {
     size_t idx = getRegionIndex(start);
     if (idx + 1 < _regions.size() && _regions[idx + 1].start == r.end) out.push_back(_regions[idx + 1].start);
-  } else {
-    if (r.hasTrueSucc()) out.push_back(r.trueSucc);
-    if (r.hasFalseSucc()) out.push_back(r.falseSucc);
   }
+  if (r.hasTrueSucc()) out.push_back(r.trueSucc);
+  if (r.hasFalseSucc()) out.push_back(r.falseSucc);
+
   return out;
 }
 
@@ -56,13 +52,6 @@ std::vector<regionid_t> RegionBuilder::getPredecessors(regionid_t start) const {
     }
   }
   return out;
-}
-
-std::pair<regionid_t, uint32_t> RegionBuilder::getRegion(regionid_t start) const {
-  const auto& r = _regions[getRegionIndex(start)];
-
-  if (r.end < start) return {0, 0}; // Sanity check
-  return {r.start, r.end};
 }
 
 std::pair<regionid_t, uint32_t> RegionBuilder::findRegion(uint32_t index) const {
@@ -80,59 +69,42 @@ regionid_t RegionBuilder::getRegionIndex(uint32_t pos) const {
   return std::distance(_regions.begin(), it);
 }
 
-uint32_t RegionBuilder::splitRegionAt(uint32_t pos) {
-  auto const idx = getRegionIndex(pos);
-  Region&    reg = _regions[idx];
-
-  if (pos == reg.start || pos >= reg.end) return reg.start;
-
-  Region newReg(pos, reg.end);
-  reg.end = pos;
-
-  _regions.emplace_back(newReg);
-  if (idx + 1 != _regions.size() - 1) std::swap(_regions[idx + 1], _regions.back());
-
-  return newReg.start;
+RegionBuilder::regionsit_t RegionBuilder::getRegion(uint32_t pos) {
+  auto it = std::upper_bound(_regions.begin(), _regions.end(), pos, [](uint32_t val, const Region& reg) { return val < reg.start; });
+  if (it != _regions.begin()) --it;
+  return it;
 }
 
-std::pair<regionid_t, uint32_t> RegionBuilder::splitRegionAround(uint32_t pos) {
-  auto const idx = getRegionIndex(pos);
-  Region&    reg = _regions[idx];
+RegionBuilder::regionsit_t RegionBuilder::splitRegion(uint32_t pos) {
+  auto it = getRegion(pos);
+  if (pos >= it->end || pos <= it->start) return std::next(it);
 
-  if (pos <= reg.start || pos >= reg.end) return {reg.start, reg.start};
+  printf("split range @%u [%u,%u) to [%u,%u) [%u,%u)\n", pos, it->start, it->end, it->start, pos, pos, it->end);
 
-  Region after(pos, reg.end);
-  reg.end = pos;
+  Region after(pos, it->end);
+  it->end = pos;
 
-  _regions.emplace_back(after);
-  if (idx + 1 != _regions.size() - 1) std::swap(_regions[idx + 1], _regions.back());
-
-  return {reg.start, after.start};
+  auto const start = it->start;
+  return _regions.insert(1 + it, after);
 }
 
-void RegionBuilder::dump(std::ostream& os, std::span<ir::InstCore const> instructions) const {
-  for (const auto& r: _regions) {
-    os << "Region [" << r.start << ", " << r.end << ")\n";
-    auto succ = getSuccessors(r.start);
-    auto pred = getPredecessors(r.start);
+void RegionBuilder::dump(std::ostream& os, void* region) const {
+  auto const& r = *(Region const*)region;
+  os << "Region [" << std::dec << r.start << ", " << r.end << ")\n";
+  auto succ = getSuccessors(r.start);
+  auto pred = getPredecessors(r.start);
 
-    os << "  Succ: ";
-    for (auto s: succ)
-      os << "[" << s << "]";
-    os << "\n  Pred: ";
-    for (auto p: pred)
-      os << "[" << p << "]";
-    os << "\n";
+  os << "  Succ: ";
+  for (auto s: succ)
+    os << "[" << s << "]";
+  os << "\n  Pred: ";
+  for (auto p: pred)
+    os << "[" << p << "]";
+  os << "\n";
 
-    if (r.hasTrueSucc()) os << "  True -> [" << r.trueSucc << "]\n";
-    if (r.hasFalseSucc()) os << "  False -> [" << r.falseSucc << "]\n";
-    os << "  hasJump: " << r.hasJump << "\n";
-    os << "-------------------------\n";
-
-    for (auto n = r.start; n < r.end; ++n) {
-      os << '\t';
-      ir::debug::getDebug(os, instructions[n]);
-    }
-  }
+  if (r.hasTrueSucc()) os << "  True -> [" << r.trueSucc << "]\n";
+  if (r.hasFalseSucc()) os << "  False -> [" << r.falseSucc << "]\n";
+  os << "  hasJump: " << r.hasJump << "\n";
+  os << "-------------------------\n";
 }
 } // namespace compiler::ir

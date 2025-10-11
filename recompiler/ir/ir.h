@@ -17,7 +17,12 @@ struct Operand {
 
 struct InstConstant {
   OperandType type = OperandType::i32();
-  uint64_t    value;
+
+  union {
+    int64_t  value_i64;
+    uint64_t value_u64;
+    double   value_f64;
+  };
 };
 
 struct alignas(64) InstCore {

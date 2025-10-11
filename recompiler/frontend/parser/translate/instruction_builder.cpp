@@ -4,27 +4,27 @@
 
 namespace compiler::frontend::translate::create {
 ir::InstCore literalOp(uint32_t value) {
-  auto inst                = ir::getInfo(ir::eInstKind::ConstantOp);
-  inst.srcConstant.value   = value;
-  inst.dstOperands[0].kind = getOperandKind(eOperandKind::Literal());
+  auto inst                  = ir::getInfo(ir::eInstKind::ConstantOp);
+  inst.srcConstant.value_u64 = value;
+  inst.dstOperands[0].kind   = getOperandKind(eOperandKind::Literal());
   inst.dstOperands[0].type = inst.srcConstant.type = ir::OperandType::i32();
   return inst;
 }
 
 ir::InstCore constantOp(OpDst dst, uint64_t value, ir::OperandType type) {
-  auto inst                 = ir::getInfo(ir::eInstKind::ConstantOp);
-  inst.srcConstant.value    = value;
-  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
-  inst.dstOperands[0].flags = dst.flags;
+  auto inst                  = ir::getInfo(ir::eInstKind::ConstantOp);
+  inst.srcConstant.value_u64 = value;
+  inst.dstOperands[0].kind   = getOperandKind(dst.kind);
+  inst.dstOperands[0].flags  = dst.flags;
   inst.dstOperands[0].type = inst.srcConstant.type = type;
   return inst;
 }
 
 ir::InstCore constantOp(OpDst dst, int16_t value, ir::OperandType type) {
-  auto inst                 = ir::getInfo(ir::eInstKind::ConstantOp);
-  inst.srcConstant.value    = (uint64_t)((int64_t)value);
-  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
-  inst.dstOperands[0].flags = dst.flags;
+  auto inst                  = ir::getInfo(ir::eInstKind::ConstantOp);
+  inst.srcConstant.value_u64 = (uint64_t)((int64_t)value);
+  inst.dstOperands[0].kind   = getOperandKind(dst.kind);
+  inst.dstOperands[0].flags  = dst.flags;
   inst.dstOperands[0].type = inst.srcConstant.type = type;
   return inst;
 }
@@ -233,14 +233,6 @@ ir::InstCore jumpAbsOp(OpSrc addr) {
   auto inst                = ir::getInfo(ir::eInstKind::JumpAbsOp);
   inst.srcOperands[0].kind = getOperandKind(addr.kind);
   inst.srcOperands[1].type = ir::OperandType::i64();
-  return inst;
-}
-
-ir::InstCore jumpAbsOp(uint64_t addr) {
-  auto inst              = ir::getInfo(ir::eInstKind::JumpAbsOp);
-  inst.srcConstant.value = addr;
-  inst.srcConstant.type  = ir::OperandType::i64();
-  inst.flags |= ir::eInstructionFlags::kConstant;
   return inst;
 }
 

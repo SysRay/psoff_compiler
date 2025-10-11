@@ -29,7 +29,7 @@ struct OpDst {
 
   constexpr explicit OpDst(eOperandKind kind): kind(kind) {}
 
-  constexpr explicit OpDst(eOperandKind kind, uint8_t omod, bool clamp, bool negate): kind(kind), flags( omod, clamp, negate) {}
+  constexpr explicit OpDst(eOperandKind kind, uint8_t omod, bool clamp, bool negate): kind(kind), flags(omod, clamp, negate) {}
 
   constexpr OpDst& operator=(OpDst const& other) = default;
 };
@@ -130,7 +130,6 @@ ir::InstCore returnOp();
 ir::InstCore discardOp(OpSrc predicate);
 ir::InstCore barrierOp();
 ir::InstCore jumpAbsOp(OpSrc addr);
-ir::InstCore jumpAbsOp(uint64_t addr);
 ir::InstCore cjumpAbsOp(OpSrc predicate, bool invert, OpSrc addr);
 } // namespace create
 } // namespace compiler::frontend::translate

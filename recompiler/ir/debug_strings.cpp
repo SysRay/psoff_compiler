@@ -16,35 +16,35 @@ static std::string_view isVirtual(InstCore const& op) {
   return "s_";
 }
 
-static void printIMM(std::ostream& os, uint64_t value, OperandType type) {
+static void printIMM(std::ostream& os, InstConstant const& value) {
   assert(!type.is_vector());
   assert(!type.is_array());
 
-  switch (type.base()) {
+  switch (value.type.base()) {
     case OperandType::eBase::i1: {
-      os << std::bit_cast<bool>((bool)value);
+      os << std::bit_cast<bool>((bool)value.value_u64);
     } break;
     case OperandType::eBase::i8:
     case OperandType::eBase::i16:
     case OperandType::eBase::i32:
     case OperandType::eBase::i64: {
-      if (type.is_signed()) {
-        if ((int64_t)value > 10000)
-          os << "0x" << std::hex << (int64_t)value;
+      if (value.type.is_signed()) {
+        if (value.value_i64 > 10000)
+          os << "0x" << std::hex << value.value_i64;
         else
-          os << (int64_t)value;
+          os << value.value_i64;
       } else {
-        if (value > 10000)
-          os << "0x" << std::hex << value;
+        if (value.value_u64 > 10000)
+          os << "0x" << std::hex << value.value_u64;
         else
-          os << value;
+          os << value.value_u64;
       }
     } break;
     case OperandType::eBase::f32: {
-      os << std::bit_cast<float>((uint32_t)value);
+      os << (float)value.value_f64;
     } break;
     case OperandType::eBase::f64: {
-      os << std::bit_cast<double>(value);
+      os << value.value_f64;
     } break;
   }
 }
@@ -58,7 +58,7 @@ static void getDst(std::ostream& os, InstCore const& op) {
 
 static void getSrc(std::ostream& os, InstCore const& op) {
   if (op.group == eInstructionGroup::kConstant) {
-    printIMM(os, op.srcConstant.value, op.srcConstant.type);
+    printIMM(os, op.srcConstant);
     return;
   }
 

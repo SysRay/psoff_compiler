@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <memory_resource>
 #include <span>
 #include <vector>
@@ -13,7 +14,7 @@ class RegionBuilder {
   public:
   RegionBuilder(uint32_t N, auto& pool): _regions {&pool} {
     _regions.reserve(128);
-    _regions.emplace_back(0, N);
+    _regions.emplace_back(Region(0, N));
   }
 
   void addJump(regionid_t from, regionid_t to);
@@ -31,11 +32,18 @@ class RegionBuilder {
    * @return std::pair<uint32_t, uint32_t> start, end
    */
   std::pair<regionid_t, uint32_t> findRegion(uint32_t index) const;
-  std::pair<regionid_t, uint32_t> getRegion(regionid_t start) const;
+
+  // std::pair<regionid_t, uint32_t> getRegion(regionid_t start) const;
 
   auto getNumRegions() const { return _regions.size(); }
 
-  void dump(std::ostream& os, std::span<ir::InstCore const> const instructions) const;
+  void dump(std::ostream& os, void* region) const;
+
+  void for_each(auto cb) const {
+    for (auto const& region: _regions) {
+      cb(region.start, region.end, (void*)&region);
+    }
+  }
 
   private:
   struct Region {
@@ -51,7 +59,7 @@ class RegionBuilder {
 
     Region(uint32_t s, uint32_t e): start(s), end(e) {}
 
-    Region() = default;
+    // Region() = default;
 
     inline bool hasTrueSucc() const { return trueSucc != NO_SUCC; }
 
@@ -60,9 +68,11 @@ class RegionBuilder {
 
   std::vector<Region, std::pmr::polymorphic_allocator<Region>> _regions;
 
-  regionid_t getRegionIndex(uint32_t pos) const;
-  regionid_t splitRegionAt(uint32_t pos);
+  using regionsit_t = decltype(_regions)::iterator;
 
-  std::pair<regionid_t, uint32_t> splitRegionAround(uint32_t pos);
+  regionid_t getRegionIndex(uint32_t pos) const;
+
+  regionsit_t getRegion(uint32_t pos);
+  regionsit_t splitRegion(uint32_t pos);
 };
 } // namespace compiler::ir

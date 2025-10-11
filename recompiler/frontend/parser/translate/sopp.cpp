@@ -26,7 +26,8 @@ InstructionKind_t handleSopp(Builder& builder, parser::pc_t pc, parser::code_p_t
       builder.createInstruction(create::returnOp());
     } break;
     case eOpcode::S_BRANCH: {
-      builder.createInstruction(create::jumpAbsOp(4 + pc + 4 * (int64_t)offset));
+      builder.createInstruction(create::constantOp(OpDst(eOperandKind::Temp0()), 4 + pc + 4 * (int64_t)offset, ir::OperandType::i64()));
+      builder.createInstruction(create::jumpAbsOp(OpSrc(eOperandKind::Temp0())));
     } break;
     case eOpcode::S_CBRANCH_SCC0: {
       builder.createInstruction(create::constantOp(OpDst(eOperandKind::Temp0()), 4 + pc + 4 * (int64_t)offset, ir::OperandType::i64()));
