@@ -14,122 +14,86 @@ namespace compiler::ir::passes {
 class Evaluate {
   public:
   Evaluate(Builder& builder, RegionBuilder& regions)
-      : _checkpoint(&builder.getTempBuffer()), _builder(builder), _regions(regions), _visited(&_checkpoint), _cache(&_checkpoint) {}
+      : _checkpoint(&builder.getTempBuffer()), _builder(builder), _regions(regions), _visited(&_checkpoint), _instructions(builder.getInstructions()) {}
 
-  ~Evaluate() = default;
+  ~Evaluate() {}
 
   std::optional<InstConstant> check(uint32_t index, Operand const& reg) {
+    auto const& instructions = _builder.getInstructions();
+    auto const& instr        = instructions[index];
+
+    //  std::cout << "get const for ";
+    // ir::debug::getDebug(std::cout, instructions[index]);
+    //  std::cout << "\n";
+
     auto const [start, end] = _regions.findRegion(index);
-    return findInstructionIterative(reg, index, start);
+    auto const res          = findInstruction(reg, index, start);
+    // if (res) std::cout << "result: 0x" << std::hex << res->value_u64 << "\n";
+    return res;
   }
 
   private:
-  using CacheKey = std::pair<uint32_t, regionid_t>;
-
-  struct CacheHash {
-    size_t operator()(CacheKey const& k) const noexcept { return (static_cast<size_t>(k.first) << 32) ^ k.second; }
-  };
-
-  std::pmr::monotonic_buffer_resource _checkpoint;
-  Builder&                            _builder;
-  RegionBuilder&                      _regions;
-
-  std::pmr::set<regionid_t>                                                 _visited;
-  std::pmr::unordered_map<CacheKey, std::optional<InstConstant>, CacheHash> _cache;
+  std::optional<InstConstant> check(uint32_t index, regionid_t currentBlock);
+  std::optional<InstConstant> findInstruction(Operand const& reg, uint32_t index, regionid_t currentBlock);
 
   std::optional<InstConstant> evaluate(ir::InstCore const& instr, std::span<InstConstant> inputs) {
-    // TODO: implement actual instruction evaluation
+    // std::cout << "<- evaluate ";
+    // ir::debug::getDebug(std::cout, instr);
+    // std::cout << "\n";
+
+    // todo move this to instructions
+    // todo actual evaluate
     return inputs[0];
   }
 
-  std::optional<InstConstant> checkIterative(uint32_t startIndex, regionid_t region) {
-    struct Frame {
-      uint32_t                                     index;
-      regionid_t                                   region;
-      uint8_t                                      nextSrc;
-      std::array<InstConstant, config::kMaxSrcOps> inputs;
-    };
+  std::pmr::monotonic_buffer_resource _checkpoint;
 
-    auto const& instructions = _builder.getInstructions();
+  Builder&       _builder;
+  RegionBuilder& _regions;
 
-    std::stack<Frame, std::vector<Frame>> stack;
-    stack.push({startIndex, region, 0, {}});
-
-    while (!stack.empty()) {
-      auto& frame                             = stack.top();
-      auto [index, curRegion, srcIdx, inputs] = frame;
-
-      CacheKey key {index, curRegion};
-      if (auto it = _cache.find(key); it != _cache.end()) {
-        auto cached = it->second;
-        stack.pop();
-        if (!stack.empty() && cached) {
-          auto& parent                    = stack.top();
-          parent.inputs[parent.nextSrc++] = *cached;
-        }
-        continue;
-      }
-
-      auto const& instr = instructions[index];
-
-      // Constant — directly return
-      if (instr.isConstant()) {
-        _cache[key] = instr.srcConstant;
-        stack.pop();
-        if (!stack.empty()) {
-          auto& parent                    = stack.top();
-          parent.inputs[parent.nextSrc++] = instr.srcConstant;
-        }
-        continue;
-      }
-
-      // Still have sources to resolve
-      if (frame.nextSrc < instr.numSrc) {
-        auto const& op       = instr.srcOperands[frame.nextSrc];
-        auto        srcConst = findInstructionIterative(op, index, curRegion);
-        if (!srcConst) {
-          _cache[key] = std::nullopt;
-          stack.pop();
-          continue;
-        }
-        frame.inputs[frame.nextSrc++] = *srcConst;
-        continue;
-      }
-
-      // All inputs ready, evaluate
-      auto result = evaluate(instr, std::span(frame.inputs.data(), instr.numSrc));
-      _cache[key] = result;
-      stack.pop();
-
-      // Pass result to parent
-      if (!stack.empty() && result) {
-        auto& parent                    = stack.top();
-        parent.inputs[parent.nextSrc++] = *result;
-      }
-    }
-
-    if (auto it = _cache.find({startIndex, region}); it != _cache.end()) return it->second;
-    return std::nullopt;
-  }
-
-  std::optional<InstConstant> findInstructionIterative(Operand const& reg, uint32_t index, regionid_t region) {
-    auto const& instructions = _builder.getInstructions();
-    auto        regBase      = frontend::eOperandKind::import(reg.kind).base();
-
-    for (int64_t i = index - 1; i >= static_cast<int64_t>(region); --i) {
-      auto const& instr = instructions[i];
-      for (uint8_t d = 0; d < instr.numDst; ++d) {
-        auto dstBase = frontend::eOperandKind::import(instr.dstOperands[d].kind).base();
-        if (dstBase == regBase) {
-          return checkIterative(static_cast<uint32_t>(i), region);
-        }
-      }
-    }
-
-    // TODO: check predecessors
-    return std::nullopt;
-  }
+  std::pmr::vector<ir::InstCore> const& _instructions;
+  std::pmr::set<regionid_t>             _visited;
 };
+
+std::optional<InstConstant> Evaluate::check(uint32_t index, regionid_t region) {
+  auto const& instr = _instructions[index];
+
+  // std::cout << "\tcheck ";
+  // ir::debug::getDebug(std::cout, instr);
+  // std::cout << "\n";
+
+  if (instr.isConstant()) {
+    return instr.srcConstant;
+  }
+
+  // Check all source operands
+  std::array<InstConstant, config::kMaxSrcOps> inputs;
+  for (uint8_t s = 0; s < instr.numSrc; s++) {
+    auto const res = findInstruction(instr.srcOperands[s], index, region);
+    if (!res) return std::nullopt;
+    inputs[s] = *res;
+  }
+
+  return evaluate(instr, inputs);
+}
+
+std::optional<InstConstant> Evaluate::findInstruction(Operand const& reg, uint32_t index, regionid_t region) {
+  auto const kind = frontend::eOperandKind::import(reg.kind);
+  for (int64_t i = index - 1; i >= region; i--) {
+    auto const& instr = _instructions[i];
+
+    for (uint8_t d = 0; d < instr.numDst; d++) {
+      // todo handle multiple regs (64bit, arrays)
+      // move to frontend compare
+      if (frontend::eOperandKind::import(instr.dstOperands[d].kind).base() == kind.base()) {
+        return check(i, region);
+      }
+    }
+  }
+
+  // todo check other predecessors
+  return std::nullopt;
+}
 
 std::optional<InstConstant> evaluate(Builder& builder, RegionBuilder& regions, uint32_t index, Operand const& reg) {
   return Evaluate(builder, regions).check(index, reg);
