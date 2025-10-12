@@ -17,8 +17,7 @@ void RegionBuilder::addJump(regionid_t from, regionid_t to) {
   auto before      = std::prev(itfrom);
   before->trueSucc = to;
   before->hasJump  = true;
-  printf("asd %u\n", before->start);
-  auto itto = splitRegion(to);
+  auto itto        = splitRegion(to);
 }
 
 void RegionBuilder::addCondJump(regionid_t from, regionid_t to) {

@@ -29,6 +29,8 @@ add_library(psOff_recompiler STATIC
 
   ir/passes/regions.cpp
   ir/passes/util/region_graph.cpp
+  ir/passes/util/structured_cfg.cpp
+  ir/passes/evalute.cpp
 )
 
 target_include_directories(psOff_recompiler
