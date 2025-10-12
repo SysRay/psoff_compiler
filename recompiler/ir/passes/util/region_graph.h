@@ -12,6 +12,8 @@ using regionid_t = uint32_t;
 
 class RegionBuilder {
   public:
+  static constexpr regionid_t NO_REGION = -1;
+
   RegionBuilder(uint32_t N, auto& pool): _regions {&pool} {
     _regions.reserve(128);
     _regions.emplace_back(Region(0, N));

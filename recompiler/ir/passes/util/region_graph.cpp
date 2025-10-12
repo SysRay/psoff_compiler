@@ -1,5 +1,6 @@
+#include "region_graph.h"
+
 #include "../../debug_strings.h"
-#include "structured_graph.h"
 
 #include <algorithm>
 #include <ostream>
