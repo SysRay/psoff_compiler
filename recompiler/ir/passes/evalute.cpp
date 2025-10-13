@@ -1,7 +1,7 @@
 #include "builder.h"
 #include "frontend/frontend.h"
 #include "passes.h"
-#include "util/region_graph.h"
+#include "util/cfg_builder.h"
 
 #include <set>
 #include <span>

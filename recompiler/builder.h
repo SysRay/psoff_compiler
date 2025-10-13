@@ -66,6 +66,8 @@ class Builder {
 
   auto& getTempBuffer() { return _poolTemp; }
 
+  auto& getBuffer() { return _pool; }
+
   // // Getter for flags
   template <ShaderBuildFlags item>
   constexpr bool is_set() const {

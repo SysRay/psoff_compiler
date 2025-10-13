@@ -3,7 +3,7 @@
 #include "builder.h"
 #include "frontend/frontend.h" // todo move to global compare
 #include "passes.h"
-#include "util/structured_cfg.h"
+#include "util/cfg_builder.h"
 
 #include <algorithm>
 #include <iostream>
@@ -64,9 +64,9 @@ bool createRegions(Builder& builder, pcmapping_t const& mapping) {
 
   // // transform to hierarchical structured graph
   // ref: "Perfect Reconstructability of Control Flow from Demand Dependence Graphs"
-  StructuredCFGBuilder graphBuilder(regions);
-  auto                 ast = graphBuilder.build();
-  graphBuilder.dumpAST(std::cout, ast.get());
+  auto rootNode = transformStructuredCFG(builder.getBuffer(), builder.getTempBuffer(), regions);
+  dump(std::cout, &rootNode);
+
   return true;
 }
 } // namespace compiler::ir::passes
