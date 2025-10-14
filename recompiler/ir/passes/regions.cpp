@@ -16,7 +16,7 @@ bool createRegions(Builder& builder, pcmapping_t const& mapping) {
   auto const&                         instructions = builder.getInstructions();
   std::pmr::monotonic_buffer_resource checkpoint(&builder.getTempBuffer());
 
-  RegionBuilder regions(instructions.size(), checkpoint);
+  RegionBuilder regions(instructions.size(), &checkpoint);
 
   // Collect Labels first
   for (size_t n = 0; n < instructions.size(); ++n) {
@@ -64,8 +64,9 @@ bool createRegions(Builder& builder, pcmapping_t const& mapping) {
 
   // // transform to hierarchical structured graph
   // ref: "Perfect Reconstructability of Control Flow from Demand Dependence Graphs"
-  auto rootNode = transformStructuredCFG(builder.getBuffer(), builder.getTempBuffer(), regions);
+  auto rootNode = transformStructuredCFG(&builder.getBuffer(), &checkpoint, regions);
   dump(std::cout, &rootNode);
+  dump(std::cout, &rootNode, instructions.data());
 
   return true;
 }

@@ -3,12 +3,26 @@
 #include "../../debug_strings.h"
 
 #include <algorithm>
+#include <iostream>
 #include <ostream>
 #include <set>
 #include <stack>
 #include <unordered_set>
 
 namespace compiler::ir {
+static std::string indent(int level) {
+  return std::string(level * 2, ' ');
+}
+
+static std::string nodeKindName(SimpleNodeKind kind) {
+  switch (kind) {
+    case SimpleNodeKind::Basic: return "Basic";
+    case SimpleNodeKind::Branch: return "Branch";
+    case SimpleNodeKind::Loop: return "Loop";
+    case SimpleNodeKind::Sequence: return "Sequence";
+    default: return "Unknown";
+  }
+}
 
 void RegionBuilder::addReturn(regionid_t from) {
   auto itfrom     = splitRegion(from + 1);
@@ -124,65 +138,137 @@ void RegionBuilder::dump(std::ostream& os, void* region) const {
 }
 
 // // transform structured
-struct SCCData {
+using scc_t = std::pmr::vector<std::pmr::set<regionid_t>>;
+
+struct SCCBuild {
+  SCCBuild(std::pmr::memory_resource* pool, RegionBuilder const& regions)
+      : _pool(pool), _regions(regions), _state(regions.getNumRegions(), TarjanState {}, _pool), _stack(_pool), _sccs(pool) {}
+
+  inline scc_t calculate() {
+    for (int32_t i = 0; i < _regions.getNumRegions(); ++i) {
+      if (_state[i].index == -1) { // If node 'i' hasn't been visited yet
+        strongConnect(i);
+      }
+    }
+    return std::move(_sccs);
+  }
+
+  private:
+  void strongConnect(int32_t v);
+
   struct TarjanState {
-    int  index   = -1;
-    int  lowlink = -1;
-    bool onStack = false;
+    int32_t index   = -1;
+    int32_t lowlink = -1;
+    bool    onStack = false;
   };
 
-  std::pmr::vector<TarjanState>        state;
-  std::pmr::vector<regionid_t>         stack;
-  int                                  tarjanIndex = 0;
-  std::pmr::monotonic_buffer_resource& pool;
+  std::pmr::memory_resource* _pool;
+  RegionBuilder const&       _regions;
 
-  SCCData(std::pmr::monotonic_buffer_resource& pool_, size_t regionCount): state(regionCount, TarjanState {}, &pool_), stack(&pool_), pool(pool_) {}
+  std::pmr::vector<TarjanState> _state;
+  std::pmr::vector<regionid_t>  _stack;
+  int32_t                       _tarjanIndex = 0;
+  scc_t                         _sccs;
 };
 
-using RegionMask = std::pmr::vector<char>;
+void SCCBuild::strongConnect(int32_t v) {
+  auto& state   = _state[v];
+  state.index   = _tarjanIndex;
+  state.lowlink = _tarjanIndex;
+  _tarjanIndex++;
+  _stack.push_back(v);
+  state.onStack = true;
+
+  auto succs = _regions.getSuccessorsIdx(v);
+  for (auto w: succs) {
+    auto& item = _state[w];
+    if (item.index == -1) {
+      strongConnect(w);
+      state.lowlink = std::min(state.lowlink, _state[w].lowlink);
+    } else if (item.onStack) {
+      state.lowlink = std::min(state.lowlink, item.index);
+    }
+  }
+
+  if (state.lowlink == state.index) {
+    std::pmr::set<regionid_t> scc {_pool};
+    regionid_t                w;
+    do {
+      w = _stack.back();
+      _stack.pop_back();
+      _state[w].onStack = false;
+      scc.insert(w);
+    } while (w != v);
+
+    _sccs.push_back(std::move(scc));
+  }
+}
+
+void dump(std::ostream& os, scc_t const& scc) {
+  os << "\n Strongly Connected:\n";
+  for (auto const& node: scc) {
+    os << '{' << std::dec;
+    for (auto id: node)
+      os << id << ",";
+    os << "}\n";
+  }
+}
+
+using RegionMask       = std::pmr::vector<char>;
+using SimpleNodeTemp_t = SimpleNode<std::list>;
 
 class CFGBuilder {
   public:
-  explicit CFGBuilder(std::pmr::monotonic_buffer_resource& allocPool, std::pmr::monotonic_buffer_resource& tempPool, RegionBuilder& regions)
-      : _allocPool(allocPool), _tempPool(tempPool), _regions(regions), _sccs(&_tempPool) {}
+  explicit CFGBuilder(std::pmr::memory_resource* tempPool, RegionBuilder& regions): _tempPool(tempPool), _regions(regions), _sccs(_tempPool) {}
 
-  SimpleNode build();
-
-  private:
-  void       strongConnect(SCCData& data, int32_t v);
-  bool       isLinearIdx(regionid_t entry, const RegionMask& regionMask, const std::pmr::vector<std::pmr::vector<regionid_t>>& predsCache) const;
-  SimpleNode restructureLoopIdx(const std::pmr::set<regionid_t>& scc, regionid_t entry, std::pmr::monotonic_buffer_resource& pool,
-                                const std::pmr::vector<std::pmr::vector<regionid_t>>& predsCache);
-  SimpleNode restructureAcyclicIdx(regionid_t entry, const RegionMask& regionMask, const std::pmr::vector<std::pmr::vector<regionid_t>>& predsCache,
-                                   std::pmr::monotonic_buffer_resource& pool);
-  SimpleNode restructureLoopBodyIdx(regionid_t entry, const RegionMask& sccMask, std::pmr::monotonic_buffer_resource& pool,
-                                    const std::pmr::vector<std::pmr::vector<regionid_t>>& /*predsCache*/);
+  SimpleNodeTemp_t build();
 
   private:
-  std::pmr::monotonic_buffer_resource& _allocPool;
-  std::pmr::monotonic_buffer_resource& _tempPool;
-  const RegionBuilder&                 _regions;
+  bool             isLinearIdx(regionid_t entry, const RegionMask& regionMask, const std::pmr::vector<std::pmr::vector<regionid_t>>& predsCache) const;
+  SimpleNodeTemp_t restructureLoopIdx(const std::pmr::set<regionid_t>& scc, regionid_t entry, const std::pmr::vector<std::pmr::vector<regionid_t>>& predsCache);
+  SimpleNodeTemp_t restructureAcyclicIdx(regionid_t entry, const RegionMask& regionMask, const std::pmr::vector<std::pmr::vector<regionid_t>>& predsCache);
+  SimpleNodeTemp_t restructureLoopBodyIdx(regionid_t entry, const RegionMask& sccMask, const std::pmr::vector<std::pmr::vector<regionid_t>>& /*predsCache*/);
 
-  std::pmr::vector<std::pmr::set<regionid_t>> _sccs;
-  std::pmr::unordered_set<regionid_t>         _processed;
+  private:
+  std::pmr::memory_resource* _tempPool;
+  const RegionBuilder&       _regions;
+
+  scc_t                               _sccs;
+  std::pmr::unordered_set<regionid_t> _processed;
 };
 
-SimpleNode transformStructuredCFG(std::pmr::monotonic_buffer_resource& allocPool, std::pmr::monotonic_buffer_resource& tempPool, RegionBuilder& regions) {
-  CFGBuilder builder(allocPool, tempPool, regions);
-  return builder.build();
+static SimpleNode_t copySimpleNode(SimpleNodeTemp_t const& src, std::pmr::memory_resource* pool) {
+  SimpleNode_t dst(pool);
+
+  dst.kind       = src.kind;
+  dst.instrStart = src.instrStart;
+  dst.instrEnd   = src.instrEnd;
+
+  dst.children.reserve(src.children.size());
+  std::ranges::transform(src.children, std::back_inserter(dst.children), [pool](const auto& child) { return copySimpleNode(child, pool); });
+
+  dst.alternatives.reserve(src.alternatives.size());
+  std::ranges::transform(src.alternatives, std::back_inserter(dst.alternatives), [pool](const auto& alt) { return copySimpleNode(alt, pool); });
+  return dst;
 }
 
-static RegionMask make_mask_from_set(std::pmr::set<regionid_t> const& s, size_t regionCount, std::pmr::monotonic_buffer_resource& pool) {
-  RegionMask mask(regionCount, 0, &pool);
+SimpleNode_t transformStructuredCFG(std::pmr::memory_resource* allocPool, std::pmr::memory_resource* tempPool, RegionBuilder& regions) {
+  CFGBuilder builder(tempPool, regions);
+  auto       tempNodes = builder.build();
+  return copySimpleNode(tempNodes, allocPool);
+}
+
+static RegionMask make_mask_from_set(std::pmr::set<regionid_t> const& s, size_t regionCount, std::pmr::memory_resource* pool) {
+  RegionMask mask(regionCount, 0, pool);
   for (auto r: s)
     mask[static_cast<size_t>(r)] = 1;
   return mask;
 }
 
-static std::pmr::vector<std::pmr::vector<regionid_t>> build_predecessors_cache(const RegionBuilder& regions, std::pmr::monotonic_buffer_resource& pool) {
+static std::pmr::vector<std::pmr::vector<regionid_t>> build_predecessors_cache(const RegionBuilder& regions, std::pmr::memory_resource* pool) {
   size_t N = regions.getNumRegions();
 
-  std::pmr::vector<std::pmr::vector<regionid_t>> preds(&pool);
+  std::pmr::vector<std::pmr::vector<regionid_t>> preds(pool);
   preds.resize(N);
 
   for (regionid_t r = 0; r < static_cast<regionid_t>(N); ++r) {
@@ -194,67 +280,30 @@ static std::pmr::vector<std::pmr::vector<regionid_t>> build_predecessors_cache(c
   return preds;
 }
 
-SimpleNode CFGBuilder::build() {
-  SCCData data(_tempPool, _regions.getNumRegions());
-  strongConnect(data, 0);
+SimpleNodeTemp_t CFGBuilder::build() {
+  _sccs = SCCBuild(_tempPool, _regions).calculate();
+  dump(std::cout, _sccs);
 
   auto predsCache = build_predecessors_cache(_regions, _tempPool);
 
   size_t     N = _regions.getNumRegions();
-  RegionMask allMask(N, 1, &_tempPool);
+  RegionMask allMask(N, 1, _tempPool);
 
-  return restructureAcyclicIdx(0, allMask, predsCache, _tempPool);
+  return restructureAcyclicIdx(0, allMask, predsCache);
 }
 
-void CFGBuilder::strongConnect(SCCData& data, int32_t v) {
-  auto& state   = data.state[v];
-  state.index   = data.tarjanIndex;
-  state.lowlink = data.tarjanIndex;
-  data.tarjanIndex++;
-  data.stack.push_back(v);
-  state.onStack = true;
-
-  auto succs = _regions.getSuccessorsIdx(v);
-  for (auto w: succs) {
-    auto& item = data.state[w];
-    if (item.index == -1) {
-      strongConnect(data, w);
-      state.lowlink = std::min(state.lowlink, item.lowlink);
-    } else if (item.onStack) {
-      state.lowlink = std::min(state.lowlink, item.index);
-    }
-  }
-
-  // Root of SCC
-  if (state.lowlink == state.index) {
-    std::pmr::set<regionid_t> scc {&_tempPool};
-    regionid_t                w;
-    do {
-      w = data.stack.back();
-      data.stack.pop_back();
-      data.state[w].onStack = false;
-      scc.insert(w);
-    } while (w != v);
-
-    if (scc.size() > 1) {
-      _sccs.push_back(std::move(scc));
-    }
-  }
-}
-
-SimpleNode make_basic_node(regionid_t rid, std::pmr::monotonic_buffer_resource& pool, const RegionBuilder& regions) {
-  SimpleNode n(pool);
-  n.kind            = SimpleNode::Kind::Basic;
-  n.rid             = rid;
+SimpleNodeTemp_t make_basic_node(regionid_t rid, std::pmr::memory_resource* pool, const RegionBuilder& regions) {
+  SimpleNodeTemp_t n(pool);
+  n.kind            = SimpleNodeKind::Basic;
   auto [start, end] = regions.getRegion(rid);
   n.instrStart      = start;
   n.instrEnd        = end;
   return n;
 }
 
-SimpleNode make_sequence_node(std::pmr::vector<SimpleNode>&& children, std::pmr::monotonic_buffer_resource& pool) {
-  SimpleNode n(pool);
-  n.kind     = SimpleNode::Kind::Sequence;
+SimpleNodeTemp_t make_sequence_node(SimpleNodeTemp_t::NodeContainer&& children, std::pmr::memory_resource* pool) {
+  SimpleNodeTemp_t n(pool);
+  n.kind     = SimpleNodeKind::Sequence;
   n.children = std::move(children);
   if (!n.children.empty()) {
     n.instrStart = n.children.front().instrStart;
@@ -263,9 +312,9 @@ SimpleNode make_sequence_node(std::pmr::vector<SimpleNode>&& children, std::pmr:
   return n;
 }
 
-SimpleNode make_branch_node(std::pmr::vector<SimpleNode>&& alts, regionid_t header, std::pmr::monotonic_buffer_resource& pool, const RegionBuilder& regions) {
-  SimpleNode n(pool);
-  n.kind            = SimpleNode::Kind::Branch;
+SimpleNodeTemp_t make_branch_node(SimpleNodeTemp_t::NodeContainer&& alts, regionid_t header, std::pmr::memory_resource* pool, const RegionBuilder& regions) {
+  SimpleNodeTemp_t n(pool);
+  n.kind            = SimpleNodeKind::Branch;
   n.alternatives    = std::move(alts);
   auto [start, end] = regions.getRegion(header);
   n.instrStart      = start;
@@ -273,11 +322,11 @@ SimpleNode make_branch_node(std::pmr::vector<SimpleNode>&& alts, regionid_t head
   return n;
 }
 
-SimpleNode make_loop_node(SimpleNode body, std::pmr::monotonic_buffer_resource& pool) {
-  std::pmr::vector<SimpleNode> children(&pool);
+SimpleNodeTemp_t make_loop_node(SimpleNodeTemp_t body, std::pmr::memory_resource* pool) {
+  SimpleNodeTemp_t::NodeContainer children(pool);
   children.push_back(std::move(body));
-  SimpleNode n(pool);
-  n.kind     = SimpleNode::Kind::Loop;
+  SimpleNodeTemp_t n(pool);
+  n.kind     = SimpleNodeKind::Loop;
   n.children = std::move(children);
   if (!n.children.empty()) {
     n.instrStart = n.children.front().instrStart;
@@ -290,7 +339,7 @@ bool CFGBuilder::isLinearIdx(regionid_t entry, const RegionMask& regionMask, con
   regionid_t current = entry;
   size_t     N       = _regions.getNumRegions();
   // small local visited mask
-  RegionMask visited(N, 0, &_tempPool);
+  RegionMask visited(N, 0, _tempPool);
   while (current != RegionBuilder::NO_REGION && regionMask[static_cast<size_t>(current)]) {
     if (visited[static_cast<size_t>(current)]) return false;
     visited[static_cast<size_t>(current)] = 1;
@@ -311,15 +360,14 @@ bool CFGBuilder::isLinearIdx(regionid_t entry, const RegionMask& regionMask, con
   return true;
 }
 
-// restructureLoopBody: DFS that builds SimpleNode sequence with masks
-SimpleNode CFGBuilder::restructureLoopBodyIdx(regionid_t entry, const RegionMask& sccMask, std::pmr::monotonic_buffer_resource& pool,
-                                              const std::pmr::vector<std::pmr::vector<regionid_t>>& /*predsCache*/) {
+// restructureLoopBody: DFS that builds SimpleNodeTemp_t sequence with masks
+SimpleNodeTemp_t CFGBuilder::restructureLoopBodyIdx(regionid_t entry, const RegionMask& sccMask,
+                                                    const std::pmr::vector<std::pmr::vector<regionid_t>>& /*predsCache*/) {
 
   size_t     N = _regions.getNumRegions();
-  RegionMask visited(N, 0, &pool);
+  RegionMask visited(N, 0, _tempPool);
 
-  std::pmr::vector<SimpleNode> bodyNodes(&_allocPool);
-  bodyNodes.reserve(16);
+  SimpleNodeTemp_t::NodeContainer bodyNodes(_tempPool);
 
   struct Frame {
     regionid_t node;
@@ -341,58 +389,158 @@ SimpleNode CFGBuilder::restructureLoopBodyIdx(regionid_t entry, const RegionMask
     auto succs = _regions.getSuccessorsIdx(current);
 
     // compute successors that are inside the SCC (dense check)
-    std::pmr::vector<regionid_t> sccSuccs(&_tempPool);
+    std::pmr::vector<regionid_t> sccSuccs(_tempPool);
+    std::pmr::vector<regionid_t> outsideSuccs(_tempPool);
     for (auto s: succs) {
-      if (sccMask[static_cast<size_t>(s)]) sccSuccs.push_back(s);
+      if (sccMask[static_cast<size_t>(s)])
+        sccSuccs.push_back(s);
+      else
+        outsideSuccs.push_back(s);
+    }
+
+    // If node has both in-SCC and out-of-SCC successors -> this is a branching header:
+    // emit the current basic node followed by a Branch with alts for in-SCC (loop continuation)
+    // and out-of-SCC (loop exits / continuation).
+    if (!sccSuccs.empty() && !outsideSuccs.empty()) {
+      // emit header basic
+      bodyNodes.push_back(make_basic_node(current, _tempPool, _regions));
+
+      // build alternatives
+      SimpleNodeTemp_t::NodeContainer alts(_tempPool);
+
+      // in-SCC successors => continue the loop body (recurse / continue traversal)
+      for (auto succ: sccSuccs) {
+        if (visited[static_cast<size_t>(succ)]) {
+          // already visited: conservative basic node alternative
+          alts.push_back(make_basic_node(succ, _tempPool, _regions));
+        } else {
+          // Continue building the loop body from this successor
+          // Mark visited now so we don't re-enter
+          visited[static_cast<size_t>(succ)] = 1;
+          alts.push_back(restructureLoopBodyIdx(succ, sccMask, /*predsCache*/ std::pmr::vector<std::pmr::vector<regionid_t>>()));
+          // Note: passing empty predsCache because restructureLoopBodyIdx doesn't use it;
+          // we only use its local sccMask and regions.
+        }
+      }
+
+      // out-of-SCC successors => exits: create acyclic subtrees for those
+      for (auto succ: outsideSuccs) {
+        RegionMask rem(_regions.getNumRegions(), 0, _tempPool);
+        if (succ != RegionBuilder::NO_REGION) rem[static_cast<size_t>(succ)] = 1;
+        alts.push_back(restructureAcyclicIdx(succ, rem, /*predsCache*/ std::pmr::vector<std::pmr::vector<regionid_t>>()));
+      }
+
+      if (!alts.empty()) {
+        bodyNodes.push_back(make_branch_node(std::move(alts), current, _tempPool, _regions));
+      }
+      continue;
     }
 
     if (sccSuccs.empty()) {
       // leaf
-      bodyNodes.push_back(make_basic_node(current, _allocPool, _regions));
+      bodyNodes.push_back(make_basic_node(current, _tempPool, _regions));
       continue;
     }
 
     if (sccSuccs.size() == 1) {
       // linear: emit current and push successor for traversal
-      bodyNodes.push_back(make_basic_node(current, _allocPool, _regions));
-      stack.push_back({sccSuccs[0], 0});
+      bodyNodes.push_back(make_basic_node(current, _tempPool, _regions));
+      // push successor only if not already visited
+      if (!visited[static_cast<size_t>(sccSuccs[0])]) stack.push_back({sccSuccs[0], 0});
       continue;
     }
 
-    // Branch inside the loop: create basic header + branch node with immediate-successor alternatives
-    bodyNodes.push_back(make_basic_node(current, _allocPool, _regions));
-    std::pmr::vector<SimpleNode> alts(&_allocPool);
-    alts.reserve(sccSuccs.size());
+    // Branch inside the loop with *only* in-SCC successors
+    bodyNodes.push_back(make_basic_node(current, _tempPool, _regions));
+    SimpleNodeTemp_t::NodeContainer alts(_tempPool);
 
     for (auto succ: sccSuccs) {
       if (visited[static_cast<size_t>(succ)]) continue;
       visited[static_cast<size_t>(succ)] = 1; // mark so we don't re-enter
       // each alternative: just a basic node (conservative)
-      alts.push_back(make_basic_node(succ, _allocPool, _regions));
+      alts.push_back(make_basic_node(succ, _tempPool, _regions));
     }
     if (!alts.empty()) {
-      bodyNodes.push_back(make_branch_node(std::move(alts), current, _allocPool, _regions));
+      bodyNodes.push_back(make_branch_node(std::move(alts), current, _tempPool, _regions));
     }
   }
 
-  return make_sequence_node(std::move(bodyNodes), _allocPool);
+  return make_sequence_node(std::move(bodyNodes), _tempPool);
 }
 
-SimpleNode CFGBuilder::restructureLoopIdx(const std::pmr::set<regionid_t>& scc, regionid_t entry, std::pmr::monotonic_buffer_resource& pool,
-                                          const std::pmr::vector<std::pmr::vector<regionid_t>>& predsCache) {
-  // restructureLoop: mark processed & wrap body into a Loop SimpleNode
+SimpleNodeTemp_t CFGBuilder::restructureLoopIdx(const std::pmr::set<regionid_t>& scc, regionid_t entry,
+                                                const std::pmr::vector<std::pmr::vector<regionid_t>>& predsCache) {
   // Mark processed
   for (auto r: scc)
     _processed.insert(r);
 
-  auto       sccMask = make_mask_from_set(scc, _regions.getNumRegions(), pool);
-  SimpleNode body    = restructureLoopBodyIdx(entry, sccMask, pool, predsCache);
-  return make_loop_node(std::move(body), _allocPool);
+  // prepare masks
+  auto sccMask = make_mask_from_set(scc, _regions.getNumRegions(), _tempPool);
+
+  // Find successors of the header entry and classify them as in-SCC vs out-of-SCC.
+  auto                         succs = _regions.getSuccessorsIdx(entry);
+  std::pmr::vector<regionid_t> inSuccs(_tempPool);
+  std::pmr::vector<regionid_t> outSuccs(_tempPool);
+
+  for (auto s: succs) {
+    if (sccMask[static_cast<size_t>(s)])
+      inSuccs.push_back(s);
+    else
+      outSuccs.push_back(s);
+  }
+
+  // Conservative: if no in-SCC successor found, treat the loop body as empty.
+  SimpleNodeTemp_t loopNode(_tempPool);
+  if (!inSuccs.empty()) {
+    // Build a body starting from the first in-SCC successor.
+    // We conservatively handle multiple inSuccs by creating a sequence or branch
+    // starting at the first inSucc (restructureLoopBodyIdx will explore other in-SCC nodes).
+    regionid_t       bodyEntry = inSuccs[0];
+    SimpleNodeTemp_t body      = restructureLoopBodyIdx(bodyEntry, sccMask, predsCache);
+    loopNode                   = make_loop_node(std::move(body), _tempPool);
+  } else {
+    // empty loop body (degenerate)
+    SimpleNodeTemp_t::NodeContainer emptyChildren(_tempPool);
+    SimpleNodeTemp_t                emptyBody(_tempPool);
+    emptyBody.kind     = SimpleNodeKind::Sequence;
+    emptyBody.children = std::move(emptyChildren);
+    loopNode           = make_loop_node(std::move(emptyBody), _tempPool);
+  }
+
+  // Build branch alternatives: first alt is the loop (continue).
+  SimpleNodeTemp_t::NodeContainer alts(_tempPool);
+  alts.push_back(std::move(loopNode));
+
+  // If there are out-of-SCC successors, build the continuation alternative(s).
+  if (!outSuccs.empty()) {
+    // Build a remaining mask = regionMask \ scc
+    RegionMask remainingMask = make_mask_from_set(scc, _regions.getNumRegions(), _tempPool);
+    // flip mask to represent remaining: start from all 0 then set outs
+    // But easiest: create remaining as the parent's mask with scc bits cleared is expected.
+    // We'll build a mask with only the outSuccs set (conservative)
+    RegionMask contMask(_regions.getNumRegions(), 0, _tempPool);
+    for (auto os: outSuccs) {
+      if (os != RegionBuilder::NO_REGION) contMask[static_cast<size_t>(os)] = 1;
+    }
+
+    // If there are multiple outSuccs, create a sequence/branch for each; choose conservative approach:
+    // build a single continuation subtree via restructureAcyclicIdx on the first out succ,
+    // but more accurate behavior would create alternatives for each out succ.
+    regionid_t contEntry = outSuccs[0];
+    alts.push_back(restructureAcyclicIdx(contEntry, contMask, predsCache));
+  }
+
+  // Build final structure: header basic, then branch with loop vs continuation
+  SimpleNodeTemp_t::NodeContainer seq(_tempPool);
+  seq.push_back(make_basic_node(entry, _tempPool, _regions));
+  seq.push_back(make_branch_node(std::move(alts), entry, _tempPool, _regions));
+
+  return make_sequence_node(std::move(seq), _tempPool);
 }
 
-SimpleNode CFGBuilder::restructureAcyclicIdx(regionid_t entry, const RegionMask& regionMask, const std::pmr::vector<std::pmr::vector<regionid_t>>& predsCache,
-                                             std::pmr::monotonic_buffer_resource& pool) {
-  // restructureAcyclic: returns a SimpleNode representing the structured subtree for `entry`
+SimpleNodeTemp_t CFGBuilder::restructureAcyclicIdx(regionid_t entry, const RegionMask& regionMask,
+                                                   const std::pmr::vector<std::pmr::vector<regionid_t>>& predsCache) {
+  // restructureAcyclic: returns a SimpleNodeTemp_t representing the structured subtree for `entry`
   // regionMask: dense mask of the 'region' set (which nodes are in the current region)
 
   // empty region => basic (degenerate)
@@ -403,68 +551,29 @@ SimpleNode CFGBuilder::restructureAcyclicIdx(regionid_t entry, const RegionMask&
       break;
     }
   }
-  if (!any) return make_basic_node(RegionBuilder::NO_REGION, _allocPool, _regions);
+  if (!any) return make_basic_node(RegionBuilder::NO_REGION, _tempPool, _regions);
 
   if (_processed.find(entry) != _processed.end()) {
-    return make_basic_node(entry, _allocPool, _regions);
+    return make_basic_node(entry, _tempPool, _regions);
   }
 
   // Check if entry is part of a loop(s) found earlier
   for (const auto& scc: _sccs) {
     if (scc.find(entry) != scc.end() && _processed.find(entry) == _processed.end()) {
-      // build loop node
-      SimpleNode loopNode = restructureLoopIdx(scc, entry, pool, predsCache);
-
-      // remaining = region \ scc
-      RegionMask remainingMask(regionMask, &pool);
-      for (auto r: scc)
-        remainingMask[static_cast<size_t>(r)] = 0;
-
-      // If nothing left, return loop node
-      bool hasRemaining = false;
-      for (auto b: remainingMask) {
-        if (b) {
-          hasRemaining = true;
-          break;
-        }
-      }
-      if (!hasRemaining) return loopNode;
-
-      // find next region after loop: look at successors of nodes in scc for a node in remaining
-      regionid_t next = RegionBuilder::NO_REGION;
-      for (auto r: scc) {
-        auto succs = _regions.getSuccessorsIdx(r);
-        for (auto s: succs) {
-          if (remainingMask[static_cast<size_t>(s)]) {
-            next = s;
-            break;
-          }
-        }
-        if (next != RegionBuilder::NO_REGION) break;
-      }
-
-      if (next != RegionBuilder::NO_REGION) {
-        // sequence [loopNode, restructureAcyclic(next, remaining)]
-        std::pmr::vector<SimpleNode> seq(&_allocPool);
-        seq.reserve(2);
-        seq.push_back(std::move(loopNode));
-        seq.push_back(restructureAcyclicIdx(next, remainingMask, predsCache, pool));
-        return make_sequence_node(std::move(seq), _allocPool);
-      }
-
-      return loopNode;
+      // build loop node (now responsible for continuation as well)
+      return restructureLoopIdx(scc, entry, predsCache);
     }
   }
 
   // linear fast-path
   if (isLinearIdx(entry, regionMask, predsCache)) {
-    std::pmr::vector<SimpleNode> nodes(&_allocPool);
-    nodes.reserve(8);
-    regionid_t current = entry;
-    RegionMask visited(regionMask.size(), 0, &pool);
+    SimpleNodeTemp_t::NodeContainer nodes(_tempPool);
+    regionid_t                      current = entry;
+    RegionMask                      visited(regionMask.size(), 0, _tempPool);
+
     while (current != RegionBuilder::NO_REGION && regionMask[static_cast<size_t>(current)] && !visited[static_cast<size_t>(current)]) {
       visited[static_cast<size_t>(current)] = 1;
-      nodes.push_back(make_basic_node(current, _allocPool, _regions));
+      nodes.push_back(make_basic_node(current, _tempPool, _regions));
 
       auto succs = _regions.getSuccessorsIdx(current);
       if (succs.empty() || succs.size() > 1) break;
@@ -477,111 +586,140 @@ SimpleNode CFGBuilder::restructureAcyclicIdx(regionid_t entry, const RegionMask&
 
       current = next;
     }
-    return make_sequence_node(std::move(nodes), _allocPool);
+    return make_sequence_node(std::move(nodes), _tempPool);
   }
 
   // branching
   auto succs = _regions.getSuccessorsIdx(entry);
-  if (succs.empty()) return make_basic_node(entry, _allocPool, _regions);
+  if (succs.empty()) return make_basic_node(entry, _tempPool, _regions);
 
   if (succs.size() == 1) {
     auto next = succs[0];
     if (next >= 0 && regionMask[static_cast<size_t>(next)] && _processed.find(next) == _processed.end()) {
-      std::pmr::vector<SimpleNode> seq(&_allocPool);
-      seq.reserve(2);
-      seq.push_back(make_basic_node(entry, _allocPool, _regions));
+      SimpleNodeTemp_t::NodeContainer seq(_tempPool);
+      seq.push_back(make_basic_node(entry, _tempPool, _regions));
 
-      RegionMask remaining(regionMask, &pool);
+      RegionMask remaining(regionMask, _tempPool);
       remaining[static_cast<size_t>(entry)] = 0;
-      seq.push_back(restructureAcyclicIdx(next, remaining, predsCache, pool));
-      return make_sequence_node(std::move(seq), _allocPool);
+      seq.push_back(restructureAcyclicIdx(next, remaining, predsCache));
+      return make_sequence_node(std::move(seq), _tempPool);
     }
-    return make_basic_node(entry, _allocPool, _regions);
+    return make_basic_node(entry, _tempPool, _regions);
   }
 
   // Multiple successors -> branch node
-  std::pmr::vector<SimpleNode> sequence(&_allocPool);
-  sequence.reserve(2);
-  sequence.push_back(make_basic_node(entry, _allocPool, _regions));
+  SimpleNodeTemp_t::NodeContainer sequence(_tempPool);
+  sequence.push_back(make_basic_node(entry, _tempPool, _regions));
 
-  std::pmr::vector<SimpleNode> branchAlts(&_allocPool);
-  branchAlts.reserve(succs.size());
+  SimpleNodeTemp_t::NodeContainer branchAlts(_tempPool);
   for (auto s: succs) {
     if (s >= 0 && regionMask[static_cast<size_t>(s)] && _processed.find(s) == _processed.end()) {
-      RegionMask brRegion(regionMask.size(), 0, &pool);
+      RegionMask brRegion(regionMask.size(), 0, _tempPool);
       brRegion[static_cast<size_t>(s)] = 1;
-      branchAlts.push_back(restructureAcyclicIdx(s, brRegion, predsCache, pool));
+      branchAlts.push_back(restructureAcyclicIdx(s, brRegion, predsCache));
     }
   }
 
   if (!branchAlts.empty()) {
-    sequence.push_back(make_branch_node(std::move(branchAlts), entry, _allocPool, _regions));
-    return make_sequence_node(std::move(sequence), _allocPool);
+    sequence.push_back(make_branch_node(std::move(branchAlts), entry, _tempPool, _regions));
+    return make_sequence_node(std::move(sequence), _tempPool);
   }
 
-  return make_basic_node(entry, _allocPool, _regions);
+  return make_basic_node(entry, _tempPool, _regions);
 }
 
 // // DUMP
-static std::string indent(int level) {
-  return std::string(level * 2, ' ');
-}
 
-static std::string nodeKindName(SimpleNode::Kind kind) {
-  using K = SimpleNode::Kind;
-  switch (kind) {
-    case K::Basic: return "Basic";
-    case K::Branch: return "Branch";
-    case K::Loop: return "Loop";
-    case K::Sequence: return "Sequence";
-    default: return "Unknown";
-  }
-}
-
-void dumpAST(std::ostream& os, const SimpleNode* node, int depth = 0) {
-  if (!node) return;
-
+void dumpAST(std::ostream& os, auto const& node, int depth = 0) {
   std::string ind       = indent(depth);
   std::string connector = depth > 0 ? "-- " : "";
 
-  os << ind << connector << nodeKindName(node->kind) << " [" << node->instrStart << ", " << node->instrEnd << ")";
+  os << ind << connector << nodeKindName(node.kind) << " [" << node.instrStart << ", " << node.instrEnd << ")";
 
-  uint32_t instrCount = node->instrEnd - node->instrStart;
+  uint32_t instrCount = node.instrEnd - node.instrStart;
   if (instrCount > 0) os << " (" << instrCount << " instr)";
 
   os << "\n";
 
-  switch (node->kind) {
-    case SimpleNode::Kind::Branch: {
-      for (size_t i = 0; i < node->alternatives.size(); ++i) {
+  switch (node.kind) {
+    case SimpleNodeKind::Branch: {
+      uint32_t i = 0;
+      for (auto const& node: node.alternatives) {
         os << indent(depth + 1) << "- Alt[" << i << "]:\n";
-        dumpAST(os, &node->alternatives[i], depth + 2);
+        dumpAST(os, node, depth + 2);
+        ++i;
       }
       break;
     }
 
-    case SimpleNode::Kind::Loop: {
-      if (!node->children.empty()) {
+    case SimpleNodeKind::Loop: {
+      if (!node.children.empty()) {
         os << indent(depth + 1) << "- Body:\n";
-        dumpAST(os, &node->children.front(), depth + 2);
+        dumpAST(os, node.children.front(), depth + 2);
       }
       break;
     }
 
-    case SimpleNode::Kind::Sequence: {
-      for (size_t i = 0; i < node->children.size(); ++i) {
+    case SimpleNodeKind::Sequence: {
+      uint32_t i = 0;
+      for (auto const& node: node.children) {
         os << indent(depth + 1) << "- Step[" << i << "]:\n";
-        dumpAST(os, &node->children[i], depth + 2);
+        dumpAST(os, node, depth + 2);
+        ++i;
       }
       break;
     }
 
-    case SimpleNode::Kind::Basic:
+    case SimpleNodeKind::Basic:
     default: break;
   }
 }
 
-void dump(std::ostream& os, const SimpleNode* node) {
-  dumpAST(os, node, 0);
+void dumpCode(std::ostream& os, auto const& node, InstCore const* instructions, int depth = 0) {
+  std::string ind = indent(depth);
+  switch (node.kind) {
+    case SimpleNodeKind::Branch: {
+      uint32_t i = 0;
+      for (auto const& node: node.alternatives) {
+        os << ind << "- Branch[" << i << "]:\n";
+        dumpCode(os, node, instructions, depth + 2);
+        ++i;
+      }
+      break;
+    }
+
+    case SimpleNodeKind::Loop: {
+      if (!node.children.empty()) {
+        os << ind << "- Loop:\n";
+        dumpCode(os, node.children.front(), instructions, depth + 2);
+      }
+      break;
+    }
+
+    case SimpleNodeKind::Sequence: {
+      uint32_t i = 0;
+      for (auto const& node: node.children) {
+        dumpCode(os, node, instructions, depth + 2);
+        ++i;
+      }
+      break;
+    }
+
+    case SimpleNodeKind::Basic: {
+      for (auto n = node.instrStart; n < node.instrEnd; ++n) {
+        os << ind;
+        ir::debug::getDebug(std::cout, instructions[n]);
+      }
+    } break;
+    default: break;
+  }
+}
+
+void dump(std::ostream& os, SimpleNode_t const* node) {
+  dumpAST(os, *node, 0);
+}
+
+void dump(std::ostream& os, SimpleNode_t const* node, InstCore const* instructions) {
+  // dumpCode(os, *node, instructions, 0);
 }
 } // namespace compiler::ir

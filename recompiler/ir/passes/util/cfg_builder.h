@@ -50,7 +50,7 @@ class RegionBuilder {
   public:
   static constexpr regionid_t NO_REGION = -1;
 
-  RegionBuilder(uint32_t N, auto& pool): _regions {&pool} {
+  RegionBuilder(uint32_t N, std::pmr::memory_resource* pool): _regions {pool} {
     _regions.reserve(128);
     _regions.emplace_back(Region(0, N));
   }
@@ -104,7 +104,7 @@ class RegionBuilder {
     inline bool hasFalseSucc() const { return !hasJump; }
   };
 
-  std::vector<Region, std::pmr::polymorphic_allocator<Region>> _regions;
+  std::pmr::vector<Region> _regions;
 
   using regionsit_t = decltype(_regions)::iterator;
 
@@ -112,26 +112,25 @@ class RegionBuilder {
   regionsit_t splitRegion(uint32_t pos);
 };
 
+enum class SimpleNodeKind { Basic, Sequence, Branch, Loop };
+
+template <template <class, class> class Container>
 struct SimpleNode {
-  enum class Kind { Basic, Sequence, Branch, Loop };
-  Kind       kind;
-  regionid_t rid        = RegionBuilder::NO_REGION; // meaningful for Basic
-  uint32_t   instrStart = 0;
-  uint32_t   instrEnd   = 0;
+  SimpleNodeKind kind;
+  uint32_t       instrStart = 0;
+  uint32_t       instrEnd   = 0;
 
-  std::optional<char> auxPredicate;
+  using NodeContainer = Container<SimpleNode, std::pmr::polymorphic_allocator<SimpleNode>>;
+  NodeContainer children;     ///< children for Sequence or Loop body
+  NodeContainer alternatives; ///< for Branch: alternatives are nodes (each alternative is a subtree)
 
-  // children for Sequence or Loop body
-  std::pmr::vector<SimpleNode> children;
-
-  // for Branch: alternatives are nodes (each alternative is a subtree)
-  std::pmr::vector<SimpleNode> alternatives;
-
-  SimpleNode(std::pmr::monotonic_buffer_resource& pool): kind(Kind::Basic), children(&pool), alternatives(&pool) {}
+  SimpleNode(auto pool): kind(SimpleNodeKind::Basic), children(pool), alternatives(pool) {}
 };
 
-SimpleNode transformStructuredCFG(std::pmr::monotonic_buffer_resource& alloc_pool, std::pmr::monotonic_buffer_resource& temp_pool, RegionBuilder& regions);
+using SimpleNode_t = SimpleNode<std::vector>;
+SimpleNode_t transformStructuredCFG(std::pmr::memory_resource* allocPool, std::pmr::memory_resource* tempPool, RegionBuilder& regions);
 
-void dump(std::ostream& os, const SimpleNode* node);
+void dump(std::ostream& os, SimpleNode_t const* node);
+void dump(std::ostream& os, SimpleNode_t const* node, InstCore const* instructions);
 
 } // namespace compiler::ir
