@@ -3,12 +3,131 @@
 #include "opcodes_table.h"
 
 #include <format>
+#include <ostream>
 
 namespace compiler::frontend::debug {
 using namespace parser;
 
+void dumpResource(std::ostream& os, ResourceVBuffer const& res) {
+  os << "=== V# Buffer ===\n";
+  os << "  base:          0x" << std::hex << res.base << std::dec << "\n";
+  os << "  mtype_L1s:     " << res.mtype_L1s << "\n";
+  os << "  mtype_L2:      " << res.mtype_L2 << "\n";
+  os << "  stride:        " << res.stride << "\n";
+  os << "  cache_swizzle: " << res.cache_swizzle << "\n";
+  os << "  swizzle_en:    " << res.swizzle_en << "\n";
+
+  os << "Data Layout:\n";
+  os << "  num_records:   " << res.num_records << "\n";
+  os << "  dst_sel:       x=" << getDebug(getSwizzle(res.dst_sel_xyzw, 0)) << ", y=" << getDebug(getSwizzle(res.dst_sel_xyzw, 1))
+     << ", z=" << getDebug(getSwizzle(res.dst_sel_xyzw, 2)) << ", w=" << getDebug(getSwizzle(res.dst_sel_xyzw, 3)) << "\n";
+  os << "  nfmt:          " << res.nfmt << "\n";
+  os << "  dfmt:          " << res.dfmt << "\n";
+  os << "  element_size:  " << res.element_size << "\n";
+  os << "  index_stride:  " << res.index_stride << "\n";
+
+  os << "Flags:\n";
+  os << "  addtid_en:     " << res.addtid_en << "\n";
+  os << "  hash_en:       " << res.hash_en << "\n";
+  os << "  mtype:         " << res.mtype << "\n";
+  os << "  type:          " << res.type << "\n";
+}
+
+void dumpResource(std::ostream& os, ResourceTBuffer const& res) {
+  os << "=== T# Image ===\n";
+  os << "  baseaddr256:   0x" << std::hex << res.baseaddr256 << std::dec << "\n";
+  os << "  mtype_L1s:     " << ((res.mtype_L1_msb << 2) | res.mtype_L1_lsb) << "\n";
+  os << "  mtype_L2:      " << res.mtype_L2 << "\n";
+  os << "  min_lod:       " << (res.min_lod / 256.0) << "\n";
+
+  os << "Geometry:\n";
+  os << "  width:         " << res.width << "\n";
+  os << "  height:        " << res.height << "\n";
+  os << "  depth:         " << res.depth << "\n";
+  os << "  pitch:         " << res.pitch << "\n";
+  os << "  interlaced:    " << res.interlaced << "\n";
+
+  os << "Data Layout:\n";
+  os << "  dst_sel:       x=" << getDebug(getSwizzle(res.dst_sel_xyzw, 0)) << ", y=" << getDebug(getSwizzle(res.dst_sel_xyzw, 1))
+     << ", z=" << getDebug(getSwizzle(res.dst_sel_xyzw, 2)) << ", w=" << getDebug(getSwizzle(res.dst_sel_xyzw, 3)) << "\n";
+  os << "  nfmt:          " << res.nfmt << "\n";
+  os << "  dfmt:          " << res.dfmt << "\n";
+
+  os << "Mipmapping:\n";
+  os << "  base_level:    " << res.base_level << "\n";
+  os << "  last_level:    " << res.last_level << "\n";
+  os << "  min_lod_warn:  " << (res.min_lod_warn / 256.0) << "\n";
+
+  os << "Arrays:\n";
+  os << "  base_array:    " << res.base_array << "\n";
+  os << "  last_array:    " << res.last_array << "\n";
+
+  os << "Flags:\n";
+  os << "  tiling_idx:    " << res.tiling_idx << "\n";
+  os << "  pow2pad:       " << res.pow2pad << "\n";
+  os << "  perf_mod:      " << res.perf_mod << "\n";
+  os << "  counter_bank:  " << res.counter_bank_id << "\n";
+  os << "  LOD_cnt_en:    " << res.LOD_hdw_cnt_en << "\n";
+  os << "  type:          " << res.type << "\n";
+}
+
+void dumpResource(std::ostream& os, ResourceSampler const& res) {
+  os << "=== Sampler ===\n";
+  os << "Clamping:\n";
+  os << "  clamp_x:           " << res.clamp_x << "\n";
+  os << "  clamp_y:           " << res.clamp_y << "\n";
+  os << "  clamp_z:           " << res.clamp_z << "\n";
+
+  os << "Filtering:\n";
+  os << "  xy_mag_filter:     " << res.xy_mag_filter << "\n";
+  os << "  xy_min_filter:     " << res.xy_min_filter << "\n";
+  os << "  z_filter:          " << res.z_filter << "\n";
+  os << "  mip_filter:        " << res.mip_filter << "\n";
+  os << "  filter_mode:       " << res.filter_mode << "\n";
+
+  os << "LOD:\n";
+  os << "  min_lod:           " << (res.min_lod / 256.0) << "\n";
+  os << "  max_lod:           " << (res.max_lod / 256.0) << "\n";
+  os << "  lod_bias:          " << (static_cast<int16_t>(res.lod_bias) / 256.0) << "\n";
+  os << "  lod_bias_sec:      " << (static_cast<int8_t>(res.lod_bias_sec << 4) / 256.0) << "\n"; // signed 1.4 fixed-point
+
+  os << "Anisotropy:\n";
+  os << "  max_aniso_ratio:   " << res.max_aniso_ratio << "\n";
+  os << "  aniso_thresh:      " << res.aniso_thresh << "\n";
+  os << "  aniso_bias:        " << res.aniso_bias << "\n";
+
+  os << "Control Flags:\n";
+  os << "  force_unorm_coords:" << res.force_unorm_coords << "\n";
+  os << "  mc_coord_trunc:    " << res.mc_coord_trunc << "\n";
+  os << "  force_degamma:     " << res.force_degamma << "\n";
+  os << "  trunc_coord:       " << res.trunc_coord << "\n";
+  os << "  disable_cube_wrap: " << res.disable_cube_wrap << "\n";
+
+  os << "Performance:\n";
+  os << "  perf_mip:          " << res.perf_mip << "\n";
+  os << "  perf_z:            " << res.perf_z << "\n";
+
+  os << "Border:\n";
+  os << "  border_color_ptr:  0x" << std::hex << res.border_color_ptr << std::dec << "\n";
+  os << "  border_color_type: " << res.border_color_type << "\n";
+
+  os << "Depth Compare:\n";
+  os << "  depth_cmp_func:    " << res.depth_cmp_func << "\n";
+}
+
+std::string_view getDebug(eSwizzle swizzle) {
+  switch (swizzle) {
+    case eSwizzle::Zero: return "Zero";
+    case eSwizzle::One: return "One";
+    case eSwizzle::R: return "R";
+    case eSwizzle::G: return "G";
+    case eSwizzle::B: return "B";
+    case eSwizzle::A: return "A";
+  }
+}
+
 std::string_view getDebug(eOpcode op) {
-  switch(op) {
+  switch (op) {
     case eOpcode::DS_ADD_U32: return "DS_ADD_U32";
     case eOpcode::DS_SUB_U32: return "DS_SUB_U32";
     case eOpcode::DS_RSUB_U32: return "DS_RSUB_U32";

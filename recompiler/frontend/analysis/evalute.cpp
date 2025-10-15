@@ -1,7 +1,7 @@
 #include "builder.h"
-#include "frontend/frontend.h"
-#include "passes.h"
-#include "util/cfg_builder.h"
+#include "cfg_builder.h"
+#include "frontend/ir_types.h"
+#include "analysis.h"
 
 #include <set>
 #include <span>
@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace compiler::ir::passes {
+namespace compiler::frontend::analysis {
 
 class Evaluate {
   public:
@@ -18,7 +18,7 @@ class Evaluate {
 
   ~Evaluate() {}
 
-  std::optional<InstConstant> check(uint32_t index, Operand const& reg) {
+  std::optional<ir::InstConstant> check(uint32_t index, ir::Operand const& reg) {
     auto const& instructions = _builder.getInstructions();
     auto const& instr        = instructions[index];
 
@@ -33,10 +33,10 @@ class Evaluate {
   }
 
   private:
-  std::optional<InstConstant> check(uint32_t index, regionid_t currentBlock);
-  std::optional<InstConstant> findInstruction(Operand const& reg, uint32_t index, regionid_t currentBlock);
+  std::optional<ir::InstConstant> check(uint32_t index, regionid_t currentBlock);
+  std::optional<ir::InstConstant> findInstruction(ir::Operand const& reg, uint32_t index, regionid_t currentBlock);
 
-  std::optional<InstConstant> evaluate(ir::InstCore const& instr, std::span<InstConstant> inputs) {
+  std::optional<ir::InstConstant> evaluate(ir::InstCore const& instr, std::span<ir::InstConstant> inputs) {
     // std::cout << "<- evaluate ";
     // ir::debug::getDebug(std::cout, instr);
     // std::cout << "\n";
@@ -55,7 +55,7 @@ class Evaluate {
   std::pmr::set<regionid_t>             _visited;
 };
 
-std::optional<InstConstant> Evaluate::check(uint32_t index, regionid_t region) {
+std::optional<ir::InstConstant> Evaluate::check(uint32_t index, regionid_t region) {
   auto const& instr = _instructions[index];
 
   // std::cout << "\tcheck ";
@@ -67,7 +67,7 @@ std::optional<InstConstant> Evaluate::check(uint32_t index, regionid_t region) {
   }
 
   // Check all source operands
-  std::array<InstConstant, config::kMaxSrcOps> inputs;
+  std::array<ir::InstConstant, config::kMaxSrcOps> inputs;
   for (uint8_t s = 0; s < instr.numSrc; s++) {
     auto const res = findInstruction(instr.srcOperands[s], index, region);
     if (!res) return std::nullopt;
@@ -77,7 +77,7 @@ std::optional<InstConstant> Evaluate::check(uint32_t index, regionid_t region) {
   return evaluate(instr, inputs);
 }
 
-std::optional<InstConstant> Evaluate::findInstruction(Operand const& reg, uint32_t index, regionid_t region) {
+std::optional<ir::InstConstant> Evaluate::findInstruction(ir::Operand const& reg, uint32_t index, regionid_t region) {
   auto const kind = frontend::eOperandKind::import(reg.kind);
   for (int64_t i = index - 1; i >= region; i--) {
     auto const& instr = _instructions[i];
@@ -95,7 +95,7 @@ std::optional<InstConstant> Evaluate::findInstruction(Operand const& reg, uint32
   return std::nullopt;
 }
 
-std::optional<InstConstant> evaluate(Builder& builder, RegionBuilder& regions, uint32_t index, Operand const& reg) {
+std::optional<ir::InstConstant> evaluate(Builder& builder, RegionBuilder& regions, uint32_t index, ir::Operand const& reg) {
   return Evaluate(builder, regions).check(index, reg);
 }
-} // namespace compiler::ir::passes
+} // namespace compiler::frontent::analysis

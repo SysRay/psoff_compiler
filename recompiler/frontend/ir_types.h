@@ -1,10 +1,13 @@
+/**
+ * @file ir_types.h
+ * @brief Defines operands used in ir (registers)
+ *
+ */
 #pragma once
 
 #include "ir/config.h"
 
-#include <array>
 #include <assert.h>
-#include <string>
 #include <utility>
 
 namespace compiler::frontend {

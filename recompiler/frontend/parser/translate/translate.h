@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../parser.h"
+#include "frontend/parser.h"
 
 namespace compiler {
 class Builder;

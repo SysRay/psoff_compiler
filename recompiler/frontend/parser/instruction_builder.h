@@ -1,6 +1,6 @@
 #pragma once
 
-#include "frontend/frontend.h"
+#include "../ir_types.h"
 #include "ir/instructions.h"
 #include "ir/instructions_userdata.h"
 

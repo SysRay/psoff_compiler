@@ -2,7 +2,7 @@
 
 #include "builder.h"
 #include "include/si_ci_vi_merged_offset.h"
-#include "parser/registers.h"
+#include "shader_registers.h"
 
 namespace compiler::frontend {
 

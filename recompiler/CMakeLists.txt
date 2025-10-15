@@ -2,14 +2,19 @@ add_library(psOff_recompiler STATIC
   builder.cpp
   ir/debug_strings.cpp
 
-  frontend/shader_types.cpp
-  frontend/shader_input.cpp
+  frontend/parser.cpp
+
   frontend/debug_strings.cpp
-
   frontend/parser/debug_strings.cpp
-  frontend/parser/parser.cpp
 
-  frontend/parser/translate/instruction_builder.cpp
+  frontend/parser/shader_input.cpp
+  frontend/parser/shader_types.cpp
+  frontend/parser/instruction_builder.cpp
+
+  frontend/analysis/regions.cpp
+  frontend/analysis/cfg_builder.cpp
+  frontend/analysis/evalute.cpp
+
   frontend/parser/translate/ds.cpp
   frontend/parser/translate/exp.cpp
   frontend/parser/translate/mimg.cpp
@@ -26,10 +31,6 @@ add_library(psOff_recompiler STATIC
   frontend/parser/translate/vop2.cpp
   frontend/parser/translate/vop3.cpp
   frontend/parser/translate/vopc.cpp
-
-  ir/passes/regions.cpp
-  ir/passes/util/cfg_builder.cpp
-  ir/passes/evalute.cpp
 )
 
 target_include_directories(psOff_recompiler

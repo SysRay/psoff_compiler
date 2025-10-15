@@ -1,8 +1,8 @@
 #include "parser.h"
 
-#include "opcodes_table.h"
-#include "translate/encodings.h"
-#include "translate/translate.h"
+#include "parser/opcodes_table.h"
+#include "parser/translate/encodings.h"
+#include "parser/translate/translate.h"
 
 #include <stdexcept>
 

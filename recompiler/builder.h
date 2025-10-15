@@ -1,6 +1,6 @@
 #pragma once
 
-#include "frontend/shader_input.h"
+#include "frontend/parser/shader_input.h"
 #include "include/flags.h"
 #include "ir/ir.h"
 

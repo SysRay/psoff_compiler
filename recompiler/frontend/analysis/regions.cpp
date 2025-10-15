@@ -1,9 +1,9 @@
-#include "../debug_strings.h"
-#include "../instructions.h"
 #include "builder.h"
-#include "frontend/frontend.h" // todo move to global compare
-#include "passes.h"
-#include "util/cfg_builder.h"
+#include "cfg_builder.h"
+#include "frontend/ir_types.h"
+#include "ir/debug_strings.h"
+#include "ir/instructions.h"
+#include "analysis.h"
 
 #include <algorithm>
 #include <iostream>
@@ -11,7 +11,9 @@
 #include <set>
 #include <span>
 
-namespace compiler::ir::passes {
+namespace compiler::frontend::analysis {
+using namespace compiler::ir;
+
 bool createRegions(Builder& builder, pcmapping_t const& mapping) {
   auto const&                         instructions = builder.getInstructions();
   std::pmr::monotonic_buffer_resource checkpoint(&builder.getTempBuffer());
@@ -70,4 +72,4 @@ bool createRegions(Builder& builder, pcmapping_t const& mapping) {
 
   return true;
 }
-} // namespace compiler::ir::passes
+} // namespace compiler::frontend::analysis

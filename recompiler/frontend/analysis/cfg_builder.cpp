@@ -1,6 +1,6 @@
 #include "cfg_builder.h"
 
-#include "../../debug_strings.h"
+#include "ir/debug_strings.h"
 
 #include <algorithm>
 #include <iostream>
@@ -9,7 +9,7 @@
 #include <stack>
 #include <unordered_set>
 
-namespace compiler::ir {
+namespace compiler::frontend::analysis {
 static std::string indent(int level) {
   return std::string(level * 2, ' ');
 }
@@ -675,7 +675,7 @@ void dumpAST(std::ostream& os, auto const& node, int depth = 0) {
   }
 }
 
-void dumpCode(std::ostream& os, auto const& node, InstCore const* instructions, int depth = 0) {
+void dumpCode(std::ostream& os, auto const& node, ir::InstCore const* instructions, int depth = 0) {
   std::string ind = indent(depth);
   switch (node.kind) {
     case SimpleNodeKind::Branch: {
@@ -719,7 +719,7 @@ void dump(std::ostream& os, SimpleNode_t const* node) {
   dumpAST(os, *node, 0);
 }
 
-void dump(std::ostream& os, SimpleNode_t const* node, InstCore const* instructions) {
+void dump(std::ostream& os, SimpleNode_t const* node, ir::InstCore const* instructions) {
   // dumpCode(os, *node, instructions, 0);
 }
-} // namespace compiler::ir
+} // namespace compiler::frontent::analysis

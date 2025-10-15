@@ -1,7 +1,5 @@
 #include "instruction_builder.h"
 
-// #include "ir/types.h"
-
 namespace compiler::frontend::translate::create {
 ir::InstCore literalOp(uint32_t value) {
   auto inst                  = ir::getInfo(ir::eInstKind::ConstantOp);

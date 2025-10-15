@@ -12,10 +12,12 @@
 
 namespace compiler {
 class Builder;
+namespace ir{
+  struct InstCore;
+}
 }
 
-namespace compiler::ir {
-struct InstCore;
+namespace compiler::frontend::analysis {
 using regionid_t = uint32_t;
 
 enum class CFGNodeType : uint8_t { Simple, Gamma, Theta };
@@ -131,6 +133,6 @@ using SimpleNode_t = SimpleNode<std::vector>;
 SimpleNode_t transformStructuredCFG(std::pmr::memory_resource* allocPool, std::pmr::memory_resource* tempPool, RegionBuilder& regions);
 
 void dump(std::ostream& os, SimpleNode_t const* node);
-void dump(std::ostream& os, SimpleNode_t const* node, InstCore const* instructions);
+void dump(std::ostream& os, SimpleNode_t const* node, ir::InstCore const* instructions);
 
-} // namespace compiler::ir
+} // namespace compiler::frontent::analysis

@@ -1,9 +1,9 @@
-#include "../../frontend.h"
 #include "../debug_strings.h"
+#include "../instruction_builder.h"
 #include "../opcodes_table.h"
 #include "builder.h"
 #include "encodings.h"
-#include "instruction_builder.h"
+#include "frontend/ir_types.h"
 #include "translate.h"
 
 #include <bitset>
