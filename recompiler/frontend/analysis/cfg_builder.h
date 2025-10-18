@@ -1,6 +1,7 @@
 #pragma once
 
 #include "fixed_containers/fixed_vector.hpp"
+#include "ir/cfg/types.h"
 
 #include <array>
 #include <cstdint>
@@ -12,10 +13,11 @@
 
 namespace compiler {
 class Builder;
-namespace ir{
-  struct InstCore;
+
+namespace ir {
+struct InstCore;
 }
-}
+} // namespace compiler
 
 namespace compiler::frontend::analysis {
 using regionid_t = uint32_t;
@@ -135,4 +137,6 @@ SimpleNode_t transformStructuredCFG(std::pmr::memory_resource* allocPool, std::p
 void dump(std::ostream& os, SimpleNode_t const* node);
 void dump(std::ostream& os, SimpleNode_t const* node, ir::InstCore const* instructions);
 
-} // namespace compiler::frontent::analysis
+ir::cfg::ControlFlow transformCFG(std::pmr::memory_resource* allocPool, std::pmr::memory_resource* tempPool, RegionBuilder& regions);
+
+} // namespace compiler::frontend::analysis
