@@ -1,3 +1,12 @@
-## Structuring graph
-DOI:10.1145/2693261
-https://www.researchgate.net/publication/271723114_Perfect_Reconstructability_of_Control_Flow_from_Demand_Dependence_Graphs
+# Structure
+## IR
+General IR struct (for frontend and SSA)
+
+## frontend
+* Parse binary and create frontend-ir (ir_types).
+* Analysis: Calculate branches and create a CFG (with registers). 
+
+If done, transform into a RSVDG, leaving frontend.
+
+## Analysis
+SCC

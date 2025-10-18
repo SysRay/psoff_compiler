@@ -7,10 +7,11 @@
 #include <array>
 #include <memory_resource>
 
-namespace compiler {
 constexpr auto operator""_MB(size_t x) -> size_t {
   return 1024L * 1024L * x;
 }
+
+namespace compiler {
 
 constexpr size_t MEMORY_SIZE = 1_MB;
 
