@@ -26,7 +26,6 @@ static bool containsComponent(compiler::analysis::scc_t const& result, std::init
 
 TEST(SCCBuilderTest, DetectsLoops) {
   std::pmr::monotonic_buffer_resource pool(1024);
-  std::pmr::polymorphic_allocator<>   alloc(&pool);
 
   MockRegionBuilder regions {.edges = {
                                  {1, 3}, // 0 -> 1
@@ -36,7 +35,7 @@ TEST(SCCBuilderTest, DetectsLoops) {
                                  {}      // 4
                              }};
 
-  auto result = compiler::analysis::SCCBuilder<MockRegionBuilder>(alloc, regions).calculate();
+  auto result = compiler::analysis::SCCBuilder<MockRegionBuilder>(&pool, regions).calculate();
 
   EXPECT_TRUE(containsComponent(result, {0, 1, 2}));
   EXPECT_EQ(result.size(), 3); // 1 loop + 2 singletons
@@ -44,7 +43,6 @@ TEST(SCCBuilderTest, DetectsLoops) {
 
 TEST(SCCBuilderTest, DetectsNestedLoops) {
   std::pmr::monotonic_buffer_resource pool(2048);
-  std::pmr::polymorphic_allocator<>   alloc(&pool);
 
   MockRegionBuilder regions {.edges = {
                                  {1},    // 0 -> 1
@@ -52,7 +50,7 @@ TEST(SCCBuilderTest, DetectsNestedLoops) {
                                  {1}     // 2 -> 1 (inner back edge)
                              }};
 
-  auto result = compiler::analysis::SCCBuilder<MockRegionBuilder>(alloc, regions).calculate();
+  auto result = compiler::analysis::SCCBuilder<MockRegionBuilder>(&pool, regions).calculate();
 
   // In Tarjan’s SCC, nested loops that are connected become one SCC:
   // {0, 1, 2}
@@ -62,7 +60,6 @@ TEST(SCCBuilderTest, DetectsNestedLoops) {
 
 TEST(SCCBuilderTest, DetectsNestedLoopStructure) {
   std::pmr::monotonic_buffer_resource pool(2048);
-  std::pmr::polymorphic_allocator<>   alloc(&pool);
 
   MockRegionBuilder regions {.edges = {{1, 4}, // 0 -> 1
                                        {2},    // 1 -> 2
@@ -70,7 +67,7 @@ TEST(SCCBuilderTest, DetectsNestedLoopStructure) {
                                        {0},    // 3 -> 0 (outer loop back-edge)
                                        {}}};
 
-  auto result = compiler::analysis::SCCBuilder<MockRegionBuilder>(alloc, regions).calculate();
+  auto result = compiler::analysis::SCCBuilder<MockRegionBuilder>(&pool, regions).calculate();
 
   EXPECT_TRUE(containsComponent(result, {0, 1, 2, 3}));
   EXPECT_TRUE(containsComponent(result, {4}));
@@ -79,7 +76,6 @@ TEST(SCCBuilderTest, DetectsNestedLoopStructure) {
 
 TEST(SCCBuilderTest, LoopCallsAnotherLoop) {
   std::pmr::monotonic_buffer_resource pool(2048);
-  std::pmr::polymorphic_allocator<>   alloc(&pool);
 
   MockRegionBuilder regions {.edges = {
                                  {1},    // 0 -> 1
@@ -88,7 +84,7 @@ TEST(SCCBuilderTest, LoopCallsAnotherLoop) {
                                  {2}     // 3 -> 2
                              }};
 
-  auto result = compiler::analysis::SCCBuilder<MockRegionBuilder>(alloc, regions).calculate();
+  auto result = compiler::analysis::SCCBuilder<MockRegionBuilder>(&pool, regions).calculate();
 
   EXPECT_TRUE(containsComponent(result, {0, 1}));
   EXPECT_TRUE(containsComponent(result, {2, 3}));
