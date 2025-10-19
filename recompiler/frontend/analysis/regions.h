@@ -14,7 +14,6 @@
 namespace compiler::frontend::analysis {
 using regionid_t = uint32_t;
 
-// todo handle dead regions
 class RegionBuilder {
   public:
   static constexpr regionid_t NO_REGION = -1;
@@ -34,23 +33,24 @@ class RegionBuilder {
     size_t const idx = getRegionIndex(start);
     const auto&  r   = _regions[idx];
 
-    if (r.hasTrueSucc()) visitor(r.trueSucc);
     if (r.hasFalseSucc()) { // Fallthrough
       if (idx + 1 < _regions.size() && _regions[idx + 1].start == r.end) visitor(_regions[idx + 1].start);
     }
+    if (r.hasTrueSucc()) visitor(r.trueSucc);
   }
 
   template <typename V>
   requires std::invocable<V, regionid_t>
   void visitPredecessors(regionid_t start, V&& visitor) const {
-    for (const auto& r: _regions) {
-      visitSuccessors(r.start, [&visitor, start](regionid_t succ) {
-        if (succ == start) visitor(succ);
-      });
+    for (uint32_t n = 0; n < _regions.size(); ++n) {
+      const auto& r = _regions[n];
+      if (r.hasFalseSucc()) {
+        if (1 + n < _regions.size() && _regions[1 + n].start == start) visitor(r.start);
+      }
+      if (r.hasTrueSucc() && r.trueSucc == start) visitor(r.start);
     }
   }
 
-  // todo change to visitor ?
   fixed_containers::FixedVector<int32_t, 2> getSuccessorsIdx(uint32_t region_idx) const;
 
   /**

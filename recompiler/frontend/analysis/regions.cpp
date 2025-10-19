@@ -15,7 +15,8 @@
 namespace compiler::frontend::analysis {
 void RegionBuilder::addReturn(regionid_t from) {
   auto itfrom     = splitRegion(from + 1);
-  itfrom->hasJump = true;
+  auto before     = std::prev(itfrom);
+  before->hasJump = true;
 }
 
 void RegionBuilder::addJump(regionid_t from, regionid_t to) {
@@ -37,13 +38,13 @@ fixed_containers::FixedVector<int32_t, 2> RegionBuilder::getSuccessorsIdx(uint32
   fixed_containers::FixedVector<int32_t, 2> result;
 
   const auto& r = _regions[region_idx];
-  if (r.hasTrueSucc()) {
-    result.emplace_back(getRegionIndex(r.trueSucc));
-  }
   if (r.hasFalseSucc()) { // Fallthrough
     if (1 + region_idx < _regions.size() && _regions[1 + region_idx].start == r.end) {
       result.emplace_back(1 + region_idx);
     }
+  }
+  if (r.hasTrueSucc()) {
+    result.emplace_back(getRegionIndex(r.trueSucc));
   }
   return result;
 }
@@ -72,8 +73,12 @@ regionid_t RegionBuilder::getRegionIndex(uint32_t pos) const {
 RegionBuilder::regionsit_t RegionBuilder::splitRegion(uint32_t pos) {
   auto it = std::upper_bound(_regions.begin(), _regions.end(), pos, [](uint32_t val, const Region& reg) { return val < reg.start; });
   if (it != _regions.begin()) --it;
-  if (pos >= it->end || pos <= it->start) return it;
-
+  if (pos <= it->start) {
+    return it;
+  }
+  if (pos >= it->end) {
+    return ++it;
+  }
   // printf("split range @%u [%u,%u) to [%u,%u) [%u,%u)\n", pos, it->start, it->end, it->start, pos, pos, it->end);
 
   Region after = *it;
