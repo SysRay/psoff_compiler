@@ -32,6 +32,8 @@ struct SCCBuilder {
 
   private:
   void strongConnect(int32_t v) {
+    // Note: using stack frames to remove recursion had no benefit (Only needed if out of stack)
+
     auto& state   = _state[v];
     state.index   = _tarjanIndex;
     state.lowlink = _tarjanIndex;

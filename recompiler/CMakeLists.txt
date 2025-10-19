@@ -12,8 +12,8 @@ add_library(psOff_recompiler STATIC
   frontend/parser/instruction_builder.cpp
 
   frontend/analysis/regions.cpp
-  frontend/analysis/cfg_builder.cpp
-  frontend/analysis/evalute.cpp
+  frontend/analysis/regions.cpp
+  frontend/analysis/evaluate.cpp
   frontend/analysis/transform_cfg.cpp
 
   frontend/parser/translate/ds.cpp

@@ -1,5 +1,5 @@
-#include "cfg_builder.h"
 #include "ir/debug_strings.h"
+#include "regions.h"
 
 #include <algorithm>
 #include <iostream>
@@ -10,8 +10,8 @@
 
 namespace compiler::frontend::analysis {
 
-ir::cfg::ControlFlow transformCFG(std::pmr::memory_resource* allocPool, std::pmr::memory_resource* tempPool, RegionBuilder& regions) {
-  return ir::cfg::ControlFlow(allocPool);
-}
+// ir::cfg::ControlFlow transformCFG(std::pmr::memory_resource* allocPool, std::pmr::memory_resource* tempPool, RegionBuilder& regions) {
+//   return ir::cfg::ControlFlow(allocPool);
+// }
 
 } // namespace compiler::frontend::analysis

@@ -1,9 +1,9 @@
 #include "builder.h"
 
 #include "alpaca/alpaca.h"
+#include "frontend/analysis/analysis.h"
 #include "frontend/parser.h"
 #include "ir/debug_strings.h"
-#include "frontend/analysis/analysis.h"
 
 #include <filesystem>
 
@@ -178,8 +178,10 @@ bool Builder::processBinary() {
   if (pCode == nullptr) return false;
 
   {
+    std::pmr::monotonic_buffer_resource checkpoint(&_poolTemp); // todo pass checkpoint around instead of temp
+
     // parse instructions
-    frontend::analysis::pcmapping_t pcMapping {&_poolTemp}; // map pc to instructions for resolving jmp
+    frontend::analysis::pcmapping_t pcMapping {&checkpoint}; // map pc to instructions for resolving jmp
     pcMapping.reserve(_hostMapping[0].size_dw);
 
     auto curCode = pCode;
@@ -195,12 +197,10 @@ bool Builder::processBinary() {
     }
 
     // create code regions
-    if (!frontend::analysis::createRegions(*this, pcMapping)) {
+    if (!frontend::analysis::createRegions(&checkpoint, getInstructions(), pcMapping)) {
       printf("Couldn't create regions");
       return false;
     }
-
-    _poolTemp.release();
   }
   return true;
 }

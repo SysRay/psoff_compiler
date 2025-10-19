@@ -12,11 +12,12 @@ include_directories(${googletest_install_SOURCE_DIR}/googletest/include)
 include_directories(${googletest_install_SOURCE_DIR}/googlemock/include)
 
 add_executable(test_analysis
-    test_scc.cpp   # Your test file
+  test_scc.cpp
+  test_regions.cpp
 )
 
 target_link_libraries(test_analysis
-    PRIVATE gtest gtest_main psOff_recompiler
+  PRIVATE gtest gtest_main psOff_recompiler
 )
 
 add_dependencies(test_analysis psOff_recompiler)

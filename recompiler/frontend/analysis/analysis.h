@@ -1,23 +1,16 @@
 #pragma once
 #include "ir/ir.h"
+#include "types.h"
 
 #include <memory_resource>
 #include <optional>
+#include <span>
 
-namespace compiler {
-class Builder;
+namespace compiler::frontend::analysis {
 
-namespace frontend {
+bool createRegions(std::pmr::polymorphic_allocator<> allocator, std::span<ir::InstCore> instructions, pcmapping_t const& mapping);
 
-namespace analysis {
 class RegionBuilder;
-
-using pcmapping_t = std::pmr::vector<std::pair<uint64_t, uint32_t>>;
-using regionid_t  = uint32_t;
-
-bool createRegions(Builder& builder, pcmapping_t const& mapping);
-
-std::optional<ir::InstConstant> evaluate(Builder& builder, RegionBuilder& regions, uint32_t index, ir::Operand const& reg);
-} // namespace analysis
-} // namespace frontend
-} // namespace compiler
+std::optional<ir::InstConstant> evaluate(std::pmr::polymorphic_allocator<> allocator, std::span<ir::InstCore> instructions, RegionBuilder& regions,
+                                         uint32_t index, ir::Operand const& reg);
+} // namespace compiler::frontend::analysis
