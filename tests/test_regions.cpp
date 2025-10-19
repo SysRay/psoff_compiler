@@ -133,8 +133,6 @@ TEST_F(RegionBuilderTest, MultipleJumps) {
   EXPECT_EQ(regions[3].start, 70);
   EXPECT_EQ(regions[3].end, 100);
 
-  builder.for_each([&builder](regionid_t, uint32_t, void* region) { builder.dump(std::cout, region); });
-
   EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(0), {2}));
   EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(1), {3}));
   EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(2), {3}));
@@ -153,8 +151,6 @@ TEST_F(RegionBuilderTest, BackwardJumpCreatesLoop) {
   builder.addJump(99, 10);
   // Regions: [0,10), [10,50), [50,100)
   // Region [10,50) jumps back to [10,50)
-
-  builder.for_each([&builder](regionid_t, uint32_t, void* region) { builder.dump(std::cout, region); });
 
   auto const& regions = builder.getRegions();
 
