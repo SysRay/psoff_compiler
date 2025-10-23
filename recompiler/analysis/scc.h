@@ -49,6 +49,15 @@ class SCCBuilder {
       if (_state[i].index == -1) strongConnect(i);
 
     classifyArcs(_regionsOut);
+
+    // remove non-loop singleton
+    std::erase_if(_regionsOut, [](SCCRegion const& r) {
+      if (r.nodes.size() > 1) return false;
+      for (auto const& [u, v]: r.repetitions)
+        if (u == v) return false;
+      return true;
+    });
+
     findNested(_regionsOut);
     return std::move(_regionsOut);
   }
@@ -85,6 +94,7 @@ class SCCBuilder {
         _state[w].onStack = false;
         region.nodes.insert(w);
       } while (w != v);
+
       _regionsOut.push_back(std::move(region));
     }
   }
@@ -99,42 +109,23 @@ class SCCBuilder {
 
           if (region.nodes.contains(v)) {
             hasPredInside.insert(v);
-            if (v < u) region.repetitions.insert({u, v});
-          } else
+            if (v == u) { // explicit self-loop
+              region.repetitions.insert({u, v});
+            } else if (v < u) {
+              region.repetitions.insert({u, v});
+            }
+          } else {
             region.exits.insert(v);
+          }
         }
       }
+
       for (auto n: region.nodes)
         if (!hasPredInside.contains(n)) region.entries.insert(n);
 
-      // After computing entries via external predecessors
       if (region.entries.empty() && region.nodes.contains(0)) {
         region.entries.insert(0);
-        LOG(eLOG_TYPE::DEBUG, "{}[Depth {}] Treating node 0 as graph entry", width(_depth), _depth);
       }
-
-      LOG(eLOG_TYPE::DEBUG, [&]() {
-        std::ostringstream oss;
-        oss << width(_depth) << "[Depth " << _depth << "] Region: {{";
-
-        for (auto n: region.nodes)
-          oss << n << " ";
-        oss << "}} entries:{{";
-
-        for (auto n: region.entries)
-          oss << n << " ";
-        oss << "}} exits:{{";
-
-        for (auto n: region.exits)
-          oss << n << " ";
-        oss << "}} reps:{{";
-
-        for (auto [u, v]: region.repetitions)
-          oss << "(" << u << "," << v << ") ";
-
-        oss << "}}";
-        return oss.str();
-      }());
     }
   }
 
