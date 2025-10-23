@@ -13,6 +13,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_INSTALL_MESSAGE LAZY)
 unset(CMAKE_IMPORT_LIBRARY_SUFFIX)
 
+option(ENABLE_DEFAULT_LOGGING "printf logs" ON)
 
 add_subdirectory(recompiler)
 add_subdirectory(dump_reader)

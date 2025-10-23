@@ -1,14 +1,18 @@
 #pragma once
+
+#include "logging.h"
+
 #include <algorithm>
 #include <concepts>
+#include <format>
 #include <functional>
 #include <iostream>
 #include <memory_resource>
 #include <set>
+#include <sstream>
 #include <vector>
 
 namespace compiler::analysis {
-
 using scc_node_t = uint32_t;
 
 struct SCCRegion {
@@ -17,6 +21,8 @@ struct SCCRegion {
   std::pmr::set<scc_node_t>                        exits;
   std::pmr::set<std::pair<scc_node_t, scc_node_t>> repetitions;
   std::pmr::vector<SCCRegion>                      children;
+
+  SCCRegion(std::pmr::polymorphic_allocator<> allocator): nodes(allocator), entries(allocator), exits(allocator), repetitions(allocator), children(allocator) {}
 };
 
 template <typename T>
@@ -28,7 +34,7 @@ concept RegionBuilderConcept = requires(T a, uint32_t idx) {
 template <RegionBuilderConcept Regions>
 class SCCBuilder {
   public:
-  SCCBuilder(std::pmr::polymorphic_allocator<> alloc, Regions const& regions, std::function<bool(uint32_t, uint32_t)> edgeFilter = {}, int depth = 0)
+  SCCBuilder(std::pmr::polymorphic_allocator<> alloc, Regions const& regions, std::function<bool(uint32_t, uint32_t)> edgeFilter = {}, uint32_t depth = 0)
       : _allocator(alloc),
         _regions(regions),
         _edgeFilter(std::move(edgeFilter)),
@@ -38,7 +44,7 @@ class SCCBuilder {
         _depth(depth) {}
 
   std::pmr::vector<SCCRegion> calculate() {
-    printf("%*s[Depth %d] Starting Tarjan on %d nodes\n", _depth * 2, "", _depth, _regions.getNumRegions());
+    LOG(eLOG_TYPE::DEBUG, "{}[Depth {}] Starting Tarjan on {} nodes", width(_depth), _depth, _regions.getNumRegions());
     for (int32_t i = 0; i < _regions.getNumRegions(); ++i)
       if (_state[i].index == -1) strongConnect(i);
 
@@ -71,8 +77,7 @@ class SCCBuilder {
     }
 
     if (s.lowlink == s.index) {
-      SCCRegion  region {std::pmr::set<scc_node_t> {_allocator}, std::pmr::set<scc_node_t> {_allocator}, std::pmr::set<scc_node_t> {_allocator},
-                        std::pmr::set<std::pair<scc_node_t, scc_node_t>> {_allocator}, std::pmr::vector<SCCRegion> {_allocator}};
+      SCCRegion  region(_allocator);
       scc_node_t w;
       do {
         w = _stack.back();
@@ -105,22 +110,31 @@ class SCCBuilder {
       // After computing entries via external predecessors
       if (region.entries.empty() && region.nodes.contains(0)) {
         region.entries.insert(0);
-        printf("%*s[Depth %d] Treating node 0 as graph entry\n", _depth * 2, "", _depth);
+        LOG(eLOG_TYPE::DEBUG, "{}[Depth {}] Treating node 0 as graph entry", width(_depth), _depth);
       }
 
-      printf("%*s[Depth %d] Region: {", _depth * 2, "", _depth);
-      for (auto n: region.nodes)
-        printf("%d ", n);
-      printf("} entries:{");
-      for (auto n: region.entries)
-        printf("%d ", n);
-      printf("} exits:{");
-      for (auto n: region.exits)
-        printf("%d ", n);
-      printf("} reps:{");
-      for (auto [u, v]: region.repetitions)
-        printf("(%d,%d) ", u, v);
-      printf("}\n");
+      LOG(eLOG_TYPE::DEBUG, [&]() {
+        std::ostringstream oss;
+        oss << width(_depth) << "[Depth " << _depth << "] Region: {{";
+
+        for (auto n: region.nodes)
+          oss << n << " ";
+        oss << "}} entries:{{";
+
+        for (auto n: region.entries)
+          oss << n << " ";
+        oss << "}} exits:{{";
+
+        for (auto n: region.exits)
+          oss << n << " ";
+        oss << "}} reps:{{";
+
+        for (auto [u, v]: region.repetitions)
+          oss << "(" << u << "," << v << ") ";
+
+        oss << "}}";
+        return oss.str();
+      }());
     }
   }
 
@@ -134,20 +148,35 @@ class SCCBuilder {
         if (region.entries.contains(v)) outerReps.insert({u, v});
 
       if (outerReps.empty()) {
-        printf("%*s[Depth %d] Region {", _depth * 2, "", _depth);
-        for (auto n: region.nodes)
-          printf("%d ", n);
-        printf("} has no outer reps, skipping recursion\n");
+        LOG(eLOG_TYPE::DEBUG, [&]() {
+          std::ostringstream oss;
+          oss << width(_depth) << "[Depth " << _depth << "] Region: {{";
+
+          for (auto n: region.nodes)
+            oss << n << " ";
+
+          oss << "}} has no outer reps, skipping recursion";
+          return oss.str();
+        }());
+
         continue;
       }
 
-      printf("%*s[Depth %d] Recurse on region {", _depth * 2, "", _depth);
-      for (auto n: region.nodes)
-        printf("%d ", n);
-      printf("}, outer reps:");
-      for (auto [u, v]: outerReps)
-        printf(" (%d→%d)", u, v);
-      printf("\n");
+      LOG(eLOG_TYPE::DEBUG, [&]() {
+        std::ostringstream oss;
+        oss << width(_depth) << "[Depth " << _depth << "]  Recurse on region: {{";
+
+        for (auto n: region.nodes) {
+          oss << n << " ";
+        }
+
+        oss << "}}, outer reps:";
+        for (auto const& [u, v]: outerReps) {
+          oss << " (" << u << "→" << v << ")";
+        }
+
+        return oss.str();
+      }());
 
       auto filter = [allowed = &region.nodes, outerReps = &outerReps](uint32_t u, uint32_t v) {
         if (!allowed->contains(u) || !allowed->contains(v)) return false;
@@ -162,21 +191,22 @@ class SCCBuilder {
     }
   }
 
-  std::pmr::polymorphic_allocator<>       _allocator;
-  Regions const&                          _regions;
+  std::pmr::polymorphic_allocator<> _allocator;
+  Regions const&                    _regions;
+
   std::function<bool(uint32_t, uint32_t)> _edgeFilter;
   std::pmr::vector<TarjanState>           _state;
   std::pmr::vector<scc_node_t>            _stack;
   int32_t                                 _tarjanIndex = 0;
   std::pmr::vector<SCCRegion>             _regionsOut;
-  int                                     _depth;
+  uint32_t                                _depth;
 };
 
 // -----------------------------------------------------------------------------
 // Dump helpers
 // -----------------------------------------------------------------------------
-inline void dumpRegion(std::ostream& os, SCCRegion const& r, int depth = 0) {
-  std::string pad(depth * 2, ' ');
+inline void dumpRegion(std::ostream& os, SCCRegion const& r, uint32_t depth = 0) {
+  auto const pad = width(depth);
   os << pad << "Nodes: {";
   for (auto n: r.nodes)
     os << n << ' ';

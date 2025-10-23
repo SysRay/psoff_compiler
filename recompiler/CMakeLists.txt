@@ -1,3 +1,6 @@
+
+option(ENABLE_DEFAULT_LOGGING "printf logs" OFF)
+
 add_library(psOff_recompiler STATIC
   builder.cpp
   ir/debug_strings.cpp
@@ -33,6 +36,10 @@ add_library(psOff_recompiler STATIC
   frontend/parser/translate/vop3.cpp
   frontend/parser/translate/vopc.cpp
 )
+
+if(ENABLE_DEFAULT_LOGGING)
+  target_sources(psOff_recompiler PRIVATE logging_default.cpp)
+endif()
 
 target_include_directories(psOff_recompiler
   PUBLIC
