@@ -1,3 +1,4 @@
+#include "analysis/debug_strings.h"
 #include "analysis/scc.h"
 #include "fixed_containers/fixed_vector.hpp"
 
@@ -14,127 +15,175 @@ struct MockRegionBuilder {
 
   int32_t getNumRegions() const { return static_cast<int32_t>(edges.size()); }
 
-  fixed_containers::FixedVector<int32_t, 2> getSuccessorsIdx(uint32_t idx) const { return edges[idx]; }
+  auto getSuccessors(uint32_t idx) const { return edges[idx]; }
+
+  auto getPredecessors(uint32_t idx) const {
+    assert(false); // not needed
+    return edges[idx];
+  }
 };
+
+static bool containsComponent(compiler::analysis::SCC const& result, std::initializer_list<int32_t> expected) {
+  std::vector<int32_t> sortedExpected(expected);
+  std::ranges::sort(sortedExpected);
+
+  return std::ranges::any_of(result.get(), [&](auto const& comp) { return std::ranges::equal(comp, sortedExpected); });
+}
+
+TEST(SCCBuilderTest, DetectsSelf) {
+  std::pmr::monotonic_buffer_resource pool(2048);
+
+  MockRegionBuilder regions {.edges = {{1}, {2, 1}, {3}, {}}};
+
+  auto result = compiler::analysis::SCCBuilder<MockRegionBuilder>(&pool, regions).calculate();
+  compiler::analysis::debug::dump(std::cout, result);
+
+  EXPECT_EQ(result.get().size(), 1);
+  EXPECT_TRUE(containsComponent(result, {1}));
+
+  {
+    auto const& nodes = result.get()[0];
+
+    std::pmr::monotonic_buffer_resource checkpoint(&pool);
+    compiler::analysis::SCCMeta         meta(&pool);
+    compiler::analysis::classifySCC(&pool, regions, nodes, meta);
+
+    compiler::analysis::debug::dump(std::cout, meta);
+  }
+}
+
+TEST(SCCBuilderTest, DetectsNoExit) {
+  std::pmr::monotonic_buffer_resource pool(2048);
+
+  MockRegionBuilder regions {.edges = {{1}, {2, 4}, {3}, {2}, {}}};
+
+  auto result = compiler::analysis::SCCBuilder<MockRegionBuilder>(&pool, regions).calculate();
+  compiler::analysis::debug::dump(std::cout, result);
+
+  EXPECT_EQ(result.get().size(), 1);
+  EXPECT_TRUE(containsComponent(result, {2, 3}));
+
+  {
+    auto const& nodes = result.get()[0];
+
+    std::pmr::monotonic_buffer_resource checkpoint(&pool);
+    compiler::analysis::SCCMeta         meta(&pool);
+    compiler::analysis::classifySCC(&pool, regions, nodes, meta);
+
+    compiler::analysis::debug::dump(std::cout, meta);
+  }
+}
+
+TEST(SCCBuilderTest, DetectsNoStart) {
+  std::pmr::monotonic_buffer_resource pool(2048);
+
+  MockRegionBuilder regions {.edges = {{4}, {2, 4}, {3}, {1}, {}}};
+
+  auto result = compiler::analysis::SCCBuilder<MockRegionBuilder>(&pool, regions).calculate();
+  compiler::analysis::debug::dump(std::cout, result);
+
+  EXPECT_EQ(result.get().size(), 1);
+  EXPECT_TRUE(containsComponent(result, {1, 2, 3}));
+
+  {
+    auto const& nodes = result.get()[0];
+
+    std::pmr::monotonic_buffer_resource checkpoint(&pool);
+    compiler::analysis::SCCMeta         meta(&pool);
+    compiler::analysis::classifySCC(&pool, regions, nodes, meta);
+
+    compiler::analysis::debug::dump(std::cout, meta);
+  }
+}
+
+TEST(SCCBuilderTest, DetectsSimpleLoopHead) {
+  std::pmr::monotonic_buffer_resource pool(2048);
+
+  MockRegionBuilder regions {.edges = {{1}, {2, 4}, {3}, {1}, {}}};
+
+  auto result = compiler::analysis::SCCBuilder<MockRegionBuilder>(&pool, regions).calculate();
+  compiler::analysis::debug::dump(std::cout, result);
+
+  EXPECT_EQ(result.get().size(), 1);
+  EXPECT_TRUE(containsComponent(result, {1, 2, 3}));
+
+  {
+    auto const& nodes = result.get()[0];
+
+    std::pmr::monotonic_buffer_resource checkpoint(&pool);
+    compiler::analysis::SCCMeta         meta(&pool);
+    compiler::analysis::classifySCC(&pool, regions, nodes, meta);
+
+    compiler::analysis::debug::dump(std::cout, meta);
+  }
+}
+
+TEST(SCCBuilderTest, DetectsSimpleLoopTail) {
+  std::pmr::monotonic_buffer_resource pool(2048);
+
+  MockRegionBuilder regions {.edges = {{1}, {2}, {3}, {1, 4}, {}}};
+
+  auto result = compiler::analysis::SCCBuilder<MockRegionBuilder>(&pool, regions).calculate();
+  compiler::analysis::debug::dump(std::cout, result);
+
+  EXPECT_EQ(result.get().size(), 1);
+  EXPECT_TRUE(containsComponent(result, {1, 2, 3}));
+
+  {
+    auto const& nodes = result.get()[0];
+
+    std::pmr::monotonic_buffer_resource checkpoint(&pool);
+    compiler::analysis::SCCMeta         meta(&pool);
+    compiler::analysis::classifySCC(&pool, regions, nodes, meta);
+
+    compiler::analysis::debug::dump(std::cout, meta);
+  }
+}
 
 TEST(SCCBuilderTest, DetectsNestedLoops) {
   std::pmr::monotonic_buffer_resource pool(2048);
 
-  MockRegionBuilder regions {.edges = {
-                                 {1},    // 0 -> 1
-                                 {0, 2}, // 1 -> 0 (outer back edge), and 1 -> 2 (inner loop entry)
-                                 {1}     // 2 -> 1 (inner back edge)
-                             }};
+  MockRegionBuilder regions {.edges = {{1},    // 0 -> 1
+                                       {2},    // 1 -> 2
+                                       {1, 3}, // 2 -> 1,3
+                                       {2, 4}, // 3 -> 2,4
+                                       {}}};
 
   auto result = compiler::analysis::SCCBuilder<MockRegionBuilder>(&pool, regions).calculate();
 
-  compiler::analysis::dump(std::cout, result);
+  compiler::analysis::debug::dump(std::cout, result);
 
-  // In Tarjan’s SCC, nested loops that are connected become one SCC:
-  // {0, 1, 2}
-  // EXPECT_TRUE(containsComponent(result, {0, 1, 2}));
-  EXPECT_EQ(result.size(), 1);
+  EXPECT_EQ(result.get().size(), 1);
+  EXPECT_TRUE(containsComponent(result, {1, 2, 3}));
+
+  for (auto const& nodes: result.get()) {
+    std::pmr::monotonic_buffer_resource checkpoint(&pool);
+    compiler::analysis::SCCMeta         meta(&pool);
+    compiler::analysis::classifySCC(&pool, regions, nodes, meta);
+
+    compiler::analysis::debug::dump(std::cout, meta);
+  }
 }
 
-TEST(SCCBuilderTest, DetectsNestedLoopStructure) {
+TEST(SCCBuilderTest, DetectsMultipeLoops) {
   std::pmr::monotonic_buffer_resource pool(2048);
 
-  // MockRegionBuilder regions {.edges = {{1,4}, // 0 -> 1
-  //                                      {2},    // 1 -> 2
-  //                                      {1, 3}, // 2 -> 1 (inner loop back-edge), 2 -> 3
-  //                                      {0},    // 3 -> 0 (outer loop back-edge)
-  //                                      {}}};
-  MockRegionBuilder regions {.edges = {{1,4}, // 0 -> 1
-                                       {2},    // 1 -> 2
-                                       {1, 3}, // 2 -> 1 (inner loop back-edge), 2 -> 3
-                                       {0},    // 3 -> 0 (outer loop back-edge)
-                                       {}}};
+  MockRegionBuilder regions {.edges = {{1}, {2, 4}, {3}, {1}, {5, 7}, {6}, {4}, {}}};
+
   auto result = compiler::analysis::SCCBuilder<MockRegionBuilder>(&pool, regions).calculate();
-  compiler::analysis::dump(std::cout, result);
-  //EXPECT_TRUE(containsComponent(result, {0, 1, 2, 3}));
-  //EXPECT_TRUE(containsComponent(result, {4}));
-  EXPECT_EQ(result.size(), 2);
+  compiler::analysis::debug::dump(std::cout, result);
+
+  EXPECT_EQ(result.get().size(), 2);
+  EXPECT_TRUE(containsComponent(result, {1, 2, 3}));
+  EXPECT_TRUE(containsComponent(result, {5, 6}));
+
+  {
+    auto const& nodes = result.get()[0];
+
+    std::pmr::monotonic_buffer_resource checkpoint(&pool);
+    compiler::analysis::SCCMeta         meta(&pool);
+    compiler::analysis::classifySCC(&pool, regions, nodes, meta);
+
+    compiler::analysis::debug::dump(std::cout, meta);
+  }
 }
-
-// static bool containsComponent(compiler::analysis::scc_regions_t const& result, std::initializer_list<int32_t> expected) {
-//   std::vector<int32_t> sortedExpected(expected);
-//   std::ranges::sort(sortedExpected);
-
-//   return std::ranges::any_of(result, [&](auto const& comp) { return std::ranges::equal(comp, sortedExpected); });
-// }
-
-// static bool containsComponent(compiler::analysis::scc_t const& result, std::initializer_list<int32_t> expected) {
-//   std::vector<int32_t> sortedExpected(expected);
-//   std::ranges::sort(sortedExpected);
-
-//   return std::ranges::any_of(result, [&](auto const& comp) { return std::ranges::equal(comp, sortedExpected); });
-// }
-
-// TEST(SCCBuilderTest, DetectsLoops) {
-//   std::pmr::monotonic_buffer_resource pool(1024);
-
-//   MockRegionBuilder regions {.edges = {
-//                                  {1, 3}, // 0 -> 1
-//                                  {2},    // 1 -> 2
-//                                  {0},    // 2 -> 0 (back edge to form loop)
-//                                  {4},    // 3 -> 4
-//                                  {}      // 4
-//                              }};
-
-//   auto result = compiler::analysis::SCCBuilder<MockRegionBuilder>(&pool, regions).calculate();
-
-//   EXPECT_TRUE(containsComponent(result, {0, 1, 2}));
-//   EXPECT_EQ(result.size(), 3); // 1 loop + 2 singletons
-// }
-
-// TEST(SCCBuilderTest, DetectsNestedLoops) {
-//   std::pmr::monotonic_buffer_resource pool(2048);
-
-//   MockRegionBuilder regions {.edges = {
-//                                  {1},    // 0 -> 1
-//                                  {0, 2}, // 1 -> 0 (outer back edge), and 1 -> 2 (inner loop entry)
-//                                  {1}     // 2 -> 1 (inner back edge)
-//                              }};
-
-//   auto result = compiler::analysis::SCCBuilder<MockRegionBuilder>(&pool, regions).calculate();
-
-//   compiler::analysis::dump(std::cout, result);
-
-//   // In Tarjan’s SCC, nested loops that are connected become one SCC:
-//   // {0, 1, 2}
-//   EXPECT_TRUE(containsComponent(result, {0, 1, 2}));
-//   EXPECT_EQ(result.size(), 1);
-// }
-
-// TEST(SCCBuilderTest, DetectsNestedLoopStructure) {
-//   std::pmr::monotonic_buffer_resource pool(2048);
-
-//   MockRegionBuilder regions {.edges = {{1,4}, // 0 -> 1
-//                                        {2},    // 1 -> 2
-//                                        {1, 3}, // 2 -> 1 (inner loop back-edge), 2 -> 3
-//                                        {0},    // 3 -> 0 (outer loop back-edge)
-//                                        {}}};
-
-//   auto result = compiler::analysis::SCCBuilder<MockRegionBuilder>(&pool, regions).calculate();
-
-//   EXPECT_TRUE(containsComponent(result, {0, 1, 2, 3}));
-//   EXPECT_TRUE(containsComponent(result, {4}));
-//   EXPECT_EQ(result.size(), 2);
-// }
-
-// TEST(SCCBuilderTest, LoopCallsAnotherLoop) {
-//   std::pmr::monotonic_buffer_resource pool(2048);
-
-//   MockRegionBuilder regions {.edges = {
-//                                  {1},    // 0 -> 1
-//                                  {0, 2}, // 1 -> 0, 1 -> 2 (call into loop B)
-//                                  {3},    // 2 -> 3
-//                                  {2}     // 3 -> 2
-//                              }};
-
-//   auto result = compiler::analysis::SCCBuilder<MockRegionBuilder>(&pool, regions).calculate();
-
-//   EXPECT_TRUE(containsComponent(result, {0, 1}));
-//   EXPECT_TRUE(containsComponent(result, {2, 3}));
-//   EXPECT_EQ(result.size(), 2);
-// }

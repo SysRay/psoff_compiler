@@ -5,6 +5,8 @@ add_library(psOff_recompiler STATIC
   builder.cpp
   ir/debug_strings.cpp
 
+  analysis/debug_string.cpp
+
   frontend/parser.cpp
 
   frontend/debug_strings.cpp
@@ -17,7 +19,8 @@ add_library(psOff_recompiler STATIC
   frontend/analysis/regions.cpp
   frontend/analysis/regions.cpp
   frontend/analysis/evaluate.cpp
-  frontend/analysis/transform_cfg.cpp
+
+  frontend/transform/transform_cfg.cpp
 
   frontend/parser/translate/ds.cpp
   frontend/parser/translate/exp.cpp

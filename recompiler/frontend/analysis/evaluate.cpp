@@ -12,20 +12,20 @@
 
 namespace compiler::frontend::analysis {
 
-std::optional<ir::InstConstant> Evaluate::check(uint32_t index, ir::Operand const& reg) {
+std::optional<ir::InstConstant> Evaluate::check(size_t index, ir::Operand const& reg) {
   auto const& instr = _instructions[index];
 
   //  std::cout << "get const for ";
   // ir::debug::getDebug(std::cout, instructions[index]);
   //  std::cout << "\n";
 
-  auto const [start, end] = _regions.findRegion(index);
-  auto const res          = findInstruction(reg, index, start);
+  auto const regionId = _regions.getRegionIndex((region_t)index);
+  auto const res      = findInstruction(reg, index, regionId);
   // if (res) std::cout << "result: 0x" << std::hex << res->value_u64 << "\n";
   return res;
 }
 
-std::optional<ir::InstConstant> Evaluate::check(uint32_t index, regionid_t region) {
+std::optional<ir::InstConstant> Evaluate::check(size_t index, regionid_t regionId) {
   auto const& instr = _instructions[index];
 
   // std::cout << "\tcheck ";
@@ -39,7 +39,7 @@ std::optional<ir::InstConstant> Evaluate::check(uint32_t index, regionid_t regio
   // Check all source operands
   std::array<ir::InstConstant, config::kMaxSrcOps> inputs;
   for (uint8_t s = 0; s < instr.numSrc; s++) {
-    auto const res = findInstruction(instr.srcOperands[s], index, region);
+    auto const res = findInstruction(instr.srcOperands[s], index, regionId);
     if (!res) return std::nullopt;
     inputs[s] = *res;
   }
@@ -47,16 +47,18 @@ std::optional<ir::InstConstant> Evaluate::check(uint32_t index, regionid_t regio
   return evaluate(instr, inputs);
 }
 
-std::optional<ir::InstConstant> Evaluate::findInstruction(ir::Operand const& reg, uint32_t index, regionid_t region) {
+std::optional<ir::InstConstant> Evaluate::findInstruction(ir::Operand const& reg, size_t index, regionid_t regionId) {
+  auto const [start, end] = _regions.getRegion(regionId);
+
   auto const kind = frontend::eOperandKind::import(reg.kind);
-  for (int64_t i = index - 1; i >= region; i--) {
+  for (int64_t i = index - 1; i >= start; i--) {
     auto const& instr = _instructions[i];
 
     for (uint8_t d = 0; d < instr.numDst; d++) {
       // todo handle multiple regs (64bit, arrays)
       // move to frontend compare
       if (frontend::eOperandKind::import(instr.dstOperands[d].kind).base() == kind.base()) {
-        return check(i, region);
+        return check(i, regionId);
       }
     }
   }
@@ -66,7 +68,7 @@ std::optional<ir::InstConstant> Evaluate::findInstruction(ir::Operand const& reg
 }
 
 std::optional<ir::InstConstant> evaluate(std::pmr::polymorphic_allocator<> allocator, std::span<ir::InstCore> instructions, RegionBuilder& regions,
-                                         uint32_t index, ir::Operand const& reg) {
+                                         size_t index, ir::Operand const& reg) {
   return Evaluate(allocator.resource(), instructions, regions).check(index, reg);
 }
 } // namespace compiler::frontend::analysis

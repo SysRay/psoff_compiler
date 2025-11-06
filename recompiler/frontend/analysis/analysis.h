@@ -11,6 +11,17 @@ namespace compiler::frontend::analysis {
 bool createRegions(std::pmr::polymorphic_allocator<> allocator, std::span<ir::InstCore> instructions, pcmapping_t const& mapping);
 
 class RegionBuilder;
+/**
+ * @brief
+ *
+ * @param allocator
+ * @param instructions
+ * @param regions
+ * @param index index into instructions
+ * @param reg
+ * @return std::optional<ir::InstConstant>
+ */
 std::optional<ir::InstConstant> evaluate(std::pmr::polymorphic_allocator<> allocator, std::span<ir::InstCore> instructions, RegionBuilder& regions,
-                                         uint32_t index, ir::Operand const& reg);
+                                         size_t index, ir::Operand const& reg);
+
 } // namespace compiler::frontend::analysis

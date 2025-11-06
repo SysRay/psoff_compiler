@@ -14,6 +14,8 @@ include_directories(${googletest_install_SOURCE_DIR}/googlemock/include)
 add_executable(test_analysis
   test_scc.cpp
   test_regions.cpp
+  test_dom.cpp
+  test_cfg.cpp
 )
 
 target_link_libraries(test_analysis

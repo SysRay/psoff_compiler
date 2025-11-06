@@ -73,10 +73,4 @@ static void BM_SCCBuilder_Calculate(benchmark::State& state) {
   state.SetComplexityN(16384);
 }
 
-BENCHMARK(BM_SCCBuilder_Calculate)
-    ->RangeMultiplier(2)
-    ->MinWarmUpTime(0.05)
-    ->MinTime(1)
-    ->Unit(benchmark::kMillisecond);
-
-BENCHMARK_MAIN();
+BENCHMARK(BM_SCCBuilder_Calculate)->RangeMultiplier(2)->MinWarmUpTime(0.05)->MinTime(1)->Unit(benchmark::kMillisecond);

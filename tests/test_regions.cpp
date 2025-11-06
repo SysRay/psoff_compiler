@@ -19,7 +19,7 @@ TEST_F(RegionBuilderTest, InitialRegionCreation) {
 
   EXPECT_EQ(builder.getNumRegions(), 1);
 
-  auto [start, end] = builder.getRegion(0);
+  auto [start, end] = builder.getRegion(regionid_t(0));
   EXPECT_EQ(start, 0);
   EXPECT_EQ(end, 100);
 }
@@ -29,9 +29,9 @@ static bool isEqual(auto const& result, std::initializer_list<int32_t> expected)
   return std::ranges::any_of(result, [&](auto const& comp) { return std::ranges::equal(result, expected); });
 }
 
-static std::vector<regionid_t> collectPreds(RegionBuilder const& builder, regionid_t region) {
-  std::vector<regionid_t> result;
-  builder.visitPredecessors(region, [&result](regionid_t pred) { result.push_back(pred); });
+static std::vector<region_t> collectPreds(RegionBuilder const& builder, region_t from) {
+  std::vector<region_t> result;
+  builder.visitPredecessors(from, [&result](region_t pred) { result.push_back(pred); });
 
   std::ranges::sort(result); // Helping with equal check
   return result;
@@ -56,9 +56,9 @@ TEST_F(RegionBuilderTest, SimpleJumpSplitsRegions) {
   EXPECT_EQ(regions[2].start, 50);
   EXPECT_EQ(regions[2].end, 100);
 
-  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(0), {2}));
-  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(1), {2}));
-  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(2), {}));
+  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(0)), {2}));
+  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(1)), {2}));
+  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(2)), {}));
 }
 
 TEST_F(RegionBuilderTest, ConditionalJumpCreatesMultipleSuccessors) {
@@ -83,9 +83,9 @@ TEST_F(RegionBuilderTest, ConditionalJumpCreatesMultipleSuccessors) {
   EXPECT_EQ(regions[2].end, 100);
 
   // Conditional jump: should have both successors
-  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(0), {1, 2}));
-  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(1), {2}));
-  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(2), {}));
+  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(0)), {1, 2}));
+  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(1)), {2}));
+  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(2)), {}));
 }
 
 TEST_F(RegionBuilderTest, ReturnStopsFlow) {
@@ -105,8 +105,8 @@ TEST_F(RegionBuilderTest, ReturnStopsFlow) {
   EXPECT_EQ(regions[1].end, 100);
 
   // Return means no successors
-  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(0), {}));
-  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(1), {}));
+  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(0)), {}));
+  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(1)), {}));
 }
 
 TEST_F(RegionBuilderTest, MultipleJumps) {
@@ -133,10 +133,10 @@ TEST_F(RegionBuilderTest, MultipleJumps) {
   EXPECT_EQ(regions[3].start, 70);
   EXPECT_EQ(regions[3].end, 100);
 
-  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(0), {2}));
-  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(1), {3}));
-  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(2), {3}));
-  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(3), {}));
+  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(0)), {2}));
+  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(1)), {3}));
+  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(2)), {3}));
+  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(3)), {}));
 
   // using region_id
   EXPECT_TRUE(isEqual(collectPreds(builder, 0), {}));
@@ -165,9 +165,9 @@ TEST_F(RegionBuilderTest, BackwardJumpCreatesLoop) {
   EXPECT_EQ(regions[2].start, 50);
   EXPECT_EQ(regions[2].end, 100);
 
-  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(0), {1}));
-  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(1), {1})); // Loop to self
-  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(2), {1}));
+  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(0)), {1}));
+  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(1)), {1})); // Loop to self
+  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(2)), {1}));
 }
 
 TEST_F(RegionBuilderTest, ComplexControlFlow) {
@@ -190,8 +190,8 @@ TEST_F(RegionBuilderTest, VisitSuccessors) {
 
   builder.addCondJump(9, 50);
 
-  std::vector<regionid_t> successors;
-  builder.visitSuccessors(0, [&successors](regionid_t succ) { successors.push_back(succ); });
+  std::vector<region_t> successors;
+  builder.visitSuccessors(0, [&successors](region_t succ) { successors.push_back(succ); });
 
   EXPECT_EQ(successors.size(), 2);
   EXPECT_TRUE(std::ranges::find(successors, 10) != successors.end());
@@ -204,8 +204,8 @@ TEST_F(RegionBuilderTest, VisitPredecessors) {
   builder.addJump(9, 50);
   builder.addCondJump(29, 50);
 
-  std::vector<regionid_t> predecessors;
-  builder.visitPredecessors(50, [&predecessors](regionid_t pred) { predecessors.push_back(pred); });
+  std::vector<region_t> predecessors;
+  builder.visitPredecessors(50, [&predecessors](region_t pred) { predecessors.push_back(pred); });
 
   // Both region starting at 0 and region starting at 10 can reach 50
   EXPECT_GE(predecessors.size(), 1);

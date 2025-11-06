@@ -12,25 +12,39 @@
 #include <vector>
 
 namespace compiler::frontend::analysis {
-using regionid_t = uint32_t;
+using region_t = uint32_t;
+
+struct regionid_t {
+  region_t value         = std::numeric_limits<region_t>::max();
+  constexpr regionid_t() = default;
+
+  constexpr explicit regionid_t(uint32_t v): value(v) {}
+
+  constexpr operator uint32_t() const { return value; }
+
+  constexpr bool operator==(regionid_t const&) const = default;
+
+  constexpr bool isValid() const { return value != UINT32_MAX; }
+};
+
+inline constexpr regionid_t NO_REGION = regionid_t {UINT32_MAX};
 
 class RegionBuilder {
-  public:
-  static constexpr regionid_t NO_REGION = -1;
 
-  RegionBuilder(uint32_t N, std::pmr::polymorphic_allocator<> allocator): _regions {allocator} {
+  public:
+  RegionBuilder(region_t N, std::pmr::polymorphic_allocator<> allocator): _regions {allocator} {
     _regions.reserve(128);
     _regions.emplace_back(Region(0, N));
   }
 
-  void addJump(regionid_t from, regionid_t to);
-  void addReturn(regionid_t from);
-  void addCondJump(regionid_t from, regionid_t to);
+  void addJump(region_t from, region_t to);
+  void addReturn(region_t from);
+  void addCondJump(region_t from, region_t to);
 
   template <typename V>
-  requires std::invocable<V, regionid_t>
-  void visitSuccessors(regionid_t start, V&& visitor) const {
-    size_t const idx = getRegionIndex(start);
+  requires std::invocable<V, region_t>
+  void visitSuccessors(region_t from, V&& visitor) const {
+    size_t const idx = getRegionIndex(from);
     const auto&  r   = _regions[idx];
 
     if (r.hasFalseSucc()) { // Fallthrough
@@ -40,27 +54,35 @@ class RegionBuilder {
   }
 
   template <typename V>
-  requires std::invocable<V, regionid_t>
-  void visitPredecessors(regionid_t start, V&& visitor) const {
+  requires std::invocable<V, region_t>
+  void visitPredecessors(region_t from, V&& visitor) const {
     for (uint32_t n = 0; n < _regions.size(); ++n) {
       const auto& r = _regions[n];
       if (r.hasFalseSucc()) {
-        if (1 + n < _regions.size() && _regions[1 + n].start == start) visitor(r.start);
+        if (1 + n < _regions.size() && _regions[1 + n].start == from) visitor(r.start);
       }
-      if (r.hasTrueSucc() && r.trueSucc == start) visitor(r.start);
+      if (r.hasTrueSucc() && r.trueSucc == from) visitor(r.start);
     }
   }
 
-  fixed_containers::FixedVector<int32_t, 2> getSuccessorsIdx(uint32_t region_idx) const;
+  fixed_containers::FixedVector<regionid_t, 2> getSuccessorsIdx(regionid_t id) const;
 
   /**
-   * @brief Get the Region given a index
+   * @brief
    *
    * @param index
    * @return std::pair<uint32_t, uint32_t> start, end
    */
-  std::pair<regionid_t, uint32_t> findRegion(uint32_t index) const;
-  std::pair<uint32_t, uint32_t>   getRegion(uint32_t index) const;
+  std::pair<region_t, region_t> findRegion(region_t from) const;
+
+  /**
+   * @brief
+   *
+   * @param index
+   * @return std::pair<uint32_t, uint32_t> start, end
+   */
+  std::pair<region_t, region_t> getRegion(regionid_t id) const;
+  regionid_t                    getRegionIndex(region_t from) const;
 
   auto const& getRegions() const { return _regions; }
 
@@ -76,16 +98,16 @@ class RegionBuilder {
 
   protected:
   struct Region {
-    uint32_t start = 0;
-    uint32_t end   = 0;
+    region_t start = 0;
+    region_t end   = 0;
 
-    uint32_t trueSucc = NO_SUCC;
+    region_t trueSucc = NO_SUCC;
 
     bool hasJump = false;
 
-    static constexpr uint32_t NO_SUCC = UINT32_MAX;
+    static constexpr region_t NO_SUCC = UINT32_MAX;
 
-    Region(uint32_t s, uint32_t e): start(s), end(e) {}
+    Region(region_t s, region_t e): start(s), end(e) {}
 
     // Region() = default;
 
@@ -97,8 +119,70 @@ class RegionBuilder {
   std::pmr::vector<Region> _regions;
 
   using regionsit_t = decltype(_regions)::iterator;
-
-  regionid_t  getRegionIndex(uint32_t pos) const;
-  regionsit_t splitRegion(uint32_t pos);
+  regionsit_t splitRegion(region_t from);
 };
+
+struct StartRegion {
+  regionid_t id;
+};
+
+struct StopRegion {
+  regionid_t id;
+};
+
+struct BasicRegion {
+  regionid_t id;
+  region_t   start;
+  region_t   end;
+};
+
+struct CondRegion {
+  regionid_t id;
+  regionid_t trueRegion;
+  regionid_t falseRegion;
+};
+
+struct LoopRegion {
+  regionid_t id;
+  regionid_t header;
+  regionid_t body;
+  regionid_t exit;
+};
+
+using RegionNode = std::variant<StartRegion, StopRegion, BasicRegion, CondRegion, LoopRegion>;
+
+/**
+ * @brief Create graph from regions.
+ *
+ */
+class RegionGraph {
+  static constexpr regionid_t START_ID {0};
+  static constexpr regionid_t STOP_ID {1};
+
+  std::pmr::vector<RegionNode>                   nodes;
+  std::pmr::vector<std::pmr::vector<regionid_t>> succ;
+  std::pmr::vector<std::pmr::vector<regionid_t>> pred;
+
+  public:
+  RegionGraph(std::pmr::polymorphic_allocator<> alloc, const RegionBuilder& rb);
+
+  size_t getNodeCount() const { return nodes.size(); }
+
+  std::span<regionid_t> accessSuccessors(regionid_t idx) { return succ[idx.value]; }
+
+  std::span<regionid_t> accessPredecessors(regionid_t idx) { return pred[idx.value]; }
+
+  std::span<const regionid_t> getSuccessors(regionid_t idx) const { return succ[idx.value]; }
+
+  std::span<const regionid_t> getPredecessors(regionid_t idx) const { return pred[idx.value]; }
+
+  regionid_t getStartId() const { return START_ID; }
+
+  regionid_t getStopId() const { return STOP_ID; }
+
+  const RegionNode& getNode(regionid_t id) const { return nodes[id.value]; }
+
+  RegionNode& getNode(regionid_t id) { return nodes[id.value]; }
+};
+
 } // namespace compiler::frontend::analysis

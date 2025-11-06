@@ -13,13 +13,13 @@
 #include <span>
 
 namespace compiler::frontend::analysis {
-void RegionBuilder::addReturn(regionid_t from) {
+void RegionBuilder::addReturn(region_t from) {
   auto itfrom     = splitRegion(from + 1);
   auto before     = std::prev(itfrom);
   before->hasJump = true;
 }
 
-void RegionBuilder::addJump(regionid_t from, regionid_t to) {
+void RegionBuilder::addJump(region_t from, region_t to) {
   auto itfrom      = splitRegion(from + 1);
   auto before      = std::prev(itfrom);
   before->trueSucc = to;
@@ -27,20 +27,20 @@ void RegionBuilder::addJump(regionid_t from, regionid_t to) {
   auto itto        = splitRegion(to);
 }
 
-void RegionBuilder::addCondJump(regionid_t from, regionid_t to) {
+void RegionBuilder::addCondJump(region_t from, region_t to) {
   auto itfrom      = splitRegion(from + 1);
   auto before      = std::prev(itfrom);
   before->trueSucc = to;
   auto itto        = splitRegion(to);
 }
 
-fixed_containers::FixedVector<int32_t, 2> RegionBuilder::getSuccessorsIdx(uint32_t region_idx) const {
-  fixed_containers::FixedVector<int32_t, 2> result;
+fixed_containers::FixedVector<regionid_t, 2> RegionBuilder::getSuccessorsIdx(regionid_t id) const {
+  fixed_containers::FixedVector<regionid_t, 2> result;
 
-  const auto& r = _regions[region_idx];
+  const auto& r = _regions[id];
   if (r.hasFalseSucc()) { // Fallthrough
-    if (1 + region_idx < _regions.size() && _regions[1 + region_idx].start == r.end) {
-      result.emplace_back(1 + region_idx);
+    if (1 + id < _regions.size() && _regions[1 + id].start == r.end) {
+      result.emplace_back(1 + id);
     }
   }
   if (r.hasTrueSucc()) {
@@ -49,29 +49,29 @@ fixed_containers::FixedVector<int32_t, 2> RegionBuilder::getSuccessorsIdx(uint32
   return result;
 }
 
-std::pair<regionid_t, uint32_t> RegionBuilder::findRegion(uint32_t index) const {
-  auto it = std::upper_bound(_regions.begin(), _regions.end(), index, [](uint32_t val, const Region& reg) { return val < reg.start; });
+std::pair<region_t, region_t> RegionBuilder::findRegion(region_t from) const {
+  auto it = std::upper_bound(_regions.begin(), _regions.end(), from, [](region_t val, const Region& reg) { return val < reg.start; });
   if (it != _regions.begin()) --it;
 
-  if (it->end < index) return {0, 0}; // Sanity check
-  return {it->start, it->end};
+  if (it->end < from) return std::make_pair(0, 0); // Sanity check
+  return std::make_pair(it->start, it->end);
 }
 
-std::pair<uint32_t, uint32_t> RegionBuilder::getRegion(uint32_t index) const {
-  if (index < 0) return {-1, -1};
-  auto const& r = _regions[index];
-  return {r.start, r.end};
+std::pair<region_t, region_t> RegionBuilder::getRegion(regionid_t id) const {
+  assert(id != NO_REGION);
+  auto const& r = _regions[id];
+  return std::make_pair(r.start, r.end);
 }
 
-regionid_t RegionBuilder::getRegionIndex(uint32_t pos) const {
-  auto it = std::upper_bound(_regions.begin(), _regions.end(), pos, [](uint32_t val, const Region& reg) { return val < reg.start; });
-  if (it == _regions.begin()) return 0;
+regionid_t RegionBuilder::getRegionIndex(region_t pos) const {
+  auto it = std::upper_bound(_regions.begin(), _regions.end(), pos, [](region_t val, const Region& reg) { return val < reg.start; });
+  if (it == _regions.begin()) return regionid_t(0);
   --it;
-  return std::distance(_regions.begin(), it);
+  return regionid_t(std::distance(_regions.begin(), it));
 }
 
-RegionBuilder::regionsit_t RegionBuilder::splitRegion(uint32_t pos) {
-  auto it = std::upper_bound(_regions.begin(), _regions.end(), pos, [](uint32_t val, const Region& reg) { return val < reg.start; });
+RegionBuilder::regionsit_t RegionBuilder::splitRegion(region_t pos) {
+  auto it = std::upper_bound(_regions.begin(), _regions.end(), pos, [](region_t val, const Region& reg) { return val < reg.start; });
   if (it != _regions.begin()) --it;
   if (pos <= it->start) {
     return it;
@@ -94,10 +94,10 @@ void RegionBuilder::dump(std::ostream& os, void* region) const {
   os << "Region [" << std::dec << r.start << ", " << r.end << ")\n";
 
   os << "  Succ: ";
-  visitSuccessors(r.start, [&os](regionid_t item) { os << "[" << item << "]"; });
+  visitSuccessors(r.start, [&os](region_t item) { os << "[" << item << "]"; });
 
   os << "\n  Pred: ";
-  visitPredecessors(r.start, [&os](regionid_t item) { os << "[" << item << "]"; });
+  visitPredecessors(r.start, [&os](region_t item) { os << "[" << item << "]"; });
   os << "\n";
 
   if (r.hasTrueSucc()) os << "  True -> [" << r.trueSucc << "]\n";
@@ -162,5 +162,33 @@ bool createRegions(std::pmr::polymorphic_allocator<> allocator, std::span<ir::In
   // dump(std::cout, &rootNode, instructions.data());
 
   return true;
+}
+
+RegionGraph::RegionGraph(std::pmr::polymorphic_allocator<> alloc, const RegionBuilder& rb): nodes(alloc), succ(alloc), pred(alloc) {
+  size_t const N = 2 + rb.getNumRegions();
+  nodes.reserve(N);
+  succ.resize(N);
+  pred.resize(N);
+
+  nodes.emplace_back(StartRegion {START_ID});
+  nodes.emplace_back(StopRegion {STOP_ID});
+
+  // Create BasicRegion nodes from RegionBuilder
+  // Note: offset id by 1+STOP_ID
+  constexpr auto offset = 1 + STOP_ID;
+
+  for (regionid_t i {0}; i.value < N - offset; ++i.value) {
+    auto const id = regionid_t {offset + i.value};
+
+    auto const [start, end] = rb.getRegion(i);
+    nodes.emplace_back(BasicRegion {id, start, end});
+
+    auto successors = rb.getSuccessorsIdx(i);
+    for (auto const& sid_: successors) {
+      auto const sid = regionid_t {offset + sid_.value};
+      succ[id].push_back(sid);
+      pred[sid.value].push_back(id);
+    }
+  }
 }
 } // namespace compiler::frontend::analysis
