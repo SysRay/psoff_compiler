@@ -1,6 +1,7 @@
 #include "analysis/dom.h"
 #include "frontend/analysis/regions.h"
 #include "frontend/transform/transform.h"
+#include "include/checkpoint_resource.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -57,8 +58,6 @@ TEST(ControlflowTransform, SimpleLoop) {
   std::pmr::monotonic_buffer_resource resource;
   std::pmr::polymorphic_allocator<>   allocator {&resource};
 
-  std::pmr::monotonic_buffer_resource tempResource;
-
   compiler::frontend::analysis::RegionBuilder builder(50, allocator);
 
   builder.addCondJump(9, 20);
@@ -67,7 +66,10 @@ TEST(ControlflowTransform, SimpleLoop) {
 
   compiler::frontend::analysis::RegionGraph regionGraph(allocator, builder);
   dump(std::cout, regionGraph);
-  compiler::frontend::analysis::structurizeRegions(allocator, &tempResource, regionGraph);
+
+  std::array<uint8_t, 10000>          buffer;
+  compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
+  compiler::frontend::analysis::structurizeRegions(tempResource, regionGraph);
   dump(std::cout, regionGraph);
 }
 

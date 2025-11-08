@@ -16,6 +16,7 @@ add_executable(test_analysis
   test_regions.cpp
   test_dom.cpp
   test_cfg.cpp
+  test_alloc.cpp
 )
 
 target_link_libraries(test_analysis

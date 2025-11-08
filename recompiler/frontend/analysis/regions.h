@@ -1,6 +1,7 @@
 #pragma once
 
 #include "fixed_containers/fixed_vector.hpp"
+#include "include/checkpoint_resource_fwd.h"
 #include "ir/cfg/types.h"
 
 #include <array>
@@ -151,9 +152,9 @@ struct CondRegion {
 
 struct LoopRegion {
   regionid_t id;
-  regionid_t startId;    ///< Subgraph start node
-  regionid_t exitId;     ///< Subgraph Loop exit node
-  regionid_t continueId; ///< Subgraph Loop continue node (break back to start )
+  regionid_t startId; ///< Subgraph start node
+  regionid_t exitId;  ///< Subgraph Loop exit node
+  regionid_t contId;  ///< Subgraph Loop continue node (break back to start )
 };
 
 using RegionNode = std::variant<StartRegion, StopRegion, BasicRegion, CondRegion, LoopRegion>;
@@ -171,7 +172,7 @@ class RegionGraph {
   std::pmr::vector<std::pmr::vector<regionid_t>> pred;
 
   public:
-  RegionGraph(std::pmr::polymorphic_allocator<> alloc, const RegionBuilder& rb);
+  RegionGraph(std::pmr::polymorphic_allocator<> allocator, const RegionBuilder& rb);
 
   size_t getNodeCount() const { return nodes.size(); }
 
@@ -191,10 +192,11 @@ class RegionGraph {
 
   RegionNode& getNode(regionid_t id) { return nodes[id.value]; }
 
-  regionid_t createNode(RegionNode&& node) {
+  template <typename T>
+  regionid_t createNode() {
     auto const id = regionid_t((uint32_t)nodes.size());
 
-    auto& item = nodes.emplace_back(std::move(node));
+    auto& item = nodes.emplace_back(T());
     std::visit([id](auto& region) { region.id = id; }, item);
 
     succ.emplace_back();
@@ -204,7 +206,7 @@ class RegionGraph {
   }
 };
 
-void structurizeRegions(std::pmr::polymorphic_allocator<> allocPool, std::pmr::memory_resource* tempPool, analysis::RegionGraph& regionGraph);
+void structurizeRegions(util::checkpoint_resource& checkpoint_resource, analysis::RegionGraph& regionGraph);
 
 void dump(std::ostream& os, const compiler::frontend::analysis::RegionGraph& g);
 } // namespace compiler::frontend::analysis

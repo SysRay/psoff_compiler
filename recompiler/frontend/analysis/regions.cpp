@@ -5,6 +5,7 @@
 #include "analysis/scc.h"
 #include "builder.h"
 #include "frontend/ir_types.h"
+#include "include/checkpoint_resource.h"
 #include "ir/debug_strings.h"
 #include "ir/instructions.h"
 
@@ -167,7 +168,7 @@ bool createRegions(std::pmr::polymorphic_allocator<> allocator, std::span<ir::In
   return true;
 }
 
-RegionGraph::RegionGraph(std::pmr::polymorphic_allocator<> alloc, const RegionBuilder& rb): nodes(alloc), succ(alloc), pred(alloc) {
+RegionGraph::RegionGraph(std::pmr::polymorphic_allocator<> allocator, const RegionBuilder& rb): nodes(allocator), succ(allocator), pred(allocator) {
   constexpr auto offset = 1 + STOP_ID;
 
   size_t const N = offset + rb.getNumRegions();
@@ -223,7 +224,7 @@ struct SCCAdapter {
   SCCAdapter(analysis::RegionGraph& g): g(g) {}
 };
 
-void structurizeRegions(std::pmr::polymorphic_allocator<> allocPool, std::pmr::memory_resource* tempPool, analysis::RegionGraph& regionGraph) {
+void structurizeRegions(util::checkpoint_resource& checkpoint_resource, analysis::RegionGraph& regionGraph) {
   std::stack<std::pair<analysis::regionid_t, analysis::regionid_t>> tasks;
   tasks.push({regionGraph.getStartId(), regionGraph.getStopId()});
 
@@ -231,27 +232,33 @@ void structurizeRegions(std::pmr::polymorphic_allocator<> allocPool, std::pmr::m
     auto const [startId, endId] = tasks.top();
     tasks.pop();
 
-    std::pmr::monotonic_buffer_resource checkpoint(tempPool);
     { // // detect loops
       // Note: Create one entry and exit node, entry is also the reentry point
       SCCAdapter adapter(regionGraph);
 
       // todo scc ranges
-      auto const sccs = compiler::analysis::SCCBuilder<SCCAdapter>(&checkpoint, adapter).calculate();
+      auto checkpoint = checkpoint_resource.checkpoint();
+
+      auto const sccs = compiler::analysis::SCCBuilder<SCCAdapter>(&checkpoint_resource, adapter).calculate();
       for (size_t n = 0; n < sccs.get().size(); ++n) {
         auto const& scc = sccs.get()[n];
 
-        analysis::regionid_t loopId   = regionGraph.createNode(analysis::LoopRegion());
-        auto&                loopNode = std::get<analysis::LoopRegion>(regionGraph.getNode(loopId));
+        analysis::regionid_t loopId = regionGraph.createNode<analysis::LoopRegion>();
 
-        loopNode.startId    = regionGraph.createNode(analysis::StartRegion());
-        loopNode.exitId     = regionGraph.createNode(analysis::StopRegion());
-        loopNode.continueId = regionGraph.createNode(analysis::StopRegion());
+        auto const startId = regionGraph.createNode<analysis::StartRegion>();
+        auto const exitId  = regionGraph.createNode<analysis::StopRegion>();
+        auto const contId  = regionGraph.createNode<analysis::StopRegion>();
+
+        {
+          auto& loopNode   = std::get<analysis::LoopRegion>(regionGraph.getNode(loopId));
+          loopNode.startId = startId;
+          loopNode.exitId  = exitId;
+          loopNode.contId  = contId;
+        }
 
         { // classify scc and add loop
-          std::pmr::monotonic_buffer_resource tempAllocator(&checkpoint);
 
-          auto const meta = compiler::analysis::classifySCC(&tempAllocator, adapter, scc);
+          auto const meta = compiler::analysis::classifySCC(&checkpoint_resource, adapter, scc);
 
           // link preds -> loop -> succs
           auto& preds = regionGraph.accessPredecessors(loopId);
@@ -296,11 +303,11 @@ void structurizeRegions(std::pmr::polymorphic_allocator<> allocPool, std::pmr::m
             auto& preds = regionGraph.accessPredecessors(bodyStartId);
             for (auto pred: preds) {
               if (meta.preds.contains(pred)) continue;
-              regionGraph.accessPredecessors(loopNode.continueId).push_back(pred);
+              regionGraph.accessPredecessors(contId).push_back(pred);
 
               for (auto& succ: regionGraph.accessSuccessors(pred)) {
                 if (succ == bodyStartId) {
-                  succ = loopNode.continueId;
+                  succ = contId;
                   break;
                 }
               }
@@ -309,8 +316,8 @@ void structurizeRegions(std::pmr::polymorphic_allocator<> allocPool, std::pmr::m
             preds.clear();
 
             // Connect with start
-            preds.push_back(loopNode.startId);
-            regionGraph.accessSuccessors(loopNode.startId).push_back(bodyStartId);
+            preds.push_back(startId);
+            regionGraph.accessSuccessors(startId).push_back(bodyStartId);
           }
 
           // Handle exits
@@ -324,10 +331,10 @@ void structurizeRegions(std::pmr::polymorphic_allocator<> allocPool, std::pmr::m
             auto& succs = regionGraph.accessSuccessors(bodyStopId);
             for (auto& succ: succs) {
               if (meta.succs.contains(succ)) {
-                succ = loopNode.exitId;
+                succ = exitId;
               }
             }
-            regionGraph.accessPredecessors(loopNode.exitId).push_back(bodyStopId);
+            regionGraph.accessPredecessors(exitId).push_back(bodyStopId);
           }
           // if (loopNode.startId != loopNode.stop) { // not a self loop
           //   // tasks.push({loopNode.start, loopNode.stop}); // todo scc start stop
@@ -355,7 +362,7 @@ static void dumpNodeHeader(std::ostream& os, const RegionNode& node) {
           os << "CondRegion{id=" << n.id.value << ", startTrue=" << n.startTrue.value << ", startFalse=" << n.startFalse.value << ", merge=" << n.mergeId.value
              << "}";
         } else if constexpr (std::is_same_v<T, LoopRegion>) {
-          os << "LoopRegion{id=" << n.id.value << ", start=" << n.startId.value << ", exit=" << n.exitId.value << ", continue=" << n.continueId.value << "}";
+          os << "LoopRegion{id=" << n.id.value << ", start=" << n.startId.value << ", exit=" << n.exitId.value << ", continue=" << n.contId.value << "}";
         }
       },
       node);
