@@ -90,6 +90,13 @@ class RegionBuilder {
 
   void dump(std::ostream& os, void* region) const;
 
+  inline void dumpAll(std::ostream& os) const {
+    os << "Regions dump:\n";
+    for (auto const& region: _regions) {
+      dump(os, (void*)&region);
+    }
+  }
+
   void for_each(auto cb) const {
     for (auto const& region: _regions) {
       cb(region.start, region.end, (void*)&region);
@@ -132,21 +139,21 @@ struct StopRegion {
 
 struct BasicRegion {
   regionid_t id;
-  region_t   start;
+  region_t   begin;
   region_t   end;
 };
 
 struct CondRegion {
   regionid_t id;
-  regionid_t trueRegion;
-  regionid_t falseRegion;
+  regionid_t startTrue, startFalse; //< Subgraph start nodes per branch
+  regionid_t mergeId;               ///< Subgraph branch merge node
 };
 
 struct LoopRegion {
   regionid_t id;
-  regionid_t header;
-  regionid_t body;
-  regionid_t exit;
+  regionid_t startId;    ///< Subgraph start node
+  regionid_t exitId;     ///< Subgraph Loop exit node
+  regionid_t continueId; ///< Subgraph Loop continue node (break back to start )
 };
 
 using RegionNode = std::variant<StartRegion, StopRegion, BasicRegion, CondRegion, LoopRegion>;
@@ -168,9 +175,9 @@ class RegionGraph {
 
   size_t getNodeCount() const { return nodes.size(); }
 
-  std::span<regionid_t> accessSuccessors(regionid_t idx) { return succ[idx.value]; }
+  auto& accessSuccessors(regionid_t idx) { return succ[idx.value]; }
 
-  std::span<regionid_t> accessPredecessors(regionid_t idx) { return pred[idx.value]; }
+  auto& accessPredecessors(regionid_t idx) { return pred[idx.value]; }
 
   std::span<const regionid_t> getSuccessors(regionid_t idx) const { return succ[idx.value]; }
 
@@ -183,6 +190,21 @@ class RegionGraph {
   const RegionNode& getNode(regionid_t id) const { return nodes[id.value]; }
 
   RegionNode& getNode(regionid_t id) { return nodes[id.value]; }
+
+  regionid_t createNode(RegionNode&& node) {
+    auto const id = regionid_t((uint32_t)nodes.size());
+
+    auto& item = nodes.emplace_back(std::move(node));
+    std::visit([id](auto& region) { region.id = id; }, item);
+
+    succ.emplace_back();
+    pred.emplace_back();
+
+    return id;
+  }
 };
 
+void structurizeRegions(std::pmr::polymorphic_allocator<> allocPool, std::pmr::memory_resource* tempPool, analysis::RegionGraph& regionGraph);
+
+void dump(std::ostream& os, const compiler::frontend::analysis::RegionGraph& g);
 } // namespace compiler::frontend::analysis

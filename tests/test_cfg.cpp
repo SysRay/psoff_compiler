@@ -40,12 +40,35 @@ TEST(ControlflowTransform, DiamondGraph) {
   compiler::frontend::analysis::RegionBuilder builder(50, allocator);
 
   builder.addCondJump(9, 20);
-  builder.addCondJump(24, 40);
 
   compiler::frontend::analysis::RegionGraph regionGraph(allocator, builder);
 
   auto cfg = compiler::frontend::transform::transformRegions(allocator, &tempResource, regionGraph);
   cfg.dump(std::cout);
+}
+
+TEST(ControlflowTransform, SimpleLoop) {
+  //   0
+  //  / \
+  // 1   2 -> 0
+  //  \
+  //   3
+
+  std::pmr::monotonic_buffer_resource resource;
+  std::pmr::polymorphic_allocator<>   allocator {&resource};
+
+  std::pmr::monotonic_buffer_resource tempResource;
+
+  compiler::frontend::analysis::RegionBuilder builder(50, allocator);
+
+  builder.addCondJump(9, 20);
+  builder.addJump(19, 5);
+  builder.dumpAll(std::cout);
+
+  compiler::frontend::analysis::RegionGraph regionGraph(allocator, builder);
+  dump(std::cout, regionGraph);
+  compiler::frontend::analysis::structurizeRegions(allocator, &tempResource, regionGraph);
+  dump(std::cout, regionGraph);
 }
 
 // TEST(ControlflowTransform, DiamondGraph) {

@@ -13,7 +13,7 @@
 struct MockRegionBuilder {
   std::vector<fixed_containers::FixedVector<int32_t, 2>> edges;
 
-  int32_t getNumRegions() const { return static_cast<int32_t>(edges.size()); }
+  int32_t size() const { return static_cast<int32_t>(edges.size()); }
 
   auto getSuccessors(uint32_t idx) const { return edges[idx]; }
 
@@ -45,8 +45,8 @@ TEST(SCCBuilderTest, DetectsSelf) {
     auto const& nodes = result.get()[0];
 
     std::pmr::monotonic_buffer_resource checkpoint(&pool);
-    compiler::analysis::SCCMeta         meta(&pool);
-    compiler::analysis::classifySCC(&pool, regions, nodes, meta);
+
+    auto meta = compiler::analysis::classifySCC(&pool, regions, nodes);
 
     compiler::analysis::debug::dump(std::cout, meta);
   }
@@ -67,8 +67,8 @@ TEST(SCCBuilderTest, DetectsNoExit) {
     auto const& nodes = result.get()[0];
 
     std::pmr::monotonic_buffer_resource checkpoint(&pool);
-    compiler::analysis::SCCMeta         meta(&pool);
-    compiler::analysis::classifySCC(&pool, regions, nodes, meta);
+
+    auto meta = compiler::analysis::classifySCC(&pool, regions, nodes);
 
     compiler::analysis::debug::dump(std::cout, meta);
   }
@@ -89,8 +89,8 @@ TEST(SCCBuilderTest, DetectsNoStart) {
     auto const& nodes = result.get()[0];
 
     std::pmr::monotonic_buffer_resource checkpoint(&pool);
-    compiler::analysis::SCCMeta         meta(&pool);
-    compiler::analysis::classifySCC(&pool, regions, nodes, meta);
+
+    auto meta = compiler::analysis::classifySCC(&pool, regions, nodes);
 
     compiler::analysis::debug::dump(std::cout, meta);
   }
@@ -111,8 +111,8 @@ TEST(SCCBuilderTest, DetectsSimpleLoopHead) {
     auto const& nodes = result.get()[0];
 
     std::pmr::monotonic_buffer_resource checkpoint(&pool);
-    compiler::analysis::SCCMeta         meta(&pool);
-    compiler::analysis::classifySCC(&pool, regions, nodes, meta);
+
+    auto meta = compiler::analysis::classifySCC(&pool, regions, nodes);
 
     compiler::analysis::debug::dump(std::cout, meta);
   }
@@ -133,8 +133,8 @@ TEST(SCCBuilderTest, DetectsSimpleLoopTail) {
     auto const& nodes = result.get()[0];
 
     std::pmr::monotonic_buffer_resource checkpoint(&pool);
-    compiler::analysis::SCCMeta         meta(&pool);
-    compiler::analysis::classifySCC(&pool, regions, nodes, meta);
+
+    auto meta = compiler::analysis::classifySCC(&pool, regions, nodes);
 
     compiler::analysis::debug::dump(std::cout, meta);
   }
@@ -158,8 +158,8 @@ TEST(SCCBuilderTest, DetectsNestedLoops) {
 
   for (auto const& nodes: result.get()) {
     std::pmr::monotonic_buffer_resource checkpoint(&pool);
-    compiler::analysis::SCCMeta         meta(&pool);
-    compiler::analysis::classifySCC(&pool, regions, nodes, meta);
+
+    auto meta = compiler::analysis::classifySCC(&pool, regions, nodes);
 
     compiler::analysis::debug::dump(std::cout, meta);
   }
@@ -181,8 +181,8 @@ TEST(SCCBuilderTest, DetectsMultipeLoops) {
     auto const& nodes = result.get()[0];
 
     std::pmr::monotonic_buffer_resource checkpoint(&pool);
-    compiler::analysis::SCCMeta         meta(&pool);
-    compiler::analysis::classifySCC(&pool, regions, nodes, meta);
+
+    auto meta = compiler::analysis::classifySCC(&pool, regions, nodes);
 
     compiler::analysis::debug::dump(std::cout, meta);
   }

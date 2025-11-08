@@ -13,14 +13,17 @@ void dump(std::ostream& os, SCC const& sccs) {
 }
 
 void dump(std::ostream& os, SCCMeta const& meta) {
-  os << "Entries: {";
+  os << "Preds: {";
+  for (auto u: meta.preds)
+    os << u << ",";
+  os << "} Entries: {";
   for (auto e: meta.entries)
     os << e << ' ';
   os << "} Exits: {";
   for (auto e: meta.exits)
     os << e << ' ';
-  os << "} Repetitions: {";
-  for (auto u: meta.body)
+  os << "} Succs: {";
+  for (auto u: meta.succs)
     os << u << ",";
   os << "}\n";
 }

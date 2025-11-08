@@ -1,16 +1,19 @@
 #include "regions.h"
 
 #include "analysis.h"
+#include "analysis/dom.h"
+#include "analysis/scc.h"
 #include "builder.h"
 #include "frontend/ir_types.h"
 #include "ir/debug_strings.h"
 #include "ir/instructions.h"
 
-#include <algorithm>
 #include <iostream>
 #include <optional>
 #include <set>
 #include <span>
+#include <stack>
+#include <unordered_set>
 
 namespace compiler::frontend::analysis {
 void RegionBuilder::addReturn(region_t from) {
@@ -165,17 +168,23 @@ bool createRegions(std::pmr::polymorphic_allocator<> allocator, std::span<ir::In
 }
 
 RegionGraph::RegionGraph(std::pmr::polymorphic_allocator<> alloc, const RegionBuilder& rb): nodes(alloc), succ(alloc), pred(alloc) {
-  size_t const N = 2 + rb.getNumRegions();
+  constexpr auto offset = 1 + STOP_ID;
+
+  size_t const N = offset + rb.getNumRegions();
   nodes.reserve(N);
   succ.resize(N);
   pred.resize(N);
 
   nodes.emplace_back(StartRegion {START_ID});
   nodes.emplace_back(StopRegion {STOP_ID});
+  if (N == offset) return; // no nodes
+
+  // Connect with start
+  accessSuccessors(START_ID).push_back(regionid_t {offset});
+  accessPredecessors(regionid_t {offset}).push_back(START_ID);
 
   // Create BasicRegion nodes from RegionBuilder
   // Note: offset id by 1+STOP_ID
-  constexpr auto offset = 1 + STOP_ID;
 
   for (regionid_t i {0}; i.value < N - offset; ++i.value) {
     auto const id = regionid_t {offset + i.value};
@@ -184,11 +193,248 @@ RegionGraph::RegionGraph(std::pmr::polymorphic_allocator<> alloc, const RegionBu
     nodes.emplace_back(BasicRegion {id, start, end});
 
     auto successors = rb.getSuccessorsIdx(i);
-    for (auto const& sid_: successors) {
-      auto const sid = regionid_t {offset + sid_.value};
-      succ[id].push_back(sid);
-      pred[sid.value].push_back(id);
+    if (successors.empty()) {
+      // Connect with stop
+      accessSuccessors(id).push_back(STOP_ID);
+      accessPredecessors(STOP_ID).push_back(id);
+    } else {
+      for (auto const& sid_: successors) {
+        auto const sid = regionid_t {offset + sid_.value};
+        succ[id].push_back(sid);
+        pred[sid.value].push_back(id);
+      }
     }
   }
+}
+
+struct SCCAdapter {
+  const frontend::analysis::RegionGraph& g;
+
+  auto getSuccessors(uint32_t idx) const {
+    return g.getSuccessors(analysis::regionid_t {idx}) | std::views::transform([](auto id) { return id.value; });
+  }
+
+  auto getPredecessors(uint32_t idx) const {
+    return g.getPredecessors(analysis::regionid_t {idx}) | std::views::transform([](auto id) { return id.value; });
+  }
+
+  size_t size() const { return g.getNodeCount(); }
+
+  SCCAdapter(analysis::RegionGraph& g): g(g) {}
+};
+
+void structurizeRegions(std::pmr::polymorphic_allocator<> allocPool, std::pmr::memory_resource* tempPool, analysis::RegionGraph& regionGraph) {
+  std::stack<std::pair<analysis::regionid_t, analysis::regionid_t>> tasks;
+  tasks.push({regionGraph.getStartId(), regionGraph.getStopId()});
+
+  while (!tasks.empty()) {
+    auto const [startId, endId] = tasks.top();
+    tasks.pop();
+
+    std::pmr::monotonic_buffer_resource checkpoint(tempPool);
+    { // // detect loops
+      // Note: Create one entry and exit node, entry is also the reentry point
+      SCCAdapter adapter(regionGraph);
+
+      // todo scc ranges
+      auto const sccs = compiler::analysis::SCCBuilder<SCCAdapter>(&checkpoint, adapter).calculate();
+      for (size_t n = 0; n < sccs.get().size(); ++n) {
+        auto const& scc = sccs.get()[n];
+
+        analysis::regionid_t loopId   = regionGraph.createNode(analysis::LoopRegion());
+        auto&                loopNode = std::get<analysis::LoopRegion>(regionGraph.getNode(loopId));
+
+        loopNode.startId    = regionGraph.createNode(analysis::StartRegion());
+        loopNode.exitId     = regionGraph.createNode(analysis::StopRegion());
+        loopNode.continueId = regionGraph.createNode(analysis::StopRegion());
+
+        { // classify scc and add loop
+          std::pmr::monotonic_buffer_resource tempAllocator(&checkpoint);
+
+          auto const meta = compiler::analysis::classifySCC(&tempAllocator, adapter, scc);
+
+          // link preds -> loop -> succs
+          auto& preds = regionGraph.accessPredecessors(loopId);
+          for (auto item: meta.preds) {
+            preds.push_back(analysis::regionid_t(item));
+          }
+          auto& succs = regionGraph.accessSuccessors(loopId);
+          for (auto item: meta.succs) {
+            succs.push_back(analysis::regionid_t(item));
+          }
+
+          // link pred <- loop
+          for (auto pred: regionGraph.accessPredecessors(loopId)) {
+            for (auto& succ: regionGraph.accessSuccessors(pred)) {
+              if (meta.entries.contains(succ)) {
+                succ = loopId;
+                break;
+              }
+            }
+          }
+
+          // link loop <- succs
+          for (auto succ: regionGraph.accessSuccessors(loopId)) {
+            for (auto& pred: regionGraph.accessPredecessors(succ)) {
+              if (meta.exits.contains(pred)) {
+                pred = loopId;
+                break;
+              }
+            }
+          }
+          // -
+
+          // Handle entries
+          if (meta.entries.size() > 1) {
+            // Needs restructure (q)
+            // auto const newEntry = regions.createRegion(0,0);
+            throw std::runtime_error("todo multiple loop entries");
+          } else if (!meta.entries.empty()) {
+            analysis::regionid_t bodyStartId = analysis::regionid_t(*meta.entries.begin());
+
+            // set continue node
+            auto& preds = regionGraph.accessPredecessors(bodyStartId);
+            for (auto pred: preds) {
+              if (meta.preds.contains(pred)) continue;
+              regionGraph.accessPredecessors(loopNode.continueId).push_back(pred);
+
+              for (auto& succ: regionGraph.accessSuccessors(pred)) {
+                if (succ == bodyStartId) {
+                  succ = loopNode.continueId;
+                  break;
+                }
+              }
+              break;
+            }
+            preds.clear();
+
+            // Connect with start
+            preds.push_back(loopNode.startId);
+            regionGraph.accessSuccessors(loopNode.startId).push_back(bodyStartId);
+          }
+
+          // Handle exits
+          if (meta.exits.size() > 1) {
+            // Needs restructure (r)
+            throw std::runtime_error("todo multiple loop exits");
+          } else if (!meta.exits.empty()) {
+            analysis::regionid_t bodyStopId = analysis::regionid_t(*meta.exits.begin());
+
+            // set exit node
+            auto& succs = regionGraph.accessSuccessors(bodyStopId);
+            for (auto& succ: succs) {
+              if (meta.succs.contains(succ)) {
+                succ = loopNode.exitId;
+              }
+            }
+            regionGraph.accessPredecessors(loopNode.exitId).push_back(bodyStopId);
+          }
+          // if (loopNode.startId != loopNode.stop) { // not a self loop
+          //   // tasks.push({loopNode.start, loopNode.stop}); // todo scc start stop
+          // }
+        }
+      }
+    } // - detect loops
+
+    { // // detect conditions
+    } // - detect conditions
+  }
+}
+
+static void dumpNodeHeader(std::ostream& os, const RegionNode& node) {
+  std::visit(
+      [&](auto const& n) {
+        using T = std::decay_t<decltype(n)>;
+        if constexpr (std::is_same_v<T, StartRegion>) {
+          os << "StartRegion{id=" << n.id.value << "}";
+        } else if constexpr (std::is_same_v<T, StopRegion>) {
+          os << "StopRegion{id=" << n.id.value << "}";
+        } else if constexpr (std::is_same_v<T, BasicRegion>) {
+          os << "BasicRegion{id=" << n.id.value << ", begin=" << n.begin << ", end=" << n.end << "}";
+        } else if constexpr (std::is_same_v<T, CondRegion>) {
+          os << "CondRegion{id=" << n.id.value << ", startTrue=" << n.startTrue.value << ", startFalse=" << n.startFalse.value << ", merge=" << n.mergeId.value
+             << "}";
+        } else if constexpr (std::is_same_v<T, LoopRegion>) {
+          os << "LoopRegion{id=" << n.id.value << ", start=" << n.startId.value << ", exit=" << n.exitId.value << ", continue=" << n.continueId.value << "}";
+        }
+      },
+      node);
+}
+
+void printIndent(std::ostream& os, int indent) {
+  for (int i = 0; i < indent; ++i)
+    os << "  ";
+}
+
+static void dumpSuccPred(std::ostream& os, const RegionGraph& g, regionid_t id, int indent) {
+  printIndent(os, indent);
+  os << "succ: ";
+  auto succ = g.getSuccessors(id);
+  if (succ.empty())
+    os << "(none)";
+  else
+    for (auto s: succ)
+      os << s.value << " ";
+  os << "\n";
+
+  printIndent(os, indent);
+  os << "pred: ";
+  auto pred = g.getPredecessors(id);
+  if (pred.empty())
+    os << "(none)";
+  else
+    for (auto p: pred)
+      os << p.value << " ";
+  os << "\n";
+}
+
+static void dumpSubgraph(std::ostream& os, const RegionGraph& g, regionid_t id, regionid_t stop, std::unordered_set<uint32_t>& visited, int indent) {
+  if (visited.contains(id.value) || id == NO_REGION) return;
+
+  visited.insert(id.value);
+  const auto& node = g.getNode(id);
+
+  // Node header
+  printIndent(os, indent);
+  dumpNodeHeader(os, node);
+  os << "\n";
+
+  // Print succ/pred
+  dumpSuccPred(os, g, id, indent + 1);
+
+  if (id.value == stop.value) return;
+
+  // Structural recursion only when needed
+  std::visit(
+      [&](auto const& n) {
+        using T = std::decay_t<decltype(n)>;
+
+        if constexpr (std::is_same_v<T, LoopRegion>) {
+          os << std::string(indent + 1, ' ') << "{\n";
+          dumpSubgraph(os, g, n.startId, n.exitId, visited, indent + 2);
+          os << std::string(indent + 1, ' ') << "}\n";
+        } else if constexpr (std::is_same_v<T, CondRegion>) {
+          os << std::string(indent + 1, ' ') << "True:{\n";
+          dumpSubgraph(os, g, n.startTrue, n.mergeId, visited, indent + 2);
+          os << std::string(indent + 1, ' ') << "}\n";
+          printIndent(os, indent + 1);
+
+          os << std::string(indent + 1, ' ') << "False:{\n";
+          dumpSubgraph(os, g, n.startFalse, n.mergeId, visited, indent + 2);
+          os << std::string(indent + 1, ' ') << "}\n";
+        }
+      },
+      node);
+
+  // Continue linear chain only if it's linear
+  for (auto succ: g.getSuccessors(id)) {
+    dumpSubgraph(os, g, succ, stop, visited, indent);
+  }
+}
+
+void dump(std::ostream& os, const RegionGraph& g) {
+  os << "RegionGraph Structure:\n";
+  std::unordered_set<uint32_t> visited;
+  dumpSubgraph(os, g, g.getStartId(), g.getStopId(), visited, 0);
 }
 } // namespace compiler::frontend::analysis

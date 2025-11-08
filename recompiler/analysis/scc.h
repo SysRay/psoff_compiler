@@ -21,22 +21,22 @@ struct SCC {
 };
 
 template <typename T>
-concept RegionBuilderConcept = requires(T a, uint32_t idx) {
-  { a.getNumRegions() } -> std::convertible_to<uint32_t>;
+concept SCCBuilderConcept = requires(T a, uint32_t idx) {
+  { a.size() } -> std::convertible_to<size_t>;
   { a.getSuccessors(idx) } -> std::ranges::range;
   { a.getPredecessors(idx) } -> std::ranges::range;
 };
 
-template <RegionBuilderConcept Regions>
+template <SCCBuilderConcept Graph>
 class SCCBuilder {
   public:
-  SCCBuilder(std::pmr::polymorphic_allocator<> alloc, Regions const& regions)
-      : _allocator(alloc), _regions(regions), _state(regions.getNumRegions(), TarjanState {}, alloc), _stack(alloc), _regionsOut(alloc) {
-    _regionsOut.nodes.reserve(regions.getNumRegions());
+  SCCBuilder(std::pmr::polymorphic_allocator<> alloc, Graph const& graph)
+      : _allocator(alloc), _graph(graph), _state(graph.size(), TarjanState {}, alloc), _stack(alloc), _regionsOut(alloc) {
+    _regionsOut.nodes.reserve(graph.size());
   }
 
   SCC calculate() {
-    for (int32_t i = 0; i < _regions.getNumRegions(); ++i)
+    for (int32_t i = 0; i < _graph.size(); ++i)
       if (_state[i].index == -1) strongConnect(i);
     return std::move(_regionsOut);
   }
@@ -54,7 +54,7 @@ class SCCBuilder {
     _stack.push_back(v);
     s.onStack = true;
 
-    for (auto w: _regions.getSuccessors(v)) {
+    for (auto w: _graph.getSuccessors(v)) {
       auto& t = _state[w];
 
       if (w == v) { // detect self-loop immediately
@@ -89,7 +89,7 @@ class SCCBuilder {
   }
 
   std::pmr::polymorphic_allocator<> _allocator;
-  Regions const&                    _regions;
+  Graph const&                      _graph;
 
   std::pmr::vector<TarjanState> _state;
   std::pmr::vector<scc_node_t>  _stack;
@@ -100,32 +100,36 @@ class SCCBuilder {
 struct SCCMeta {
   std::pmr::set<scc_node_t> entries; ///< nodes that are entered from outside the scc
   std::pmr::set<scc_node_t> exits;   ///< nodes that leave the scc
-  std::pmr::set<scc_node_t> body;    ///< vertex inside the scc
 
-  SCCMeta(std::pmr::polymorphic_allocator<> alloc): entries(alloc), exits(alloc), body(alloc) {}
+  std::pmr::set<scc_node_t> preds; ///< nodes exits successors outside scc
+  std::pmr::set<scc_node_t> succs; ///< nodes exits successors outside scc
+
+  SCCMeta(std::pmr::polymorphic_allocator<> alloc): entries(alloc), exits(alloc), preds(alloc), succs(alloc) {}
 };
 
-template <RegionBuilderConcept Regions>
-void classifySCC(std::pmr::polymorphic_allocator<> alloc, Regions const& regions, scc_nodes_t const& nodes, SCCMeta& out) {
+template <SCCBuilderConcept Graph>
+SCCMeta const classifySCC(std::pmr::polymorphic_allocator<> alloc, Graph const& graph, scc_nodes_t const& nodes) {
+  SCCMeta out(alloc);
   for (scc_node_t node: nodes) {
     // Check successors for exits and repetitions
-    for (scc_node_t succ: regions.getSuccessors(node)) {
+    for (scc_node_t succ: graph.getSuccessors(node)) {
       if (nodes.contains(succ)) {
-        // Edge stays inside SCC
-        out.body.emplace(node);
-      } else {
-        // Edge leaves SCC -> node is exit
+        // out.body.emplace(node); // Edge stays inside SCC
+      } else { // Edge leaves SCC -> node is exit
         out.exits.insert(node);
+        out.succs.insert(succ);
       }
     }
 
     // Check predecessors for entries
-    for (auto pred: regions.getPredecessors(node)) {
+    for (auto pred: graph.getPredecessors(node)) {
       if (!nodes.contains(pred)) {
         // Incoming edge from outside SCC -> node is entry
+        out.preds.insert(pred);
         out.entries.insert(node);
       }
     }
   }
+  return out;
 }
 } // namespace compiler::analysis
