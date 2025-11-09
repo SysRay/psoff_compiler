@@ -26,6 +26,34 @@
 //   EXPECT_EQ(dom.get_idom(3), 2u);
 // }
 
+namespace {
+using namespace compiler::frontend::analysis;
+
+static void testGraph(std::span<RegionNode const> expected, RegionGraph const& regionGraph, regionid_t startId) {
+  auto curId = startId;
+  for (uint32_t i = 0; i < expected.size(); ++i) {
+    auto const& actualNode   = regionGraph.getNode(curId);
+    const auto& expectedNode = expected[i];
+
+    // Check matching *type*
+    ASSERT_EQ(actualNode.index(), expectedNode.index()) << "Node " << i << " type mismatch";
+
+    // If BasicRegion → validate begin/end
+    if (std::holds_alternative<BasicRegion>(expectedNode)) {
+      const auto& exp = std::get<BasicRegion>(expectedNode);
+      const auto& act = std::get<BasicRegion>(actualNode);
+      EXPECT_EQ(act.begin, exp.begin) << "BasicRegion.begin mismatch at node " << i;
+      EXPECT_EQ(act.end, exp.end) << "BasicRegion.end mismatch at node " << i;
+    }
+    if (!std::holds_alternative<StopRegion>(expectedNode)) {
+      auto succs = regionGraph.getSuccessors(curId);
+      curId      = *succs.begin();
+      EXPECT_EQ(succs.size(), 1);
+    }
+  }
+}
+} // namespace
+
 TEST(ControlflowTransform, DiamondGraph) {
   //   0
   //  / \
@@ -58,19 +86,85 @@ TEST(ControlflowTransform, SimpleLoop) {
   std::pmr::monotonic_buffer_resource resource;
   std::pmr::polymorphic_allocator<>   allocator {&resource};
 
-  compiler::frontend::analysis::RegionBuilder builder(50, allocator);
+  using namespace compiler::frontend::analysis;
+  RegionBuilder builder(50, allocator);
 
   builder.addCondJump(9, 20);
   builder.addJump(19, 5);
-  builder.dumpAll(std::cout);
 
-  compiler::frontend::analysis::RegionGraph regionGraph(allocator, builder);
-  dump(std::cout, regionGraph);
+  RegionGraph regionGraph(allocator, builder);
 
   std::array<uint8_t, 10000>          buffer;
   compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
-  compiler::frontend::analysis::structurizeRegions(tempResource, regionGraph);
+  structurizeRegions(tempResource, regionGraph);
   dump(std::cout, regionGraph);
+
+  std::vector<RegionNode> expected = {
+      StartRegion(), BasicRegion {.begin = 0, .end = 5}, LoopRegion(), BasicRegion {.begin = 20, .end = 50}, StopRegion(),
+  };
+
+  testGraph(expected, regionGraph, regionGraph.getStartId());
+  // todo test loop
+}
+
+TEST(ControlflowTransform, SimpleDoLoop) {
+  //   0
+  //   |
+  //   1
+  //   |
+  //   2
+  //  / \
+  // 3   1
+
+  std::pmr::monotonic_buffer_resource resource;
+  std::pmr::polymorphic_allocator<>   allocator {&resource};
+
+  using namespace compiler::frontend::analysis;
+  RegionBuilder builder(50, allocator);
+
+  builder.addCondJump(9, 5);
+
+  RegionGraph regionGraph(allocator, builder);
+
+  std::array<uint8_t, 10000>          buffer;
+  compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
+  structurizeRegions(tempResource, regionGraph);
+  dump(std::cout, regionGraph);
+
+  std::vector<RegionNode> expected = {
+      StartRegion(), BasicRegion {.begin = 0, .end = 5}, LoopRegion(), BasicRegion {.begin = 10, .end = 50}, StopRegion(),
+  };
+
+  testGraph(expected, regionGraph, regionGraph.getStartId());
+  // todo test loop
+}
+
+TEST(ControlflowTransform, MultipleSimpleLoops) {
+  std::pmr::monotonic_buffer_resource resource;
+  std::pmr::polymorphic_allocator<>   allocator {&resource};
+
+  using namespace compiler::frontend::analysis;
+  RegionBuilder builder(50, allocator);
+
+  builder.addCondJump(9, 20);
+  builder.addJump(19, 5);
+
+  builder.addCondJump(40, 30);
+
+  RegionGraph regionGraph(allocator, builder);
+
+  std::array<uint8_t, 10000>          buffer;
+  compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
+  structurizeRegions(tempResource, regionGraph);
+  dump(std::cout, regionGraph);
+
+  std::vector<RegionNode> expected = {
+      StartRegion(), BasicRegion {.begin = 0, .end = 5},   LoopRegion(), BasicRegion {.begin = 20, .end = 30},
+      LoopRegion(),  BasicRegion {.begin = 41, .end = 50}, StopRegion(),
+  };
+
+  testGraph(expected, regionGraph, regionGraph.getStartId());
+  // todo test loop
 }
 
 // TEST(ControlflowTransform, DiamondGraph) {
