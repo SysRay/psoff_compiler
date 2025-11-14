@@ -18,5 +18,5 @@ namespace compiler::frontend::transform {
  * @param tempPool
  * @param regions
  */
-ir::cfg::ControlFlow transformRegions(std::pmr::polymorphic_allocator<> allocPool, std::pmr::memory_resource* tempPool, analysis::RegionGraph& regionGraph);
+//void transformRegions(std::pmr::polymorphic_allocator<> allocPool, std::pmr::memory_resource* tempPool, analysis::RegionGraph& regionGraph);
 } // namespace compiler::frontend::transform

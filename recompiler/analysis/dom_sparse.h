@@ -19,7 +19,7 @@ template <typename T>
 concept SparseGraphConcept = requires(T a, uint32_t idx) {
   { a.getSuccessors(idx) } -> std::ranges::range;
   { a.getPredecessors(idx) } -> std::ranges::range;
-  { a.getNodeCount() } -> std::convertible_to<uint32_t>;
+  { a.size() } -> std::convertible_to<uint32_t>;
 };
 
 template <SparseGraphConcept Graph>
@@ -28,11 +28,15 @@ class DominatorTreeSparse {
   using node_t  = uint32_t;
   using alloc_t = std::pmr::polymorphic_allocator<>;
 
-  explicit DominatorTreeSparse(const Graph& g, node_t entry, alloc_t alloc = {})
+  explicit DominatorTreeSparse(alloc_t alloc = {})
       : alloc_(alloc),
         node_to_dfs_(/*bucket count*/ 0, std::hash<node_t> {}, std::equal_to<node_t> {},
-                     std::pmr::polymorphic_allocator<std::pair<const node_t, int>>(alloc_)) {
-    build(g, entry);
+                     std::pmr::polymorphic_allocator<std::pair<const node_t, int>>(alloc_)) {}
+
+  inline void calculate(const Graph& g, node_t exit) {
+    if (build_) return;
+    build_ = true;
+    build(g, exit);
   }
 
   // Returns immediate dominator of `n` if exists; entry has no idom (returns std::nullopt).
@@ -62,6 +66,7 @@ class DominatorTreeSparse {
   }
 
   private:
+  bool    build_ = false;
   alloc_t alloc_;
 
   // map node id -> dfs number (1..N)
@@ -255,10 +260,14 @@ class PostDominatorTreeSparse {
   using node_t  = uint32_t;
   using alloc_t = std::pmr::polymorphic_allocator<>;
 
-  explicit PostDominatorTreeSparse(const Graph& g, node_t exit, alloc_t alloc = {})
+  explicit PostDominatorTreeSparse(alloc_t alloc = {})
       : alloc_(alloc),
         node_to_dfs_(/*bucket count*/ 0, std::hash<node_t> {}, std::equal_to<node_t> {},
-                     std::pmr::polymorphic_allocator<std::pair<const node_t, int>>(alloc_)) {
+                     std::pmr::polymorphic_allocator<std::pair<const node_t, int>>(alloc_)) {}
+
+  inline void calculate(const Graph& g, node_t exit) {
+    if (build_) return;
+    build_ = true;
     build(g, exit);
   }
 
@@ -289,6 +298,7 @@ class PostDominatorTreeSparse {
   }
 
   private:
+  bool    build_ = false;
   alloc_t alloc_;
 
   // map node id -> dfs number (1..N)

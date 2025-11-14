@@ -17,10 +17,10 @@ void dump(std::ostream& os, SCCMeta const& meta) {
   for (auto u: meta.preds)
     os << u << ",";
   os << "} Entries: {";
-  for (auto e: meta.entries)
+  for (auto e: meta.incoming)
     os << e << ' ';
   os << "} Exits: {";
-  for (auto e: meta.exits)
+  for (auto e: meta.outgoing)
     os << e << ' ';
   os << "} Succs: {";
   for (auto u: meta.succs)

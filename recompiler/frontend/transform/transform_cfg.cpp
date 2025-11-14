@@ -27,9 +27,7 @@ struct SCCAdapter {
   SCCAdapter(analysis::RegionGraph& g): g(g) {}
 };
 
-ir::cfg::ControlFlow transformRegions(std::pmr::polymorphic_allocator<> allocPool, std::pmr::memory_resource* tempPool, analysis::RegionGraph& regionGraph) {
-  ir::cfg::ControlFlow cfg(allocPool);
-
+void transformRegions(std::pmr::polymorphic_allocator<> allocPool, std::pmr::memory_resource* tempPool, analysis::RegionGraph& regionGraph) {
   // std::stack<std::pair<analysis::regionid_t, analysis::regionid_t>> tasks;
   // tasks.push({regionGraph.getStartId(), regionGraph.getStopId()});
 
@@ -208,8 +206,6 @@ ir::cfg::ControlFlow transformRegions(std::pmr::polymorphic_allocator<> allocPoo
   // // }
 
   // // // -
-
-  return cfg;
 }
 
 } // namespace compiler::frontend::transform

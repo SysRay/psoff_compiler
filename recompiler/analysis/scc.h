@@ -98,13 +98,13 @@ class SCCBuilder {
 };
 
 struct SCCMeta {
-  std::pmr::set<scc_node_t> entries; ///< nodes that are entered from outside the scc
-  std::pmr::set<scc_node_t> exits;   ///< nodes that leave the scc
+  std::pmr::set<scc_node_t> incoming; ///< preds outside → entry
+  std::pmr::set<scc_node_t> outgoing; ///< exit → succs outside
 
   std::pmr::set<scc_node_t> preds; ///< nodes exits successors outside scc
   std::pmr::set<scc_node_t> succs; ///< nodes exits successors outside scc
 
-  SCCMeta(std::pmr::polymorphic_allocator<> alloc): entries(alloc), exits(alloc), preds(alloc), succs(alloc) {}
+  SCCMeta(std::pmr::polymorphic_allocator<> alloc): incoming(alloc), outgoing(alloc), preds(alloc), succs(alloc) {}
 };
 
 template <SCCBuilderConcept Graph>
@@ -116,7 +116,7 @@ SCCMeta const classifySCC(std::pmr::polymorphic_allocator<> alloc, Graph const& 
       if (nodes.contains(succ)) {
         // out.body.emplace(node); // Edge stays inside SCC
       } else { // Edge leaves SCC -> node is exit
-        out.exits.insert(node);
+        out.outgoing.insert(node);
         out.succs.insert(succ);
       }
     }
@@ -126,7 +126,7 @@ SCCMeta const classifySCC(std::pmr::polymorphic_allocator<> alloc, Graph const& 
       if (!nodes.contains(pred)) {
         // Incoming edge from outside SCC -> node is entry
         out.preds.insert(pred);
-        out.entries.insert(node);
+        out.incoming.insert(node);
       }
     }
   }

@@ -54,26 +54,59 @@ static void testGraph(std::span<RegionNode const> expected, RegionGraph const& r
 }
 } // namespace
 
-TEST(ControlflowTransform, DiamondGraph) {
+TEST(ControlflowTransform, SimpleIf) {
   //   0
+  //   |
+  //   2
   //  / \
-  // 1   2
-  //  \ /
-  //   3
+  // 3 -> 4
+  //     /
+  //   1
+
+  using namespace compiler::frontend::analysis;
 
   std::pmr::monotonic_buffer_resource resource;
   std::pmr::polymorphic_allocator<>   allocator {&resource};
 
-  std::pmr::monotonic_buffer_resource tempResource;
-
-  compiler::frontend::analysis::RegionBuilder builder(50, allocator);
+  RegionBuilder builder(50, allocator);
 
   builder.addCondJump(9, 20);
 
-  compiler::frontend::analysis::RegionGraph regionGraph(allocator, builder);
+  RegionGraph regionGraph(allocator, builder);
+  dump(std::cout, regionGraph);
 
-  auto cfg = compiler::frontend::transform::transformRegions(allocator, &tempResource, regionGraph);
-  cfg.dump(std::cout);
+  std::array<uint8_t, 10000>          buffer;
+  compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
+  structurizeRegions(tempResource, regionGraph);
+  dump(std::cout, regionGraph);
+}
+
+TEST(ControlflowTransform, SimpleIfElse) {
+  //   0
+  //   |
+  //   1
+  //  / \
+  // 2   3
+  //  \ /
+  //   4
+
+  using namespace compiler::frontend::analysis;
+
+  std::pmr::monotonic_buffer_resource resource;
+  std::pmr::polymorphic_allocator<>   allocator {&resource};
+
+  RegionBuilder builder(50, allocator);
+
+  builder.addCondJump(9, 20);
+  builder.addJump(19, 40);
+
+  RegionGraph regionGraph(allocator, builder);
+  dump(std::cout, regionGraph);
+
+  std::array<uint8_t, 10000>          buffer;
+  compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
+  structurizeRegions(tempResource, regionGraph);
+  dump(std::cout, regionGraph);
 }
 
 TEST(ControlflowTransform, SimpleLoop) {

@@ -146,8 +146,8 @@ struct BasicRegion {
 
 struct CondRegion {
   regionid_t id;
-  regionid_t startTrue, startFalse; //< Subgraph start nodes per branch
-  regionid_t mergeId;               ///< Subgraph branch merge node
+  regionid_t b0, b1;  //< Subgraph start nodes per branch
+  regionid_t mergeId; ///< Subgraph branch merge node
 };
 
 struct LoopRegion {

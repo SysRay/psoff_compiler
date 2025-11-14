@@ -16,7 +16,7 @@ template <typename T>
 concept DenseGraphConcept = requires(T g, uint32_t idx) {
   { g.getSuccessors(idx) } -> std::ranges::range;
   { g.getPredecessors(idx) } -> std::ranges::range;
-  { g.getNodeCount() } -> std::convertible_to<uint32_t>;
+  { g.size() } -> std::convertible_to<uint32_t>;
   // IMPORTANT: node indices must be 0..N-1
 };
 
@@ -26,7 +26,13 @@ class DominatorTreeDense {
   using node_t  = uint32_t;
   using alloc_t = std::pmr::polymorphic_allocator<>;
 
-  explicit DominatorTreeDense(const Graph& g, node_t entry, alloc_t alloc = {}): alloc_(alloc) { build(g, entry); }
+  explicit DominatorTreeDense(alloc_t alloc = {}): alloc_(alloc) {}
+
+  inline void calculate(const Graph& g, node_t exit) {
+    if (build_) return;
+    build_ = true;
+    build(g, exit);
+  }
 
   std::optional<node_t> get_idom(node_t n) const {
     if (n >= node_to_dfs_.size()) return std::nullopt;
@@ -50,6 +56,7 @@ class DominatorTreeDense {
   }
 
   private:
+  bool    build_ = false;
   alloc_t alloc_;
 
   std::pmr::vector<int> node_to_dfs_; // size N, dfs number or 0 = not visited
@@ -77,7 +84,7 @@ class DominatorTreeDense {
   void link(int v, int w) { ancestor_[w] = v; }
 
   void build(const Graph& g, node_t entry) {
-    uint32_t Nnodes = g.getNodeCount();
+    uint32_t Nnodes = g.size();
     node_to_dfs_    = std::pmr::vector<int>(Nnodes, 0, alloc_);
 
     vertex_.clear();
@@ -181,7 +188,13 @@ class PostDominatorTreeDense {
   using node_t  = uint32_t;
   using alloc_t = std::pmr::polymorphic_allocator<>;
 
-  explicit PostDominatorTreeDense(const Graph& g, node_t exit, alloc_t alloc = {}): alloc_(alloc) { build(g, exit); }
+  explicit PostDominatorTreeDense(alloc_t alloc = {}): alloc_(alloc) {}
+
+  inline void calculate(const Graph& g, node_t exit) {
+    if (build_) return;
+    build_ = true;
+    build(g, exit);
+  }
 
   std::optional<node_t> get_ipdom(node_t n) const {
     if (n >= node_to_dfs_.size()) return std::nullopt;
@@ -205,6 +218,7 @@ class PostDominatorTreeDense {
   }
 
   private:
+  bool    build_ = false;
   alloc_t alloc_;
 
   std::pmr::vector<int> node_to_dfs_;
@@ -232,7 +246,7 @@ class PostDominatorTreeDense {
   void link(int v, int w) { ancestor_[w] = v; }
 
   void build(const Graph& g, node_t exit) {
-    uint32_t Nnodes = g.getNodeCount();
+    uint32_t Nnodes = g.size();
     node_to_dfs_    = std::pmr::vector<int>(Nnodes, 0, alloc_);
 
     vertex_.clear();

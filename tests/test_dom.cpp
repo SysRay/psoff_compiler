@@ -25,7 +25,7 @@ struct TestGraph {
 
   auto getPredecessors(uint32_t idx) const { return std::views::all(pred[idx]); }
 
-  auto getNodeCount() const { return succ.size(); }
+  auto size() const { return succ.size(); }
 };
 
 template <typename Graph>
@@ -47,9 +47,13 @@ class DominatorTreeTest: public ::testing::Test {
 
   auto createDomTree(TestGraph& g, size_t entry) {
     if constexpr (needs_allocator) {
-      return typename ImplWrapper::DomTree(g, entry, {&pool});
+      auto dom = typename ImplWrapper::DomTree(&pool);
+      dom.calculate(g, entry);
+      return dom;
     } else {
-      return typename ImplWrapper::DomTree(g, entry);
+      auto dom = typename ImplWrapper::DomTree();
+      dom.calculate(g, entry);
+      return dom;
     }
   }
 
@@ -115,9 +119,13 @@ class PostDominatorTreeTest: public ::testing::Test {
 
   auto createDomTree(TestGraph& g, size_t entry) {
     if constexpr (needs_allocator) {
-      return typename ImplWrapper::DomTree(g, entry, {&pool});
+      auto dom = typename ImplWrapper::DomTree({&pool});
+      dom.calculate(g, entry);
+      return dom;
     } else {
-      return typename ImplWrapper::DomTree(g, entry);
+      auto dom = typename ImplWrapper::DomTree();
+      dom.calculate(g, entry);
+      return dom;
     }
   }
 
