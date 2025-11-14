@@ -77,7 +77,7 @@ TEST(ControlflowTransform, SimpleIf) {
 
   std::array<uint8_t, 10000>          buffer;
   compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
-  structurizeRegions(tempResource, regionGraph);
+  compiler::frontend::transform::reconstructSCF(tempResource, regionGraph);
   dump(std::cout, regionGraph);
 }
 
@@ -105,7 +105,7 @@ TEST(ControlflowTransform, SimpleIfElse) {
 
   std::array<uint8_t, 10000>          buffer;
   compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
-  structurizeRegions(tempResource, regionGraph);
+  compiler::frontend::transform::reconstructSCF(tempResource, regionGraph);
   dump(std::cout, regionGraph);
 }
 
@@ -129,7 +129,7 @@ TEST(ControlflowTransform, SimpleLoop) {
 
   std::array<uint8_t, 10000>          buffer;
   compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
-  structurizeRegions(tempResource, regionGraph);
+  compiler::frontend::transform::reconstructSCF(tempResource, regionGraph);
   dump(std::cout, regionGraph);
 
   std::vector<RegionNode> expected = {
@@ -161,7 +161,7 @@ TEST(ControlflowTransform, SimpleDoLoop) {
 
   std::array<uint8_t, 10000>          buffer;
   compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
-  structurizeRegions(tempResource, regionGraph);
+  compiler::frontend::transform::reconstructSCF(tempResource, regionGraph);
   dump(std::cout, regionGraph);
 
   std::vector<RegionNode> expected = {
@@ -188,7 +188,7 @@ TEST(ControlflowTransform, MultipleSimpleLoops) {
 
   std::array<uint8_t, 10000>          buffer;
   compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
-  structurizeRegions(tempResource, regionGraph);
+  compiler::frontend::transform::reconstructSCF(tempResource, regionGraph);
   dump(std::cout, regionGraph);
 
   std::vector<RegionNode> expected = {

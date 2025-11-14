@@ -33,3 +33,8 @@ auto addUnique(Container& container, const T& value) -> typename Container::iter
     static_assert(HasPushBack<Container, T> || HasInsert<Container, T>, "Container must support push_back or insert");
   }
 }
+
+template <typename Container, typename T>
+bool contains(const Container& container, const T& value) {
+  return std::find(container.begin(), container.end(), value) != container.end();
+}

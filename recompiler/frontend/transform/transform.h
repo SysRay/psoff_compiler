@@ -1,5 +1,6 @@
 #pragma once
 
+#include "include/checkpoint_resource_fwd.h"
 #include "ir/cfg/types.h"
 
 #include <memory_resource>
@@ -18,5 +19,5 @@ namespace compiler::frontend::transform {
  * @param tempPool
  * @param regions
  */
-//void transformRegions(std::pmr::polymorphic_allocator<> allocPool, std::pmr::memory_resource* tempPool, analysis::RegionGraph& regionGraph);
+void reconstructSCF(util::checkpoint_resource& checkpoint_resource, analysis::RegionGraph& regionGraph);
 } // namespace compiler::frontend::transform

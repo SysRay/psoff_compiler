@@ -104,4 +104,3 @@ static void BM_RegionsBuilder_Calculate(benchmark::State& state) {
 }
 
 BENCHMARK(BM_RegionsBuilder_Calculate)->RangeMultiplier(2)->Range(60000, 120000)->MinWarmUpTime(0.05)->MinTime(1)->Unit(benchmark::kMillisecond);
-BENCHMARK_MAIN();

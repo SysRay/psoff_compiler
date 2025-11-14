@@ -35,9 +35,9 @@ class SCCBuilder {
     _regionsOut.nodes.reserve(graph.size());
   }
 
-  SCC calculate() {
-    for (int32_t i = 0; i < _graph.size(); ++i)
-      if (_state[i].index == -1) strongConnect(i);
+  SCC calculate(scc_node_t from) {
+    if (_state[from].index == -1) strongConnect(from);
+
     return std::move(_regionsOut);
   }
 

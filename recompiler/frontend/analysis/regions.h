@@ -1,7 +1,6 @@
 #pragma once
 
 #include "fixed_containers/fixed_vector.hpp"
-#include "include/checkpoint_resource_fwd.h"
 #include "ir/cfg/types.h"
 
 #include <array>
@@ -29,6 +28,17 @@ struct regionid_t {
 };
 
 inline constexpr regionid_t NO_REGION = regionid_t {UINT32_MAX};
+
+struct region_edge_t {
+  regionid_t from;
+  regionid_t to;
+
+  constexpr operator std::pair<regionid_t, regionid_t>() const { return {from, to}; }
+
+  constexpr bool operator==(const region_edge_t&) const = default;
+
+  region_edge_t(regionid_t from, regionid_t to): from(from), to(to) {}
+};
 
 class RegionBuilder {
 
@@ -205,8 +215,6 @@ class RegionGraph {
     return id;
   }
 };
-
-void structurizeRegions(util::checkpoint_resource& checkpoint_resource, analysis::RegionGraph& regionGraph);
 
 void dump(std::ostream& os, const compiler::frontend::analysis::RegionGraph& g);
 } // namespace compiler::frontend::analysis
