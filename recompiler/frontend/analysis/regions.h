@@ -8,6 +8,7 @@
 #include <functional>
 #include <memory_resource>
 #include <optional>
+#include <ostream>
 #include <span>
 #include <vector>
 
@@ -142,10 +143,12 @@ class RegionBuilder {
 
 struct StartRegion {
   regionid_t id;
+  regionid_t parent = NO_REGION;
 };
 
 struct StopRegion {
   regionid_t id;
+  regionid_t parent = NO_REGION;
 };
 
 struct BasicRegion {

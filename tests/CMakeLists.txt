@@ -15,7 +15,7 @@ add_executable(test_analysis
   test_scc.cpp
   test_regions.cpp
   test_dom.cpp
-  test_cfg.cpp
+  test_restructure_to_scf.cpp
   test_alloc.cpp
 )
 

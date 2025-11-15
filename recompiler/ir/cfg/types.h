@@ -1,156 +1,92 @@
 #pragma once
 
+#include "../ir.h"
+
 #include <assert.h>
-#include <cstdint>
-#include <ostream>
-#include <span>
-#include <string_view>
+#include <memory_resource>
 #include <variant>
 #include <vector>
 
 namespace compiler::ir::cfg {
 
-enum class NodeType : uint8_t { Block = 0, Cond, Loop };
-constexpr uint8_t NodeTypeSize = 3;
+namespace blocks {
+struct blockid_t {
+  using underlying_t = uint32_t;
 
-struct NodeId {
-  union {
-    struct {
-      uint16_t index : 14;
-      uint16_t type  : 2;
-    };
+  static inline constexpr blockid_t NO_VALUE() { return blockid_t(std::numeric_limits<blockid_t::underlying_t>::max()); };
 
-    uint16_t raw;
-  };
+  underlying_t value = NO_VALUE();
 
-  constexpr NodeId(uint16_t index, NodeType type): index(index), type((uint16_t)type) {}
+  constexpr blockid_t() = default;
 
-  constexpr NodeId(uint16_t raw): raw(raw) {}
+  constexpr explicit blockid_t(underlying_t v): value(v) {}
 
-  bool operator==(NodeId rhs) const { return index == rhs.index && type == rhs.type; }
+  constexpr operator underlying_t() const { return value; }
+
+  constexpr bool operator==(blockid_t const&) const = default;
+
+  constexpr bool isValid() const { return value != NO_VALUE().value; }
 };
 
-constexpr NodeId InvalidNode(0x3FF, NodeType::Block);
+struct block_edge_t {
+  blockid_t from;
+  blockid_t to;
 
-struct NodeBase {
-  NodeId prev = InvalidNode;
-  NodeId next = InvalidNode;
+  constexpr operator std::pair<blockid_t, blockid_t>() const { return {from, to}; }
 
-  NodeType type;
+  constexpr bool operator==(const block_edge_t&) const = default;
 
-  NodeBase(NodeType t): type(t) {}
+  block_edge_t(blockid_t from, blockid_t to): from(from), to(to) {}
 };
 
-struct NodeBlock: public NodeBase {
-  NodeBlock(): NodeBase(NodeType::Block) {}
+enum class eBlockType { Start, Stop, Basic, Loop, Cond };
+
+struct Base {
+  blockid_t  id = {};
+  eBlockType type;
+
+  Base(eBlockType type): type(type) {}
 };
 
-struct NodeCond: public NodeBase {
+struct StartBlock: public Base {
+  blockid_t parent = {};
 
-  NodeId ifBranchFront = InvalidNode, ifBranchBack = InvalidNode;
-  NodeId elseBranchFront = InvalidNode, elseBranchBack = InvalidNode;
-
-  NodeCond(): NodeBase(NodeType::Cond) {}
+  StartBlock(std::pmr::polymorphic_allocator<> allocator): Base(eBlockType::Start) {}
 };
 
-struct NodeLoop: public NodeBase {
-  NodeId header    = InvalidNode; ///< entry node
-  NodeId bodyFront = InvalidNode, bodyBack = InvalidNode;
+struct StopBlock: public Base {
+  blockid_t parent = {};
 
-  NodeLoop(): NodeBase(NodeType::Loop) {}
+  StopBlock(std::pmr::polymorphic_allocator<> allocator): Base(eBlockType::Stop) {}
 };
 
-class ControlFlow {
-  public:
-  ControlFlow(std::pmr::polymorphic_allocator<> allocator): _allocator(allocator), _nodesBlock(allocator), _nodesCond(allocator), _nodesLoop(allocator) {}
+struct BasicBlock: public Base {
+  uint32_t opbegin = {};
+  uint32_t opend   = {};
 
-  template <typename T, typename... Args>
-  requires(std::is_same_v<T, NodeBlock> || std::is_same_v<T, NodeCond> || std::is_same_v<T, NodeLoop>)
-  NodeId createNode(Args&&... args) {
-    if constexpr (std::is_same_v<T, NodeBlock>) {
-      auto& ref = _nodesBlock.emplace_back(std::forward<Args>(args)...);
-      return NodeId(_nodesBlock.size() - 1, NodeType::Block);
-    } else if constexpr (std::is_same_v<T, NodeCond>) {
-      auto& ref = _nodesCond.emplace_back(std::forward<Args>(args)...);
-      return NodeId(_nodesCond.size() - 1, NodeType::Cond);
-    } else if constexpr (std::is_same_v<T, NodeLoop>) {
-      auto& ref = _nodesLoop.emplace_back(std::forward<Args>(args)...);
-      return NodeId(_nodesLoop.size() - 1, NodeType::Loop);
-    }
-  }
-
-  auto getType(NodeId id) const { return static_cast<NodeType>(id.type); }
-
-  NodeBase& getBase(NodeId id) {
-    switch (static_cast<NodeType>(id.type)) {
-      case NodeType::Block: return _nodesBlock[id.index];
-      case NodeType::Cond: return _nodesCond[id.index];
-      case NodeType::Loop: return _nodesLoop[id.index];
-    }
-  }
-
-  template <typename T>
-  requires(std::is_same_v<T, NodeBlock> || std::is_same_v<T, NodeCond> || std::is_same_v<T, NodeLoop>)
-  auto& getNode(NodeId id) {
-    if constexpr (std::is_same_v<T, NodeBlock>) {
-      assert(getType(id) == NodeType::Block);
-    } else if constexpr (std::is_same_v<T, NodeCond>) {
-      assert(getType(id) == NodeType::Cond);
-    } else if constexpr (std::is_same_v<T, NodeLoop>) {
-      assert(getType(id) == NodeType::Loop);
-    }
-    return (T&)getBase(id);
-  }
-
-  inline void connect(NodeId parent, NodeId child) {
-    auto& parentBase = getBase(parent);
-    auto& childBase  = getBase(child);
-
-    parentBase.next = child;
-    childBase.prev  = parent;
-  }
-
-  void dump(std::ostream& os) {
-    auto cur = NodeId(0, NodeType::Block);
-    os << "{\n";
-    do {
-      auto& base = getBase(cur);
-
-      switch (base.type) {
-        case NodeType::Block: {
-          auto& node = getNode<NodeBlock>(cur);
-          os << "Block:" << cur.index;
-        } break;
-        case NodeType::Cond: {
-          auto& node = getNode<NodeCond>(cur);
-          os << "if(" << ") {\n";
-
-          os << "   }\n";
-
-          if (node.elseBranchFront != InvalidNode) {
-            os << "else(" << ") {\n";
-
-            os << "   }\n";
-          }
-        } break;
-        case NodeType::Loop: {
-          auto& node = getNode<NodeCond>(cur);
-          os << "while(" << ") {\n";
-
-          os << "   }\n";
-        } break;
-      }
-
-      cur = base.next;
-    } while (cur != InvalidNode);
-    os << "}\n";
-  }
-
-  private:
-  std::pmr::polymorphic_allocator<> _allocator;
-
-  std::pmr::vector<NodeBlock> _nodesBlock;
-  std::pmr::vector<NodeCond>  _nodesCond;
-  std::pmr::vector<NodeLoop>  _nodesLoop;
+  BasicBlock(std::pmr::polymorphic_allocator<> allocator): Base(eBlockType::Basic) {}
 };
+
+struct CondBlock: public Base {
+  blockid_t    mergeId   = {}; ///< Subgraph branch merge node
+  ir::InstCore predicate = {};
+
+  std::pmr::vector<blockid_t> branches; //< Subgraph start nodes per branch
+
+  CondBlock(std::pmr::polymorphic_allocator<> allocator, uint8_t numBranches = 2): Base(eBlockType::Cond), branches(numBranches, allocator) {}
+};
+
+struct LoopBlock: public Base {
+  blockid_t id       = {};
+  blockid_t headerId = {}; ///< Subgraph start node
+  blockid_t exitId   = {}; ///< Subgraph Loop exit node
+  blockid_t contId   = {}; ///< Subgraph Loop continue node (break back to start )
+
+  LoopBlock(std::pmr::polymorphic_allocator<> allocator): Base(eBlockType::Loop) {}
+};
+
+template <typename T>
+concept BlockConcept = std::derived_from<T, blocks::Base>;
+} // namespace blocks
+
 } // namespace compiler::ir::cfg

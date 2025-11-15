@@ -29,7 +29,7 @@ struct GraphAdapter {
   GraphAdapter(analysis::RegionGraph& g): g(g) {}
 };
 
-static void collapsCycles(util::checkpoint_resource& checkpoint_resource, analysis::RegionGraph& regionGraph, analysis::regionid_t startId,
+static void collapseCycles(util::checkpoint_resource& checkpoint_resource, analysis::RegionGraph& regionGraph, analysis::regionid_t startId,
                           analysis::regionid_t endIf) {
   // Find SCCs
   // find entry, exit and continue edges
@@ -59,7 +59,7 @@ static void collapsCycles(util::checkpoint_resource& checkpoint_resource, analys
       loopNode.exitId   = exitId;
       loopNode.contId   = contId;
     }
-    // todo nodes insertBefore, insertAfter
+    // todo nodes insertBefore, insertAfter, redirectEdge
     // todo replaceAllUsesWith
 
     if (sccEdges.entryEdges.size() > 1) {
@@ -72,7 +72,7 @@ static void collapsCycles(util::checkpoint_resource& checkpoint_resource, analys
   }
 }
 
-static void collapsBranches(util::checkpoint_resource& checkpoint_resource, analysis::RegionGraph& regionGraph, analysis::regionid_t startId,
+static void collapseBranches(util::checkpoint_resource& checkpoint_resource, analysis::RegionGraph& regionGraph, analysis::regionid_t startId,
                             analysis::regionid_t endIf) {
   auto checkpoint = checkpoint_resource.checkpoint();
 }
@@ -87,8 +87,8 @@ void reconstruct(util::checkpoint_resource& checkpoint_resource, analysis::Regio
     auto const [startId, endId] = tasks.back();
     tasks.pop_back();
 
-    collapsCycles(checkpoint_resource, regionGraph, startId, endId);
-    collapsBranches(checkpoint_resource, regionGraph, startId, endId);
+    collapseCycles(checkpoint_resource, regionGraph, startId, endId);
+    collapseBranches(checkpoint_resource, regionGraph, startId, endId);
 
     // { // // detect loops
     //   // // Turning CFG a DAG
