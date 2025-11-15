@@ -4,13 +4,13 @@
 #include <functional>
 #include <iostream>
 #include <memory_resource>
-#include <set>
 #include <span>
+#include <unordered_set>
 #include <vector>
 
 namespace compiler::analysis {
 using scc_node_t  = uint32_t;
-using scc_nodes_t = std::pmr::set<scc_node_t>;
+using scc_nodes_t = std::pmr::unordered_set<scc_node_t>;
 
 struct SCC {
   std::pmr::vector<scc_nodes_t> nodes;
@@ -98,38 +98,42 @@ class SCCBuilder {
 };
 
 struct SCCMeta {
-  std::pmr::set<scc_node_t> incoming; ///< preds outside → entry
-  std::pmr::set<scc_node_t> outgoing; ///< exit → succs outside
+  std::pmr::vector<std::pair<scc_node_t, scc_node_t>> entryEdges; ///< nodes outside into scc
+  std::pmr::vector<std::pair<scc_node_t, scc_node_t>> exitEdges;  ///< From inside the scc to outside node
+  std::pmr::vector<std::pair<scc_node_t, scc_node_t>> backEdges;  ///< continuation edge, node to entry
 
-  std::pmr::set<scc_node_t> preds; ///< nodes exits successors outside scc
-  std::pmr::set<scc_node_t> succs; ///< nodes exits successors outside scc
-
-  SCCMeta(std::pmr::polymorphic_allocator<> alloc): incoming(alloc), outgoing(alloc), preds(alloc), succs(alloc) {}
+  SCCMeta(std::pmr::polymorphic_allocator<> alloc): entryEdges(alloc), exitEdges(alloc), backEdges(alloc) {}
 };
 
 template <SCCBuilderConcept Graph>
-SCCMeta const classifySCC(std::pmr::polymorphic_allocator<> alloc, Graph const& graph, scc_nodes_t const& nodes) {
-  SCCMeta out(alloc);
-  for (scc_node_t node: nodes) {
+SCCMeta const classifySCC(std::pmr::polymorphic_allocator<> alloc, Graph const& graph, scc_nodes_t const& scc) {
+  SCCMeta                             result(alloc);
+  std::pmr::unordered_set<scc_node_t> entries(alloc);
+
+  for (scc_node_t node: scc) {
     // Check successors for exits and repetitions
+    // Edge leaves SCC -> node is exit
     for (scc_node_t succ: graph.getSuccessors(node)) {
-      if (nodes.contains(succ)) {
-        // out.body.emplace(node); // Edge stays inside SCC
-      } else { // Edge leaves SCC -> node is exit
-        out.outgoing.insert(node);
-        out.succs.insert(succ);
-      }
+      if (scc.contains(succ)) continue;
+      result.exitEdges.emplace_back(node, succ);
     }
 
     // Check predecessors for entries
+    // Incoming edge from outside SCC -> node is entry
     for (auto pred: graph.getPredecessors(node)) {
-      if (!nodes.contains(pred)) {
-        // Incoming edge from outside SCC -> node is entry
-        out.preds.insert(pred);
-        out.incoming.insert(node);
-      }
+      if (scc.contains(pred)) continue;
+      result.entryEdges.emplace_back(pred, node);
+      entries.insert(node);
     }
   }
-  return out;
+
+  // Find continue paths (edge to entry)
+  for (scc_node_t node: scc) {
+    for (scc_node_t succ: graph.getSuccessors(node)) {
+      if (!entries.contains(succ)) continue;
+      result.backEdges.emplace_back(node, succ);
+    }
+  }
+  return result;
 }
 } // namespace compiler::analysis

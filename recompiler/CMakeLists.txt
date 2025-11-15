@@ -20,7 +20,7 @@ add_library(psOff_recompiler STATIC
   frontend/analysis/regions.cpp
   frontend/analysis/evaluate.cpp
 
-  frontend/transform/cf_to_scf.cpp
+  frontend/transform/reconstruct.cpp
 
   frontend/parser/translate/ds.cpp
   frontend/parser/translate/exp.cpp

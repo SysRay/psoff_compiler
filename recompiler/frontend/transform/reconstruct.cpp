@@ -29,7 +29,7 @@ struct GraphAdapter {
   GraphAdapter(analysis::RegionGraph& g): g(g) {}
 };
 
-void reconstructSCF(util::checkpoint_resource& checkpoint_resource, analysis::RegionGraph& regionGraph) {
+void reconstruct(util::checkpoint_resource& checkpoint_resource, analysis::RegionGraph& regionGraph) {
   std::stack<std::pair<analysis::regionid_t, analysis::regionid_t>> tasks;
   tasks.push({regionGraph.getStartId(), regionGraph.getStopId()});
 

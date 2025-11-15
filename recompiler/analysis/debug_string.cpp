@@ -13,18 +13,15 @@ void dump(std::ostream& os, SCC const& sccs) {
 }
 
 void dump(std::ostream& os, SCCMeta const& meta) {
-  os << "Preds: {";
-  for (auto u: meta.preds)
-    os << u << ",";
-  os << "} Entries: {";
-  for (auto e: meta.incoming)
-    os << e << ' ';
+  os << "Entries: {";
+  for (auto [from,to]: meta.entryEdges)
+    os << from << "->" << to  << ' ';
   os << "} Exits: {";
-  for (auto e: meta.outgoing)
-    os << e << ' ';
-  os << "} Succs: {";
-  for (auto u: meta.succs)
-    os << u << ",";
+  for (auto [from,to]: meta.exitEdges)
+    os << from << "->" << to  << ' ';
+  os << "} continue: {";
+  for (auto [from,to]: meta.backEdges)
+    os << from << "->" << to  << ' ';
   os << "}\n";
 }
 } // namespace compiler::analysis::debug

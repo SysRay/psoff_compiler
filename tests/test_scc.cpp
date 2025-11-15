@@ -34,7 +34,31 @@ static bool containsComponent(compiler::analysis::SCC const& result, std::initia
   std::vector<int32_t> sortedExpected(expected);
   std::ranges::sort(sortedExpected);
 
-  return std::ranges::any_of(result.get(), [&](auto const& comp) { return std::ranges::equal(comp, sortedExpected); });
+  return std::ranges::any_of(result.nodes, [&](auto const& comp) {
+    std::vector<compiler::analysis::scc_node_t> sortedComp(comp.begin(), comp.end());
+    std::ranges::sort(sortedComp);
+    return std::ranges::equal(sortedComp, sortedExpected);
+  });
+}
+
+// Helper function to compare edge vectors
+bool containsEdge(const std::pmr::vector<std::pair<compiler::analysis::scc_node_t, compiler::analysis::scc_node_t>>& edges, compiler::analysis::scc_node_t from,
+                  compiler::analysis::scc_node_t to) {
+  return std::ranges::any_of(edges, [from, to](const auto& edge) { return edge.first == from && edge.second == to; });
+}
+
+// Helper to check if edge vectors are equal (order-independent)
+bool edgesEqual(const std::pmr::vector<std::pair<compiler::analysis::scc_node_t, compiler::analysis::scc_node_t>>& actual,
+                std::initializer_list<std::pair<compiler::analysis::scc_node_t, compiler::analysis::scc_node_t>>   expected) {
+  if (actual.size() != expected.size()) return false;
+
+  auto sortedActual   = std::vector(actual.begin(), actual.end());
+  auto sortedExpected = std::vector(expected);
+
+  std::ranges::sort(sortedActual);
+  std::ranges::sort(sortedExpected);
+
+  return std::ranges::equal(sortedActual, sortedExpected);
 }
 
 TEST(SCCBuilderTest, DetectsSelf) {
@@ -51,11 +75,15 @@ TEST(SCCBuilderTest, DetectsSelf) {
   {
     auto const& nodes = result.get()[0];
 
-    std::pmr::monotonic_buffer_resource checkpoint(&pool);
-
     auto meta = compiler::analysis::classifySCC(&pool, regions, nodes);
 
-    compiler::analysis::debug::dump(std::cout, meta);
+    EXPECT_EQ(meta.entryEdges.size(), 1);
+    EXPECT_EQ(meta.backEdges.size(), 1);
+    EXPECT_EQ(meta.exitEdges.size(), 1);
+
+    EXPECT_TRUE(containsEdge(meta.entryEdges, 0, 1));
+    EXPECT_TRUE(containsEdge(meta.backEdges, 1, 1));
+    EXPECT_TRUE(containsEdge(meta.exitEdges, 1, 2));
   }
 }
 
@@ -73,33 +101,18 @@ TEST(SCCBuilderTest, DetectsNoExit) {
   {
     auto const& nodes = result.get()[0];
 
-    std::pmr::monotonic_buffer_resource checkpoint(&pool);
-
     auto meta = compiler::analysis::classifySCC(&pool, regions, nodes);
 
-    compiler::analysis::debug::dump(std::cout, meta);
-  }
-}
+    // Entry: 0 -> 1 -> 2 (entering SCC)
+    EXPECT_EQ(meta.entryEdges.size(), 1);
+    EXPECT_TRUE(containsEdge(meta.entryEdges, 1, 2));
 
-TEST(SCCBuilderTest, DetectsNoStart) {
-  std::pmr::monotonic_buffer_resource pool(2048);
+    // Back edges: 3 -> 2 (back edge within SCC)
+    EXPECT_EQ(meta.backEdges.size(), 1);
+    EXPECT_TRUE(containsEdge(meta.backEdges, 3, 2));
 
-  MockRegionBuilder regions({{4}, {2, 4}, {3}, {1}, {}});
-
-  auto result = compiler::analysis::SCCBuilder<MockRegionBuilder>(&pool, regions).calculate(1);
-  compiler::analysis::debug::dump(std::cout, result);
-
-  EXPECT_EQ(result.get().size(), 1);
-  EXPECT_TRUE(containsComponent(result, {1, 2, 3}));
-
-  {
-    auto const& nodes = result.get()[0];
-
-    std::pmr::monotonic_buffer_resource checkpoint(&pool);
-
-    auto meta = compiler::analysis::classifySCC(&pool, regions, nodes);
-
-    compiler::analysis::debug::dump(std::cout, meta);
+    // Exit: 1 -> 4 exits the SCC
+    EXPECT_EQ(meta.exitEdges.size(), 0);
   }
 }
 
@@ -117,11 +130,19 @@ TEST(SCCBuilderTest, DetectsSimpleLoopHead) {
   {
     auto const& nodes = result.get()[0];
 
-    std::pmr::monotonic_buffer_resource checkpoint(&pool);
-
     auto meta = compiler::analysis::classifySCC(&pool, regions, nodes);
 
-    compiler::analysis::debug::dump(std::cout, meta);
+    // Entry: 0 -> 1 (entering SCC at head)
+    EXPECT_EQ(meta.entryEdges.size(), 1);
+    EXPECT_TRUE(containsEdge(meta.entryEdges, 0, 1));
+
+    // Back edge: 3 -> 1 (loop back to head)
+    EXPECT_EQ(meta.backEdges.size(), 1);
+    EXPECT_TRUE(containsEdge(meta.backEdges, 3, 1));
+
+    // Exit: 1 -> 4 exits the SCC
+    EXPECT_EQ(meta.exitEdges.size(), 1);
+    EXPECT_TRUE(containsEdge(meta.exitEdges, 1, 4));
   }
 }
 
@@ -139,11 +160,19 @@ TEST(SCCBuilderTest, DetectsSimpleLoopTail) {
   {
     auto const& nodes = result.get()[0];
 
-    std::pmr::monotonic_buffer_resource checkpoint(&pool);
-
     auto meta = compiler::analysis::classifySCC(&pool, regions, nodes);
 
-    compiler::analysis::debug::dump(std::cout, meta);
+    // Entry: 0 -> 1 (entering SCC)
+    EXPECT_EQ(meta.entryEdges.size(), 1);
+    EXPECT_TRUE(containsEdge(meta.entryEdges, 0, 1));
+
+    // Back edge: 3 -> 1 (loop back from tail)
+    EXPECT_EQ(meta.backEdges.size(), 1);
+    EXPECT_TRUE(containsEdge(meta.backEdges, 3, 1));
+
+    // Exit: 3 -> 4 exits the SCC
+    EXPECT_EQ(meta.exitEdges.size(), 1);
+    EXPECT_TRUE(containsEdge(meta.exitEdges, 3, 4));
   }
 }
 
@@ -163,12 +192,21 @@ TEST(SCCBuilderTest, DetectsNestedLoops) {
   EXPECT_EQ(result.get().size(), 1);
   EXPECT_TRUE(containsComponent(result, {1, 2, 3}));
 
-  for (auto const& nodes: result.get()) {
-    std::pmr::monotonic_buffer_resource checkpoint(&pool);
+  {
+    auto const& nodes = result.get()[0];
 
     auto meta = compiler::analysis::classifySCC(&pool, regions, nodes);
 
-    compiler::analysis::debug::dump(std::cout, meta);
+    // Entry: 0 -> 1 (entering SCC)
+    EXPECT_EQ(meta.entryEdges.size(), 1);
+    EXPECT_TRUE(containsEdge(meta.entryEdges, 0, 1));
+
+    EXPECT_EQ(meta.backEdges.size(), 1);
+    EXPECT_TRUE(containsEdge(meta.backEdges, 2, 1));
+
+    // Exit: 3 -> 4 exits the SCC
+    EXPECT_EQ(meta.exitEdges.size(), 1);
+    EXPECT_TRUE(containsEdge(meta.exitEdges, 3, 4));
   }
 }
 
@@ -184,13 +222,39 @@ TEST(SCCBuilderTest, DetectsMultipeLoops) {
   EXPECT_TRUE(containsComponent(result, {1, 2, 3}));
   EXPECT_TRUE(containsComponent(result, {4, 5, 6}));
 
-  {
-    auto const& nodes = result.get()[0];
+  // Find and test first SCC {1, 2, 3}
+  for (auto const& nodes: result.get()) {
+    std::vector<int32_t> sortedNodes(nodes.begin(), nodes.end());
+    std::ranges::sort(sortedNodes);
 
-    std::pmr::monotonic_buffer_resource checkpoint(&pool);
+    if (std::ranges::equal(sortedNodes, std::vector<int32_t> {1, 2, 3})) {
+      auto meta = compiler::analysis::classifySCC(&pool, regions, nodes);
 
-    auto meta = compiler::analysis::classifySCC(&pool, regions, nodes);
+      // Entry: 0 -> 1
+      EXPECT_EQ(meta.entryEdges.size(), 1);
+      EXPECT_TRUE(containsEdge(meta.entryEdges, 0, 1));
 
-    compiler::analysis::debug::dump(std::cout, meta);
+      // Back edge: 3 -> 1
+      EXPECT_EQ(meta.backEdges.size(), 1);
+      EXPECT_TRUE(containsEdge(meta.backEdges, 3, 1));
+
+      // Exit: 1 -> 4
+      EXPECT_EQ(meta.exitEdges.size(), 1);
+      EXPECT_TRUE(containsEdge(meta.exitEdges, 1, 4));
+    } else if (std::ranges::equal(sortedNodes, std::vector<int32_t> {4, 5, 6})) {
+      auto meta = compiler::analysis::classifySCC(&pool, regions, nodes);
+
+      // Entry: 1 -> 4 (from previous SCC)
+      EXPECT_EQ(meta.entryEdges.size(), 1);
+      EXPECT_TRUE(containsEdge(meta.entryEdges, 1, 4));
+
+      // Back edge: 6 -> 4
+      EXPECT_EQ(meta.backEdges.size(), 1);
+      EXPECT_TRUE(containsEdge(meta.backEdges, 6, 4));
+
+      // Exit: 4 -> 7
+      EXPECT_EQ(meta.exitEdges.size(), 1);
+      EXPECT_TRUE(containsEdge(meta.exitEdges, 4, 7));
+    }
   }
 }

@@ -19,5 +19,5 @@ namespace compiler::frontend::transform {
  * @param tempPool
  * @param regions
  */
-void reconstructSCF(util::checkpoint_resource& checkpoint_resource, analysis::RegionGraph& regionGraph);
+void reconstruct(util::checkpoint_resource& checkpoint_resource, analysis::RegionGraph& regionGraph);
 } // namespace compiler::frontend::transform
