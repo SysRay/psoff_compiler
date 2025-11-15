@@ -97,17 +97,17 @@ class SCCBuilder {
   SCC                           _regionsOut;
 };
 
-struct SCCMeta {
+struct SCCEdges {
   std::pmr::vector<std::pair<scc_node_t, scc_node_t>> entryEdges; ///< nodes outside into scc
   std::pmr::vector<std::pair<scc_node_t, scc_node_t>> exitEdges;  ///< From inside the scc to outside node
   std::pmr::vector<std::pair<scc_node_t, scc_node_t>> backEdges;  ///< continuation edge, node to entry
 
-  SCCMeta(std::pmr::polymorphic_allocator<> alloc): entryEdges(alloc), exitEdges(alloc), backEdges(alloc) {}
+  SCCEdges(std::pmr::polymorphic_allocator<> alloc): entryEdges(alloc), exitEdges(alloc), backEdges(alloc) {}
 };
 
 template <SCCBuilderConcept Graph>
-SCCMeta const classifySCC(std::pmr::polymorphic_allocator<> alloc, Graph const& graph, scc_nodes_t const& scc) {
-  SCCMeta                             result(alloc);
+SCCEdges const classifySCC(std::pmr::polymorphic_allocator<> alloc, Graph const& graph, scc_nodes_t const& scc) {
+  SCCEdges                           result(alloc);
   std::pmr::unordered_set<scc_node_t> entries(alloc);
 
   for (scc_node_t node: scc) {

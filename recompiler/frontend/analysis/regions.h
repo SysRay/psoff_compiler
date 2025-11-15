@@ -162,9 +162,9 @@ struct CondRegion {
 
 struct LoopRegion {
   regionid_t id;
-  regionid_t startId; ///< Subgraph start node
-  regionid_t exitId;  ///< Subgraph Loop exit node
-  regionid_t contId;  ///< Subgraph Loop continue node (break back to start )
+  regionid_t headerId; ///< Subgraph start node
+  regionid_t exitId;   ///< Subgraph Loop exit node
+  regionid_t contId;   ///< Subgraph Loop continue node (break back to start )
 };
 
 using RegionNode = std::variant<StartRegion, StopRegion, BasicRegion, CondRegion, LoopRegion>;

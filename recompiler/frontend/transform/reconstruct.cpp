@@ -29,13 +29,66 @@ struct GraphAdapter {
   GraphAdapter(analysis::RegionGraph& g): g(g) {}
 };
 
+static void collapsCycles(util::checkpoint_resource& checkpoint_resource, analysis::RegionGraph& regionGraph, analysis::regionid_t startId,
+                          analysis::regionid_t endIf) {
+  // Find SCCs
+  // find entry, exit and continue edges
+  // collaps into loop node
+
+  auto checkpoint = checkpoint_resource.checkpoint();
+
+  GraphAdapter adapter(regionGraph);
+  auto const   sccs = compiler::analysis::SCCBuilder<GraphAdapter>(&checkpoint_resource, adapter).calculate(startId);
+
+  for (auto const& scc: sccs.get()) {
+    auto checkpoint = checkpoint_resource.checkpoint();
+
+    auto const sccEdges = compiler::analysis::classifySCC(&checkpoint_resource, adapter, scc);
+    if (sccEdges.entryEdges.empty()) {
+      throw std::runtime_error("scc with no entry");
+    }
+
+    auto const loopId   = regionGraph.createNode<analysis::LoopRegion>();
+    auto const headerId = regionGraph.createNode<analysis::StartRegion>();
+    auto const exitId   = regionGraph.createNode<analysis::StopRegion>();
+    auto const contId   = regionGraph.createNode<analysis::StopRegion>();
+
+    {
+      auto& loopNode    = std::get<analysis::LoopRegion>(regionGraph.getNode(loopId));
+      loopNode.headerId = headerId;
+      loopNode.exitId   = exitId;
+      loopNode.contId   = contId;
+    }
+    // todo nodes insertBefore, insertAfter
+    // todo replaceAllUsesWith
+
+    if (sccEdges.entryEdges.size() > 1) {
+      // Restructure entries into one loopHeader
+      uint32_t const sizePreds = sccEdges.entryEdges.size() + sccEdges.backEdges.size();
+
+    } else {
+      analysis::regionid_t loopHeader = analysis::regionid_t(sccEdges.entryEdges[0].second);
+    }
+  }
+}
+
+static void collapsBranches(util::checkpoint_resource& checkpoint_resource, analysis::RegionGraph& regionGraph, analysis::regionid_t startId,
+                            analysis::regionid_t endIf) {
+  auto checkpoint = checkpoint_resource.checkpoint();
+}
+
 void reconstruct(util::checkpoint_resource& checkpoint_resource, analysis::RegionGraph& regionGraph) {
-  std::stack<std::pair<analysis::regionid_t, analysis::regionid_t>> tasks;
-  tasks.push({regionGraph.getStartId(), regionGraph.getStopId()});
+  auto checkpoint = checkpoint_resource.checkpoint();
+
+  std::pmr::vector<std::pair<analysis::regionid_t, analysis::regionid_t>> tasks;
+  tasks.push_back({regionGraph.getStartId(), regionGraph.getStopId()});
 
   while (!tasks.empty()) {
-    auto const [startId, endId] = tasks.top();
-    tasks.pop();
+    auto const [startId, endId] = tasks.back();
+    tasks.pop_back();
+
+    collapsCycles(checkpoint_resource, regionGraph, startId, endId);
+    collapsBranches(checkpoint_resource, regionGraph, startId, endId);
 
     // { // // detect loops
     //   // // Turning CFG a DAG

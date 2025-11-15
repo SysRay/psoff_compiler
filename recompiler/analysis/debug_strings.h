@@ -3,11 +3,11 @@
 namespace compiler::analysis {
 
 struct SCC;
-struct SCCMeta;
+struct SCCEdges;
 
 namespace debug {
 
 void dump(std::ostream& os, SCC const& sccs);
-void dump(std::ostream& os, SCCMeta const& meta);
+void dump(std::ostream& os, SCCEdges const& meta);
 } // namespace debug
 } // namespace compiler::analysis

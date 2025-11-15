@@ -220,7 +220,7 @@ static void dumpNodeHeader(std::ostream& os, const RegionNode& node) {
         } else if constexpr (std::is_same_v<T, CondRegion>) {
           os << "CondRegion{id=" << n.id.value << ", B_0=" << n.b0.value << ", B_1=" << n.b1.value << ", merge=" << n.mergeId.value << "}";
         } else if constexpr (std::is_same_v<T, LoopRegion>) {
-          os << "LoopRegion{id=" << n.id.value << ", start=" << n.startId.value << ", exit=" << n.exitId.value << ", continue=" << n.contId.value << "}";
+          os << "LoopRegion{id=" << n.id.value << ", start=" << n.headerId.value << ", exit=" << n.exitId.value << ", continue=" << n.contId.value << "}";
         }
       },
       node);
@@ -276,7 +276,7 @@ static void dumpSubgraph(std::ostream& os, const RegionGraph& g, regionid_t id, 
 
         if constexpr (std::is_same_v<T, LoopRegion>) {
           os << std::string(indent + 1, ' ') << "{\n";
-          dumpSubgraph(os, g, n.startId, n.exitId, visited, indent + 2);
+          dumpSubgraph(os, g, n.headerId, n.exitId, visited, indent + 2);
           os << std::string(indent + 1, ' ') << "}\n";
         } else if constexpr (std::is_same_v<T, CondRegion>) {
           os << std::string(indent + 1, ' ') << "True:{\n";
