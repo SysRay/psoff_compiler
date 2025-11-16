@@ -89,6 +89,8 @@ static void inline test(std::pmr::memory_resource* pool, uint32_t N) {
   for (region_t i = 100; i < N - 10; i += 100) {
     builder.addCondJump(i, std::max(0u, i - 50));
   }
+
+  builder.finalize();
 }
 
 static void BM_RegionsBuilder_Calculate(benchmark::State& state) {
@@ -104,3 +106,4 @@ static void BM_RegionsBuilder_Calculate(benchmark::State& state) {
 }
 
 BENCHMARK(BM_RegionsBuilder_Calculate)->RangeMultiplier(2)->Range(60000, 120000)->MinWarmUpTime(0.05)->MinTime(1)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_RegionsBuilder_Calculate)->RangeMultiplier(2)->Range(1000, 2000)->MinWarmUpTime(0.05)->MinTime(2)->Unit(benchmark::kMillisecond);

@@ -55,6 +55,7 @@ static std::vector<region_t> collectPreds(RegionBuilder const& builder, region_t
 
 TEST_F(RegionBuilderTest, InitialRegionCreation) {
   RegionBuilder builder(100, allocator);
+  builder.finalize();
 
   EXPECT_EQ(builder.getNumRegions(), 1);
 
@@ -78,6 +79,8 @@ TEST_F(RegionBuilderTest, SimpleJumpSplitsRegions) {
   RegionBuilder builder(100, allocator);
 
   builder.addJump(9, 50);
+
+  builder.finalize();
   // Regions: regions: [0,10), [10,50), [50,100)
   auto const& regions = builder.getRegions();
 
@@ -115,9 +118,9 @@ TEST_F(RegionBuilderTest, ConditionalJumpCreatesMultipleSuccessors) {
   builder.addCondJump(9, 50);
   // Regions: regions: [0,10), [10,50), [50,100)
   // Region [0,10) should have two successors: fallthrough to [10,50) and jump to [50,100)
+  builder.finalize();
 
   auto const& regions = builder.getRegions();
-
   EXPECT_EQ(regions.size(), 3);
 
   // Check region boundaries
@@ -158,9 +161,9 @@ TEST_F(RegionBuilderTest, ReturnStopsFlow) {
 
   builder.addReturn(49);
   // Regions: regions: [0,50), [50,100)
+  builder.finalize();
 
   auto const& regions = builder.getRegions();
-
   EXPECT_EQ(regions.size(), 2);
 
   EXPECT_EQ(regions[0].start, 0);
@@ -181,9 +184,9 @@ TEST_F(RegionBuilderTest, MultipleJumps) {
   builder.addJump(29, 70);
   builder.addReturn(99);
   // Regions: [0,10), [10,30), [30,70), [70,100)
+  builder.finalize();
 
   auto const& regions = builder.getRegions();
-
   EXPECT_EQ(regions.size(), 4);
 
   EXPECT_EQ(regions[0].start, 0);
@@ -216,9 +219,9 @@ TEST_F(RegionBuilderTest, BackwardJumpCreatesLoop) {
   builder.addJump(99, 10);
   // Regions: [0,10), [10,50), [50,100)
   // Region [10,50) jumps back to [10,50)
+  builder.finalize();
 
   auto const& regions = builder.getRegions();
-
   EXPECT_EQ(regions.size(), 3);
 
   EXPECT_EQ(regions[0].start, 0);
@@ -241,9 +244,9 @@ TEST_F(RegionBuilderTest, ComplexControlFlow) {
   builder.addCondJump(9, 50);  // [0,10) -> [10,50) and [50,100)
   builder.addJump(29, 70);     // [10,30) -> [70,100)
   builder.addCondJump(49, 20); // [30,50) -> [20,30) and [50,100)
+  builder.finalize();
 
   auto const& regions = builder.getRegions();
-
   EXPECT_GE(regions.size(), 4); // At least 4 regions created
 
   // Verify basic structure exists
@@ -254,6 +257,7 @@ TEST_F(RegionBuilderTest, VisitSuccessors) {
   RegionBuilder builder(100, allocator);
 
   builder.addCondJump(9, 50);
+  builder.finalize();
 
   std::vector<region_t> successors;
   builder.visitSuccessors(0, [&successors](region_t succ) { successors.push_back(succ); });
@@ -268,6 +272,7 @@ TEST_F(RegionBuilderTest, VisitPredecessors) {
 
   builder.addJump(9, 50);
   builder.addCondJump(29, 50);
+  builder.finalize();
 
   std::vector<region_t> predecessors;
   builder.visitPredecessors(50, [&predecessors](region_t pred) { predecessors.push_back(pred); });
@@ -280,6 +285,7 @@ TEST_F(RegionBuilderTest, FindRegionByIndex) {
   RegionBuilder builder(100, allocator);
 
   builder.addJump(9, 50);
+  builder.finalize();
 
   auto [region_start, region_end] = builder.findRegion(5);
   EXPECT_EQ(region_start, 0);
@@ -298,6 +304,7 @@ TEST_F(RegionBuilderTest, JumpToSameRegion) {
   RegionBuilder builder(100, allocator);
 
   builder.addJump(20, 30);
+  builder.finalize();
 
   auto const& regions = builder.getRegions();
 
@@ -310,6 +317,7 @@ TEST_F(RegionBuilderTest, EdgeCaseJumpToEnd) {
   RegionBuilder builder(100, allocator);
 
   builder.addJump(49, 100);
+  builder.finalize();
 
   auto const& regions = builder.getRegions();
 

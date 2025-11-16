@@ -32,14 +32,17 @@ inline constexpr regionid_t NO_REGION = regionid_t {UINT32_MAX};
 class RegionBuilder {
 
   public:
-  RegionBuilder(region_t N, std::pmr::polymorphic_allocator<> allocator): _regions {allocator} {
-    _regions.reserve(128);
-    _regions.emplace_back(Region(0, N));
+  RegionBuilder(region_t N, std::pmr::polymorphic_allocator<> allocator)
+      : _allocator(allocator), _splitPoints(allocator), _jumpInfo(allocator), _regions(allocator), _endPosition(N) {
+    _splitPoints.reserve(64);
+    _jumpInfo.reserve(32);
   }
 
   void addJump(region_t from, region_t to);
   void addReturn(region_t from);
   void addCondJump(region_t from, region_t to);
+
+  void finalize();
 
   template <typename V>
   requires std::invocable<V, region_t>
@@ -67,20 +70,7 @@ class RegionBuilder {
 
   fixed_containers::FixedVector<regionid_t, 2> getSuccessorsIdx(regionid_t id) const;
 
-  /**
-   * @brief
-   *
-   * @param index
-   * @return std::pair<uint32_t, uint32_t> start, end
-   */
   std::pair<region_t, region_t> findRegion(region_t from) const;
-
-  /**
-   * @brief
-   *
-   * @param index
-   * @return std::pair<uint32_t, uint32_t> start, end
-   */
   std::pair<region_t, region_t> getRegion(regionid_t id) const;
   regionid_t                    getRegionIndex(region_t from) const;
 
@@ -105,28 +95,36 @@ class RegionBuilder {
 
   protected:
   struct Region {
-    region_t start = 0;
-    region_t end   = 0;
-
+    region_t start    = 0;
+    region_t end      = 0;
     region_t trueSucc = NO_SUCC;
-
-    bool hasJump = false;
+    bool     hasJump  = false;
 
     static constexpr region_t NO_SUCC = UINT32_MAX;
 
     Region(region_t s, region_t e): start(s), end(e) {}
-
-    // Region() = default;
 
     inline bool hasTrueSucc() const { return trueSucc != NO_SUCC; }
 
     inline bool hasFalseSucc() const { return !hasJump; }
   };
 
-  std::pmr::vector<Region> _regions;
+  struct JumpInfo {
+    region_t from;
+    region_t to;
+    bool     isConditional;
+    bool     isReturn;
+  };
 
-  using regionsit_t = decltype(_regions)::iterator;
-  regionsit_t splitRegion(region_t from);
+  std::pmr::polymorphic_allocator<> _allocator;
+  std::pmr::vector<region_t>        _splitPoints;
+  std::pmr::vector<JumpInfo>        _jumpInfo;
+  std::pmr::vector<Region>          _regions;
+  region_t                          _endPosition;
+  bool                              _finalized = false;
+
+  void buildRegionsFromSplits();
+  void applyJumpInfo();
 };
 
 } // namespace compiler::frontend::analysis
