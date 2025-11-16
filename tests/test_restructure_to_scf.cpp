@@ -39,11 +39,9 @@ namespace {
 using namespace compiler::cfg;
 
 static void createCFG(ControlFlow& cfg, uint32_t numBlocks, uint32_t start, uint32_t stop, std::initializer_list<blocks::edge_t> edges) {
-  auto rootR = cfg.createRegion();
-
   std::vector<blocks::blockid_t> blocks(numBlocks);
 
-  auto& R = cfg.accessRegion(rootR);
+  auto& R = cfg.accessRegion(cfg.getRootRegionId());
   for (auto& block: blocks) {
     block = cfg.createBlock();
     R.blocks.push_back(block);
@@ -52,8 +50,8 @@ static void createCFG(ControlFlow& cfg, uint32_t numBlocks, uint32_t start, uint
   for (auto const edge: edges)
     cfg.addEdge(edge.from, edge.to);
 
-  cfg.accessRegion(rootR).entry = blocks[start];
-  cfg.accessRegion(rootR).exit  = blocks[stop];
+  cfg.accessRegion(R.id).entry = blocks[start];
+  cfg.accessRegion(R.id).exit  = blocks[stop];
 }
 
 TEST(ControlflowTransform, SimpleIf) {
