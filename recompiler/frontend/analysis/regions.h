@@ -1,7 +1,6 @@
 #pragma once
 
 #include "fixed_containers/fixed_vector.hpp"
-#include "ir/cfg/types.h"
 
 #include <array>
 #include <cstdint>
@@ -29,17 +28,6 @@ struct regionid_t {
 };
 
 inline constexpr regionid_t NO_REGION = regionid_t {UINT32_MAX};
-
-struct region_edge_t {
-  regionid_t from;
-  regionid_t to;
-
-  constexpr operator std::pair<regionid_t, regionid_t>() const { return {from, to}; }
-
-  constexpr bool operator==(const region_edge_t&) const = default;
-
-  region_edge_t(regionid_t from, regionid_t to): from(from), to(to) {}
-};
 
 class RegionBuilder {
 
@@ -141,83 +129,4 @@ class RegionBuilder {
   regionsit_t splitRegion(region_t from);
 };
 
-struct StartRegion {
-  regionid_t id;
-  regionid_t parent = NO_REGION;
-};
-
-struct StopRegion {
-  regionid_t id;
-  regionid_t parent = NO_REGION;
-};
-
-struct BasicRegion {
-  regionid_t id;
-  region_t   begin;
-  region_t   end;
-};
-
-struct CondRegion {
-  regionid_t id;
-  regionid_t b0, b1;  //< Subgraph start nodes per branch
-  regionid_t mergeId; ///< Subgraph branch merge node
-};
-
-struct LoopRegion {
-  regionid_t id;
-  regionid_t headerId; ///< Subgraph start node
-  regionid_t exitId;   ///< Subgraph Loop exit node
-  regionid_t contId;   ///< Subgraph Loop continue node (break back to start )
-};
-
-using RegionNode = std::variant<StartRegion, StopRegion, BasicRegion, CondRegion, LoopRegion>;
-
-/**
- * @brief Create graph from regions.
- *
- */
-class RegionGraph {
-  static constexpr regionid_t START_ID {0};
-  static constexpr regionid_t STOP_ID {1};
-
-  std::pmr::vector<RegionNode>                   nodes;
-  std::pmr::vector<std::pmr::vector<regionid_t>> succ;
-  std::pmr::vector<std::pmr::vector<regionid_t>> pred;
-
-  public:
-  RegionGraph(std::pmr::polymorphic_allocator<> allocator, const RegionBuilder& rb);
-
-  size_t getNodeCount() const { return nodes.size(); }
-
-  auto& accessSuccessors(regionid_t idx) { return succ[idx.value]; }
-
-  auto& accessPredecessors(regionid_t idx) { return pred[idx.value]; }
-
-  std::span<const regionid_t> getSuccessors(regionid_t idx) const { return succ[idx.value]; }
-
-  std::span<const regionid_t> getPredecessors(regionid_t idx) const { return pred[idx.value]; }
-
-  regionid_t getStartId() const { return START_ID; }
-
-  regionid_t getStopId() const { return STOP_ID; }
-
-  const RegionNode& getNode(regionid_t id) const { return nodes[id.value]; }
-
-  RegionNode& getNode(regionid_t id) { return nodes[id.value]; }
-
-  template <typename T>
-  regionid_t createNode() {
-    auto const id = regionid_t((uint32_t)nodes.size());
-
-    auto& item = nodes.emplace_back(T());
-    std::visit([id](auto& region) { region.id = id; }, item);
-
-    succ.emplace_back();
-    pred.emplace_back();
-
-    return id;
-  }
-};
-
-void dump(std::ostream& os, const compiler::frontend::analysis::RegionGraph& g);
 } // namespace compiler::frontend::analysis

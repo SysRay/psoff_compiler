@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ir/cfg/types.h"
+#include "cfg/types.h"
 #include "ir/ir.h"
 #include "regions.h"
 #include "types.h"

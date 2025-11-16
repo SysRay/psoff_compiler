@@ -1,23 +1,26 @@
 #pragma once
 
+#include "cfg/types.h"
 #include "include/checkpoint_resource_fwd.h"
-#include "ir/cfg/types.h"
 
 #include <memory_resource>
 #include <optional>
 #include <span>
 
+namespace compiler::cfg {
+class ControlFlow;
+}
+
 namespace compiler::frontend::analysis {
-class RegionGraph;
+class RegionBuilder;
 }
 
 namespace compiler::frontend::transform {
 /**
- * @brief Create a structured cfg from regions
- * Note: From "Perfect Reconstructability of control flow"
- * @param allocPool
- * @param tempPool
- * @param regions
+ * @brief Creates a CFG out from code regions
+ *
+ * @param allocator Used in control flow
+ * @param rg
  */
-void reconstruct(util::checkpoint_resource& checkpoint_resource, analysis::RegionGraph& regionGraph);
+cfg::ControlFlow transformRg2Cfg(std::pmr::polymorphic_allocator<> allocator, analysis::RegionBuilder const& rg);
 } // namespace compiler::frontend::transform

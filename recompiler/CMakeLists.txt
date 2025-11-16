@@ -5,22 +5,22 @@ add_library(psOff_recompiler STATIC
   builder.cpp
   ir/debug_strings.cpp
 
+  cfg/cfg.cpp
+  cfg/debug_strings.cpp
   analysis/debug_string.cpp
+  transform/restructure.cpp
 
   frontend/parser.cpp
 
   frontend/debug_strings.cpp
   frontend/parser/debug_strings.cpp
-
   frontend/parser/shader_input.cpp
   frontend/parser/shader_types.cpp
   frontend/parser/instruction_builder.cpp
-
   frontend/analysis/regions.cpp
   frontend/analysis/regions.cpp
   frontend/analysis/evaluate.cpp
-
-  frontend/transform/reconstruct.cpp
+  frontend/transform/rg_to_cfg.cpp
 
   frontend/parser/translate/ds.cpp
   frontend/parser/translate/exp.cpp
