@@ -1,6 +1,5 @@
 #pragma once
 
-#include "cfg/types.h"
 #include "include/checkpoint_resource_fwd.h"
 
 #include <memory_resource>
@@ -22,5 +21,5 @@ namespace compiler::frontend::transform {
  * @param allocator Used in control flow
  * @param rg
  */
-cfg::ControlFlow transformRg2Cfg(std::pmr::polymorphic_allocator<> allocator, analysis::RegionBuilder const& rg);
+cfg::ControlFlow transformRg2Cfg(std::pmr::polymorphic_allocator<> allocator, analysis::RegionBuilder const& rg, std::span<ir::InstCore> instructions);
 } // namespace compiler::frontend::transform

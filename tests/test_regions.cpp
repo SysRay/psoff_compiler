@@ -17,20 +17,20 @@ class RegionBuilderTest: public ::testing::Test {
 using namespace compiler::frontend::analysis;
 using namespace compiler::cfg;
 
-static bool hasSucc(const ControlFlow& cfg, blocks::blockid_t::underlying_t from, blocks::blockid_t::underlying_t to) {
-  for (auto s: cfg.getSuccessors(blocks::blockid_t(from)))
+static bool hasSucc(const ControlFlow& cfg, rvsdg::nodeid_t::underlying_t from, rvsdg::nodeid_t::underlying_t to) {
+  for (auto s: cfg.getSuccessors(rvsdg::nodeid_t(from)))
     if (s == to) return true;
   return false;
 }
 
-static bool hasPred(const ControlFlow& cfg, blocks::blockid_t::underlying_t to, blocks::blockid_t::underlying_t from) {
-  for (auto p: cfg.getPredecessors(blocks::blockid_t(to)))
+static bool hasPred(const ControlFlow& cfg, rvsdg::nodeid_t::underlying_t to, rvsdg::nodeid_t::underlying_t from) {
+  for (auto p: cfg.getPredecessors(rvsdg::nodeid_t(to)))
     if (p == from) return true;
   return false;
 }
 
-static bool succEquals(const ControlFlow& cfg, blocks::blockid_t::underlying_t id, std::initializer_list<uint32_t> expected) {
-  auto succs = cfg.getSuccessors(blocks::blockid_t(id));
+static bool succEquals(const ControlFlow& cfg, rvsdg::nodeid_t::underlying_t id, std::initializer_list<uint32_t> expected) {
+  auto succs = cfg.getSuccessors(rvsdg::nodeid_t(id));
   if (succs.size() != expected.size()) return false;
 
   size_t i = 0;
@@ -53,8 +53,11 @@ static std::vector<region_t> collectPreds(RegionBuilder const& builder, region_t
   return result;
 }
 
+constexpr uint32_t offsetId = 2; // funcId + stopId
+
 TEST_F(RegionBuilderTest, InitialRegionCreation) {
-  RegionBuilder builder(100, allocator);
+  RegionBuilder                       builder(100, allocator);
+  std::vector<compiler::ir::InstCore> instructions(100, compiler::ir::InstCore {});
   builder.finalize();
 
   EXPECT_EQ(builder.getNumRegions(), 1);
@@ -64,20 +67,18 @@ TEST_F(RegionBuilderTest, InitialRegionCreation) {
   EXPECT_EQ(end, 100);
 
   // Test CFG creation
-  auto cfg = compiler::frontend::transform::transformRg2Cfg(allocator, builder);
+  auto cfg = compiler::frontend::transform::transformRg2Cfg(allocator, builder, instructions);
 
   ASSERT_EQ(cfg.regionCount(), 1);
-  auto const& rootRegion = cfg.getRegion(cfg.getRootRegionId());
-  EXPECT_TRUE(rootRegion.subregions.empty());
-  EXPECT_NE(rootRegion.entry, rootRegion.exit);
-  EXPECT_EQ(rootRegion.blocks.size(), 2); // code regions + stop
+  auto rootRegion = cfg.getRegion(cfg.getNode<rvsdg::LambdaNode>(cfg.getMainFunctionId())->body);
+  ASSERT_EQ(rootRegion->nodes.size(), 2); // code regions + stop
 
-  EXPECT_TRUE(succEquals(cfg, rootRegion.entry.value, {rootRegion.exit.value}));
+  EXPECT_TRUE(succEquals(cfg, rootRegion->nodes.begin()->value, {rootRegion->nodes.back().value}));
 }
 
 TEST_F(RegionBuilderTest, SimpleJumpSplitsRegions) {
-  RegionBuilder builder(100, allocator);
-
+  RegionBuilder                       builder(100, allocator);
+  std::vector<compiler::ir::InstCore> instructions(100, compiler::ir::InstCore {});
   builder.addJump(9, 50);
 
   builder.finalize();
@@ -100,20 +101,20 @@ TEST_F(RegionBuilderTest, SimpleJumpSplitsRegions) {
   EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(2)), {}));
 
   // Test CFG creation
-  auto cfg = compiler::frontend::transform::transformRg2Cfg(allocator, builder);
+  auto cfg = compiler::frontend::transform::transformRg2Cfg(allocator, builder, instructions);
 
   ASSERT_EQ(cfg.regionCount(), 1);
-  auto const& rootRegion = cfg.getRegion(cfg.getRootRegionId());
-  EXPECT_TRUE(rootRegion.subregions.empty());
-  EXPECT_EQ(rootRegion.blocks.size(), 1 + 3);
+  auto rootRegion = cfg.getRegion(cfg.getNode<rvsdg::LambdaNode>(cfg.getMainFunctionId())->body);
+  ASSERT_EQ(rootRegion->nodes.size(), 1 + 3);
 
-  EXPECT_TRUE(succEquals(cfg, rootRegion.entry.value, {3}));
-  EXPECT_TRUE(succEquals(cfg, 2, {3})); // Falltrough
-  EXPECT_TRUE(succEquals(cfg, 3, {rootRegion.exit.value}));
+  EXPECT_TRUE(succEquals(cfg, rootRegion->nodes.front().value, {offsetId + 2}));
+  EXPECT_TRUE(succEquals(cfg, offsetId + 1, {offsetId + 2})); // Falltrough
+  EXPECT_TRUE(succEquals(cfg, offsetId + 2, {rootRegion->nodes.back().value}));
 }
 
 TEST_F(RegionBuilderTest, ConditionalJumpCreatesMultipleSuccessors) {
-  RegionBuilder builder(100, allocator);
+  RegionBuilder                       builder(100, allocator);
+  std::vector<compiler::ir::InstCore> instructions(100, compiler::ir::InstCore {});
 
   builder.addCondJump(9, 50);
   // Regions: regions: [0,10), [10,50), [50,100)
@@ -139,21 +140,20 @@ TEST_F(RegionBuilderTest, ConditionalJumpCreatesMultipleSuccessors) {
   EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(2)), {}));
 
   // Test CFG creation
-  auto cfg = compiler::frontend::transform::transformRg2Cfg(allocator, builder);
+  auto cfg = compiler::frontend::transform::transformRg2Cfg(allocator, builder, instructions);
 
   ASSERT_EQ(cfg.regionCount(), 1);
-  auto const& rootRegion = cfg.getRegion(cfg.getRootRegionId());
-  EXPECT_TRUE(rootRegion.subregions.empty());
-  EXPECT_EQ(rootRegion.blocks.size(), 1 + 4);
+  auto rootRegion = cfg.getRegion(cfg.getNode<rvsdg::LambdaNode>(cfg.getMainFunctionId())->body);
+  ASSERT_EQ(rootRegion->nodes.size(), 1 + 4);
 
-  EXPECT_EQ(cfg.getSuccessors(rootRegion.entry).size(), 2);
-  EXPECT_TRUE(hasSucc(cfg, rootRegion.entry.value, 2));
-  EXPECT_FALSE(hasSucc(cfg, rootRegion.entry.value, 3)); // No direct link, needs dummy
-  EXPECT_TRUE(hasSucc(cfg, rootRegion.entry.value, 4));
-  EXPECT_TRUE(succEquals(cfg, 4, {3}));
+  EXPECT_EQ(cfg.getSuccessors(rootRegion->nodes.front()).size(), 2);
+  EXPECT_TRUE(hasSucc(cfg, rootRegion->nodes.front(), offsetId + 1));
+  EXPECT_FALSE(hasSucc(cfg, rootRegion->nodes.front(), offsetId + 2)); // needs dummy!
+  EXPECT_TRUE(hasSucc(cfg, rootRegion->nodes.front(), offsetId + 3));
+  EXPECT_TRUE(succEquals(cfg, offsetId + 3, {offsetId + 2}));
 
-  EXPECT_TRUE(succEquals(cfg, 2, {3})); // Falltrough
-  EXPECT_TRUE(succEquals(cfg, 3, {rootRegion.exit.value}));
+  EXPECT_TRUE(succEquals(cfg, offsetId + 1, {offsetId + 2})); // Falltrough
+  EXPECT_TRUE(succEquals(cfg, offsetId + 2, {rootRegion->nodes.back().value}));
 }
 
 TEST_F(RegionBuilderTest, ReturnStopsFlow) {

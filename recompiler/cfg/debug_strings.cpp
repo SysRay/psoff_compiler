@@ -3,8 +3,8 @@
 #include <ostream>
 
 namespace compiler::cfg {
-void dumpBlock(std::ostream& os, const ControlFlow& cfg, blocks::blockid_t bid, const std::string& indent) {
-  const auto* B = cfg.getBlock(bid);
+void dumpBlock(std::ostream& os, const ControlFlow& cfg, rvsdg::nodeid_t bid, const std::string& indent) {
+  const auto* B = cfg.getNodeBase(bid);
 
   // Block header: ^bbX:
   os << indent << "^bb" << B->id.value << ":\n";
@@ -19,54 +19,71 @@ void dumpBlock(std::ostream& os, const ControlFlow& cfg, blocks::blockid_t bid, 
   }
 }
 
-void dumpRegion(std::ostream& os, const ControlFlow& cfg, blocks::regionid_t rid, const std::string& indent) {
-  const auto& R = cfg.getRegion(rid);
+static void dumpNode(std::ostream& os, const ControlFlow& cfg, rvsdg::nodeid_t bid, const std::string& indent);
 
-  os << indent << "region @" << R.id.value << " {\n";
+static void dumpRegion(std::ostream& os, const ControlFlow& cfg, rvsdg::regionid_t rid, const std::string& indent) {
+  auto R = cfg.getRegion(rid);
 
-  // Entry block comment
-  if (R.entry.isValid()) os << indent << "  // entry: ^bb" << R.entry.value << "\n";
+  os << indent << "region @" << R->id.value << ":\n";
+
+  // // Entry block comment
+  // if (R->entry.isValid()) os << indent << "  // entry: ^bb" << R->entry.value << "\n";
 
   // Dump blocks in region order
-  for (auto bid: R.blocks)
-    dumpBlock(os, cfg, bid, indent + "  ");
+  for (auto bid: R->nodes)
+    dumpNode(os, cfg, bid, indent + "  ");
 
-  // Dump nested regions
-  for (auto srid: R.subregions)
-    dumpRegion(os, cfg, srid, indent + "  ");
+  // // Exit block comment
+  // if (R->exit.isValid()) os << indent << "  // exit: ^bb" << R->exit.value << "\n";
 
-  // Exit block comment
-  if (R.exit.isValid()) os << indent << "  // exit: ^bb" << R.exit.value << "\n";
+  os << indent << "}\n";
+}
 
+void dumpNode(std::ostream& os, const ControlFlow& cfg, rvsdg::nodeid_t bid, const std::string& indent) {
+  const auto* B = cfg.getNodeBase(bid);
+
+  os << indent << "^bb" << B->id;
+
+  switch (B->type) {
+    case rvsdg::eNodeType::SimpleNode: {
+      auto node = cfg.getNode<rvsdg::SimpleNode>(B->id);
+      os << " Simple {\n";
+      // todo dump instructions
+    } break;
+    case rvsdg::eNodeType::GammaNode: {
+      auto node = cfg.getNode<rvsdg::GammaNode>(B->id);
+      os << " Gamma {\n";
+      for (uint32_t n = 0; n < node->branches.size(); ++n) {
+        dumpRegion(os, cfg, node->branches[n], indent + "  ");
+      }
+    } break;
+    case rvsdg::eNodeType::ThetaNode: {
+      auto node = cfg.getNode<rvsdg::ThetaNode>(B->id);
+      os << " Theta {\n";
+      dumpRegion(os, cfg, node->body, indent + "  ");
+    } break;
+    case rvsdg::eNodeType::LambdaNode: {
+      auto node = cfg.getNode<rvsdg::LambdaNode>(B->id);
+      os << " Lambda {\n";
+      dumpRegion(os, cfg, node->body, indent + "  ");
+    } break;
+  }
+
+  auto succs = cfg.getSuccessors(bid);
+  if (!succs.empty()) {
+    os << indent << "  successors:";
+    for (auto s: succs)
+      os << " ^bb" << s.value;
+    os << "\n";
+  }
   os << indent << "}\n";
 }
 
 void dumpCFG(std::ostream& os, const ControlFlow& cfg) {
   os << "cfg {\n";
 
-  // Dump all regions
-  for (size_t i = 0; i < cfg.regionCount(); ++i) {
-    blocks::regionid_t rid((uint32_t)i);
-    dumpRegion(os, cfg, rid, "  ");
-  }
-
-  // Dump any blocks not in regions (should not happen normally)
-  os << "  // blocks without region:\n";
-  for (size_t i = 0; i < cfg.blocksCount(); ++i) {
-    blocks::blockid_t bid((uint32_t)i);
-
-    bool inRegion = false;
-    for (size_t r = 0; r < cfg.regionCount(); ++r) {
-      auto& R = cfg.getRegion(blocks::regionid_t((uint32_t)r));
-      for (auto b: R.blocks)
-        if (b == bid) {
-          inRegion = true;
-          break;
-        }
-      if (inRegion) break;
-    }
-
-    if (!inRegion) dumpBlock(os, cfg, bid, "  ");
+  if (cfg.getMainFunctionId().isValid()) {
+    dumpNode(os, cfg, cfg.getMainFunctionId(), "  ");
   }
 
   os << "}\n";

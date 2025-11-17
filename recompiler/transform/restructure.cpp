@@ -1,11 +1,119 @@
+#include "analysis/dom.h"
+#include "analysis/scc.h"
+#include "cfg/cfg.h"
+#include "include/checkpoint_resource.h"
+#include "include/common.h"
+#include "ir/debug_strings.h"
 #include "transform.h"
 
-namespace compiler::transform {
-void restructureCfg(util::checkpoint_resource& checkpoint_resource, cfg::ControlFlow& cfg) {
+#include <memory_resource>
+#include <queue>
+#include <stack>
+#include <stdexcept>
 
+namespace compiler::transform {
+
+struct GraphAdapter {
+  const cfg::ControlFlow& g;
+
+  auto getSuccessors(uint32_t idx) const {
+    return g.getSuccessors(cfg::rvsdg::nodeid_t {idx}) | std::views::transform([](auto id) { return id.value; });
+  }
+
+  auto getPredecessors(uint32_t idx) const {
+    return g.getPredecessors(cfg::rvsdg::nodeid_t {idx}) | std::views::transform([](auto id) { return id.value; });
+  }
+
+  size_t size() const { return g.blocksCount(); }
+
+  GraphAdapter(cfg::ControlFlow& g): g(g) {}
+};
+
+static void collapseCycles(util::checkpoint_resource& checkpoint_resource, cfg::ControlFlow& cfg, cfg::rvsdg::regionid_t startId) {
+  // Find SCCs
+  // find entry, exit and continue edges
+  // collaps into loop node
+
+  auto checkpoint = checkpoint_resource.checkpoint();
+
+  GraphAdapter adapter(cfg);
+  auto const   sccs = compiler::analysis::SCCBuilder<GraphAdapter>(&checkpoint_resource, adapter).calculate(startId);
+
+  for (auto const& scc: sccs.get()) {
+    auto checkpoint = checkpoint_resource.checkpoint();
+
+    auto const sccEdges = compiler::analysis::classifySCC(&checkpoint_resource, adapter, scc);
+    if (sccEdges.entryEdges.empty()) {
+      throw std::runtime_error("scc with no entry");
+    }
+
+    // auto const loopId = cfg.createRegion();
+    // auto       loop   = cfg.accessRegion(loopId);
+    // loop.nodes.reserve(2 + scc.size());
+
+    // // Handle entries
+    // if (sccEdges.entryEdges.size() > 1) {
+    //   // Restructure entries
+    //   uint32_t const sizePreds = sccEdges.entryEdges.size() + sccEdges.backEdges.size();
+
+    //   throw std::runtime_error("loop multiple entries");
+    // } else {
+    //   loop.entry = cfg::rvsdg::nodeid_t(sccEdges.entryEdges[0].second);
+    // }
+
+    // // add scc nodes to region
+    // for (auto id: scc)
+    //   loop.nodes.push_back(cfg::rvsdg::nodeid_t(id));
+
+    // // Handle backedge
+    // if (sccEdges.backEdges.size() > 1) {
+    //   // Restructure backedges
+    //   throw std::runtime_error("loop multiple back edges");
+    // } else {
+    //   loop.exit = cfg::rvsdg::nodeid_t(sccEdges.backEdges[0].first);
+    // }
+
+    // // Handle exits
+    // if (sccEdges.exitEdges.size() > 1) {
+    //   // Restructure exits
+    //   throw std::runtime_error("loop multiple entries");
+    // } else {
+    //   loop.exit = cfg::rvsdg::nodeid_t(sccEdges.entryEdges[0].first);
+    // }
+
+    // auto const loopId   = regionGraph.createNode<analysis::LoopRegion>();
+    // auto const headerId = regionGraph.createNode<analysis::StartRegion>();
+    // auto const exitId   = regionGraph.createNode<analysis::StopRegion>();
+    // auto const contId   = regionGraph.createNode<analysis::StopRegion>();
+
+    // {
+    //   auto& loopNode    = std::get<analysis::LoopRegion>(regionGraph.getNode(loopId));
+    //   loopNode.headerId = headerId;
+    //   loopNode.exitId   = exitId;
+    //   loopNode.contId   = contId;
+    // }
+    // // todo nodes insertBefore, insertAfter, redirectEdge
+    // // todo replaceAllUsesWith
+  }
+}
+
+static void collapseBranches(util::checkpoint_resource& checkpoint_resource, cfg::ControlFlow& cfg, cfg::rvsdg::regionid_t startId) {}
+
+void restructureCfg(util::checkpoint_resource& checkpoint_resource, cfg::ControlFlow& cfg) {
+  auto checkpoint = checkpoint_resource.checkpoint();
+
+  std::pmr::vector<cfg::rvsdg::regionid_t> tasks;
+  // tasks.push_back(cfg.getRootRegionId()); // todo
+
+  while (!tasks.empty()) {
+    auto const regionId = tasks.back();
+    tasks.pop_back();
+
+    collapseCycles(checkpoint_resource, cfg, regionId);
+    collapseBranches(checkpoint_resource, cfg, regionId);
+  }
 }
 } // namespace compiler::transform
-
 
 // #include "../analysis/regions.h"
 // #include "analysis/dom.h"

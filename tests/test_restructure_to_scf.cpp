@@ -1,5 +1,7 @@
 #include "cfg/cfg.h"
 #include "cfg/debug_strings.h"
+#include "include/checkpoint_resource.h"
+#include "transform/transform.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -38,43 +40,29 @@ namespace {
 
 using namespace compiler::cfg;
 
-static void createCFG(ControlFlow& cfg, uint32_t numBlocks, uint32_t start, uint32_t stop, std::initializer_list<blocks::edge_t> edges) {
-  std::vector<blocks::blockid_t> blocks(numBlocks);
+static void createCFG(ControlFlow& cfg, uint32_t numBlocks, uint32_t start, uint32_t end, std::initializer_list<rvsdg::edge_t> edges) {
+  std::vector<rvsdg::nodeid_t> blocks(numBlocks);
 
-  auto& R = cfg.accessRegion(cfg.getRootRegionId());
-  for (auto& block: blocks) {
-    block = cfg.createBlock();
-    R.blocks.push_back(block);
+  auto funcId = cfg.createLambdaNode();
+  cfg.setMainFunction(funcId);
+
+  auto R = cfg.accessRegion(cfg.getMainFunction()->body);
+  for (uint32_t n = 0; n < numBlocks; ++n) {
+    cfg.createSimpleNode();
   }
 
+  auto const offset = 1 + funcId;
+  R->nodes.push_back(rvsdg::nodeid_t(offset + start));
+
+  for (uint32_t n = 0; n < numBlocks; ++n) {
+    if (n == start || n == end) continue;
+    R->nodes.push_back(rvsdg::nodeid_t(offset + n));
+  }
+
+  R->nodes.push_back(rvsdg::nodeid_t(offset + end));
+
   for (auto const edge: edges)
-    cfg.addEdge(edge.from, edge.to);
-
-  cfg.accessRegion(R.id).entry = blocks[start];
-  cfg.accessRegion(R.id).exit  = blocks[stop];
-}
-
-TEST(ControlflowTransform, SimpleIf) {
-  //   0
-  //   |
-  //   1
-  //  / \
-  // 2 -> 3
-  //     /
-  //   4
-
-  std::pmr::monotonic_buffer_resource resource;
-  std::pmr::polymorphic_allocator<>   allocator {&resource};
-
-  ControlFlow cfg(allocator);
-  createCFG(cfg, 5, 0, 4, {{0, 1}, {1, 2}, {1, 3}, {2, 3}, {3, 4}});
-  dumpCFG(std::cout, cfg);
-
-  // std::array<uint8_t, 10000>          buffer;
-  // compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
-  // compiler::frontend::transform::reconstruct(tempResource, regionGraph);
-  // dump(std::cout, regionGraph);
-  EXPECT_FALSE(true); // todo
+    cfg.addEdge(rvsdg::nodeid_t(offset + edge.from.value), rvsdg::nodeid_t(offset + edge.to.value));
 }
 
 TEST(ControlflowTransform, SimpleIfElse) {
@@ -93,22 +81,32 @@ TEST(ControlflowTransform, SimpleIfElse) {
   createCFG(cfg, 5, 0, 4, {{0, 1}, {1, 2}, {1, 3}, {2, 4}, {3, 4}});
   dumpCFG(std::cout, cfg);
 
+  std::array<uint8_t, 10000>          buffer;
+  compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
+  compiler::transform::restructureCfg(tempResource, cfg);
+
   EXPECT_FALSE(true); // todo
 }
 
-TEST(ControlflowTransform, SimpleLoop) {
+TEST(ControlflowTransform, SimpleWhileLoop) {
   //   0
+  //   |
+  //   1
   //  / \
-  // 1   2 -> 0
+  // 2   3 -> 1
   //  \
-  //   3
+  //   4
 
   std::pmr::monotonic_buffer_resource resource;
   std::pmr::polymorphic_allocator<>   allocator {&resource};
 
   ControlFlow cfg(allocator);
-  createCFG(cfg, 4, 0, 3, {{0, 1}, {0, 2}, {2, 0}, {1, 3}});
+  createCFG(cfg, 5, 0, 4, {{0, 1}, {1, 2}, {1, 3}, {3, 1}, {2, 4}});
   dumpCFG(std::cout, cfg);
+
+  std::array<uint8_t, 10000>          buffer;
+  compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
+  compiler::transform::restructureCfg(tempResource, cfg);
   EXPECT_FALSE(true); // todo
 }
 
@@ -127,6 +125,10 @@ TEST(ControlflowTransform, SimpleDoLoop) {
   ControlFlow cfg(allocator);
   createCFG(cfg, 4, 0, 3, {{0, 1}, {1, 2}, {2, 3}, {2, 1}});
   dumpCFG(std::cout, cfg);
+
+  std::array<uint8_t, 10000>          buffer;
+  compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
+  compiler::transform::restructureCfg(tempResource, cfg);
   EXPECT_FALSE(true); // todo
 }
 
@@ -150,6 +152,10 @@ TEST(PostDominatorTree, BranchWithMultipleExitsIntoTail) {
   ControlFlow cfg(allocator);
   createCFG(cfg, 4, 0, 6, {{0, 1}, {0, 5}, {1, 2}, {5, 6}, {2, 3}, {2, 4}, {3, 6}, {4, 5}, {5, 6}});
   dumpCFG(std::cout, cfg);
+
+  std::array<uint8_t, 10000>          buffer;
+  compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
+  compiler::transform::restructureCfg(tempResource, cfg);
   EXPECT_FALSE(true); // todo
 }
 
@@ -186,5 +192,9 @@ TEST(FindBranchExitsAndMerges, DeeplyNestedBranches) {
   createCFG(cfg, 15, 0, 14,
             {{0, 1}, {0, 2}, {1, 3}, {2, 13}, {3, 4}, {3, 5}, {4, 6}, {5, 11}, {6, 7}, {6, 8}, {11, 12}, {7, 9}, {8, 9}, {9, 10}, {10, 12}, {12, 14}});
   dumpCFG(std::cout, cfg);
+
+  std::array<uint8_t, 10000>          buffer;
+  compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
+  compiler::transform::restructureCfg(tempResource, cfg);
   EXPECT_FALSE(true); // todo
 }
