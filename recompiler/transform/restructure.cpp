@@ -29,15 +29,18 @@ struct GraphAdapter {
   GraphAdapter(cfg::ControlFlow& g): g(g) {}
 };
 
-static void collapseCycles(util::checkpoint_resource& checkpoint_resource, cfg::ControlFlow& cfg, cfg::rvsdg::regionid_t startId) {
+static void collapseCycles(util::checkpoint_resource& checkpoint_resource, cfg::ControlFlow& cfg, std::pmr::vector<cfg::rvsdg::regionid_t>& tasks,
+                           cfg::rvsdg::regionid_t regionId) {
   // Find SCCs
   // find entry, exit and continue edges
   // collaps into loop node
+  auto region = cfg.getRegion(regionId);
+  if (region->nodes.empty()) return;
 
   auto checkpoint = checkpoint_resource.checkpoint();
 
   GraphAdapter adapter(cfg);
-  auto const   sccs = compiler::analysis::SCCBuilder<GraphAdapter>(&checkpoint_resource, adapter).calculate(startId);
+  auto const   sccs = compiler::analysis::SCCBuilder<GraphAdapter>(&checkpoint_resource, adapter).calculate(region->nodes.front());
 
   for (auto const& scc: sccs.get()) {
     auto checkpoint = checkpoint_resource.checkpoint();
@@ -47,25 +50,34 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, cfg::
       throw std::runtime_error("scc with no entry");
     }
 
-    // auto const loopId = cfg.createRegion();
-    // auto       loop   = cfg.accessRegion(loopId);
-    // loop.nodes.reserve(2 + scc.size());
+    auto const loopId = cfg.createThetaNode();
+    auto       loop   = cfg.accessNode<cfg::rvsdg::ThetaNode>(loopId);
 
-    // // Handle entries
-    // if (sccEdges.entryEdges.size() > 1) {
-    //   // Restructure entries
-    //   uint32_t const sizePreds = sccEdges.entryEdges.size() + sccEdges.backEdges.size();
+    auto loopRegions = cfg.accessRegion(loop->body);
+    loopRegions->nodes.reserve(2 + scc.size()); // entry mux + exit mux + sccNodes
 
-    //   throw std::runtime_error("loop multiple entries");
-    // } else {
-    //   loop.entry = cfg::rvsdg::nodeid_t(sccEdges.entryEdges[0].second);
-    // }
+    // Theta node: First result is predicate for exit or continue (latch)
+    // Body region contains single entry and single exit
 
-    // // add scc nodes to region
-    // for (auto id: scc)
-    //   loop.nodes.push_back(cfg::rvsdg::nodeid_t(id));
+    // Handle entries
+    cfg::rvsdg::nodeid_t headerId = {};
+    if (sccEdges.entryEdges.size() > 1) {
+      // Restructure entries
+      uint32_t const sizePreds = sccEdges.entryEdges.size() + sccEdges.backEdges.size();
 
-    // // Handle backedge
+      // Create demux and use as entry
+      throw std::runtime_error("loop multiple entries");
+    } else {
+      headerId = cfg::rvsdg::nodeid_t(sccEdges.entryEdges[0].second);
+      cfg.redirectEdge(cfg::rvsdg::nodeid_t(sccEdges.entryEdges[0].first), headerId, loopId);
+
+      cfg.swapNodeRegion(loopId, headerId);
+    }
+
+    // cfg.moveNodeToRegion(headerId, loopRegions->id); // done by swapNode
+
+    // Handle backedge
+
     // if (sccEdges.backEdges.size() > 1) {
     //   // Restructure backedges
     //   throw std::runtime_error("loop multiple back edges");
@@ -73,44 +85,50 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, cfg::
     //   loop.exit = cfg::rvsdg::nodeid_t(sccEdges.backEdges[0].first);
     // }
 
-    // // Handle exits
-    // if (sccEdges.exitEdges.size() > 1) {
-    //   // Restructure exits
-    //   throw std::runtime_error("loop multiple entries");
-    // } else {
-    //   loop.exit = cfg::rvsdg::nodeid_t(sccEdges.entryEdges[0].first);
-    // }
+    // Handle exits
+    cfg::rvsdg::nodeid_t exitId = {};
+    if (sccEdges.exitEdges.size() > 1) {
+      // Restructure exits
+      throw std::runtime_error("loop multiple entries");
+    } else {
+      if (sccEdges.exitEdges[0].first == sccEdges.backEdges[0].first) {
+        // already tail based loop -> use node is latch
+        exitId = cfg::rvsdg::nodeid_t(sccEdges.exitEdges[0].first);
 
-    // auto const loopId   = regionGraph.createNode<analysis::LoopRegion>();
-    // auto const headerId = regionGraph.createNode<analysis::StartRegion>();
-    // auto const exitId   = regionGraph.createNode<analysis::StopRegion>();
-    // auto const contId   = regionGraph.createNode<analysis::StopRegion>();
+        cfg.accessSuccessors(exitId).clear();
+        cfg.addEdge(loopId, cfg::rvsdg::nodeid_t(sccEdges.exitEdges[0].second));
+      } else {
+        throw std::runtime_error("loop natch");
+      }
+    }
 
-    // {
-    //   auto& loopNode    = std::get<analysis::LoopRegion>(regionGraph.getNode(loopId));
-    //   loopNode.headerId = headerId;
-    //   loopNode.exitId   = exitId;
-    //   loopNode.contId   = contId;
-    // }
-    // // todo nodes insertBefore, insertAfter, redirectEdge
-    // // todo replaceAllUsesWith
+    // add scc nodes to region
+    for (auto id: scc) {
+      if (id == headerId.value || id == exitId.value) continue;
+      cfg.moveNodeToRegion(cfg::rvsdg::nodeid_t(id), loopRegions->id);
+    }
+
+    cfg.moveNodeToRegion(exitId, loopRegions->id);
+
+    tasks.push_back(loopRegions->id);
   }
 }
 
-static void collapseBranches(util::checkpoint_resource& checkpoint_resource, cfg::ControlFlow& cfg, cfg::rvsdg::regionid_t startId) {}
+static void collapseBranches(util::checkpoint_resource& checkpoint_resource, cfg::ControlFlow& cfg, std::pmr::vector<cfg::rvsdg::regionid_t>& tasks,
+                             cfg::rvsdg::regionid_t regionId) {}
 
 void restructureCfg(util::checkpoint_resource& checkpoint_resource, cfg::ControlFlow& cfg) {
   auto checkpoint = checkpoint_resource.checkpoint();
 
   std::pmr::vector<cfg::rvsdg::regionid_t> tasks;
-  // tasks.push_back(cfg.getRootRegionId()); // todo
+  tasks.push_back(cfg.getMainFunction()->body);
 
   while (!tasks.empty()) {
     auto const regionId = tasks.back();
     tasks.pop_back();
 
-    collapseCycles(checkpoint_resource, cfg, regionId);
-    collapseBranches(checkpoint_resource, cfg, regionId);
+    collapseCycles(checkpoint_resource, cfg, tasks, regionId);
+    collapseBranches(checkpoint_resource, cfg, tasks, regionId);
   }
 }
 } // namespace compiler::transform

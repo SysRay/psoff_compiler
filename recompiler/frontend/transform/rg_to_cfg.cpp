@@ -25,7 +25,7 @@ cfg::ControlFlow transformRg2Cfg(std::pmr::polymorphic_allocator<> allocator, an
   // 1. Create all blocks for code regions
   for (analysis::regionid_t i {0}; i.value < rb.getNumRegions(); ++i.value) {
     auto const blockId = cfg.createSimpleNode();
-    rootRegion->nodes.push_back(blockId);
+    cfg.moveNodeToRegion(blockId, rootRegion->id);
     assert(blockId == cfg::rvsdg::nodeid_t(offset + i.value));
   }
 
@@ -50,7 +50,7 @@ cfg::ControlFlow transformRg2Cfg(std::pmr::polymorphic_allocator<> allocator, an
         cfg.addEdge(blockId, cfg::rvsdg::nodeid_t(offset + successors[0].value));
 
         auto const branchId = cfg.createSimpleNode();
-        rootRegion->nodes.push_back(branchId);
+        cfg.moveNodeToRegion(branchId, rootRegion->id);
 
         cfg.addEdge(blockId, branchId);
         cfg.addEdge(branchId, cfg::rvsdg::nodeid_t(offset + successors[1].value));
@@ -58,7 +58,7 @@ cfg::ControlFlow transformRg2Cfg(std::pmr::polymorphic_allocator<> allocator, an
     }
   }
 
-  rootRegion->nodes.push_back(stopId); // exit at end
+  cfg.moveNodeToRegion(stopId, rootRegion->id); // exit at end
   return cfg;
 }
 } // namespace compiler::frontend::transform

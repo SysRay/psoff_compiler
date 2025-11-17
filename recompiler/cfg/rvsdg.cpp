@@ -10,22 +10,48 @@ bool Builder::regionContains(rvsdg::regionid_t rid, rvsdg::nodeid_t bid) const {
   return false;
 }
 
-void Builder::moveBlockToRegion(rvsdg::nodeid_t bid, rvsdg::regionid_t dest) {
+void Builder::moveNodeToRegion(rvsdg::nodeid_t bid, rvsdg::regionid_t dest) {
   assert(bid.isValid() && dest.isValid());
+  auto base = accessNodeBase(bid);
 
-  // Remove from any old region (the block must be in exactly 1 region)
-  for (auto& R: _regions) {
-    if (R.id.value == dest.value) continue;
-    auto& vec = R.nodes;
-    auto  it  = std::find(vec.begin(), vec.end(), bid);
-    if (it != vec.end()) {
-      vec.erase(it);
-      break;
+  // Remove from current region
+  auto srcRegionId = base->parentRegion;
+  if (srcRegionId.isValid()) {
+    auto region = accessRegion(srcRegionId);
+    auto it     = std::find(region->nodes.begin(), region->nodes.end(), bid);
+
+    if (it != region->nodes.end()) {
+      region->nodes.erase(it);
     }
   }
 
   // Insert into new region
   _regions[dest.value].nodes.push_back(bid);
+  base->parentRegion = dest;
+}
+
+void Builder::swapNodeRegion(nodeid_t rid, nodeid_t bid) {
+  assert(bid.isValid() && rid.isValid());
+  auto baseR = accessNodeBase(rid);
+  auto baseB = accessNodeBase(bid);
+
+  if (baseR->parentRegion.isValid()) { // move baseB
+    auto region = accessRegion(baseR->parentRegion);
+    auto it     = std::find(region->nodes.begin(), region->nodes.end(), rid);
+    if (it != region->nodes.end()) {
+      *it = bid;
+    }
+  }
+
+  if (baseB->parentRegion.isValid()) { // move baseB
+    auto region = accessRegion(baseB->parentRegion);
+    auto it     = std::find(region->nodes.begin(), region->nodes.end(), bid);
+    if (it != region->nodes.end()) {
+      *it = rid;
+    }
+  }
+
+  std::swap(baseB->parentRegion, baseR->parentRegion);
 }
 
 void Builder::replaceBlockInRegion(rvsdg::regionid_t rid, rvsdg::nodeid_t oldB, rvsdg::nodeid_t newB) {

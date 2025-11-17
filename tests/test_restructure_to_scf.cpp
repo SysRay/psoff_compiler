@@ -41,8 +41,6 @@ namespace {
 using namespace compiler::cfg;
 
 static void createCFG(ControlFlow& cfg, uint32_t numBlocks, uint32_t start, uint32_t end, std::initializer_list<rvsdg::edge_t> edges) {
-  std::vector<rvsdg::nodeid_t> blocks(numBlocks);
-
   auto funcId = cfg.createLambdaNode();
   cfg.setMainFunction(funcId);
 
@@ -51,15 +49,17 @@ static void createCFG(ControlFlow& cfg, uint32_t numBlocks, uint32_t start, uint
     cfg.createSimpleNode();
   }
 
+  R->nodes.reserve(numBlocks);
+
   auto const offset = 1 + funcId;
-  R->nodes.push_back(rvsdg::nodeid_t(offset + start));
+  cfg.moveNodeToRegion(rvsdg::nodeid_t(offset + start), R->id);
 
   for (uint32_t n = 0; n < numBlocks; ++n) {
     if (n == start || n == end) continue;
-    R->nodes.push_back(rvsdg::nodeid_t(offset + n));
+    cfg.moveNodeToRegion(rvsdg::nodeid_t(offset + n), R->id);
   }
 
-  R->nodes.push_back(rvsdg::nodeid_t(offset + end));
+  cfg.moveNodeToRegion(rvsdg::nodeid_t(offset + end), R->id);
 
   for (auto const edge: edges)
     cfg.addEdge(rvsdg::nodeid_t(offset + edge.from.value), rvsdg::nodeid_t(offset + edge.to.value));
@@ -84,7 +84,7 @@ TEST(ControlflowTransform, SimpleIfElse) {
   std::array<uint8_t, 10000>          buffer;
   compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
   compiler::transform::restructureCfg(tempResource, cfg);
-
+  dumpCFG(std::cout, cfg);
   EXPECT_FALSE(true); // todo
 }
 
@@ -107,6 +107,7 @@ TEST(ControlflowTransform, SimpleWhileLoop) {
   std::array<uint8_t, 10000>          buffer;
   compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
   compiler::transform::restructureCfg(tempResource, cfg);
+  dumpCFG(std::cout, cfg);
   EXPECT_FALSE(true); // todo
 }
 
@@ -129,6 +130,34 @@ TEST(ControlflowTransform, SimpleDoLoop) {
   std::array<uint8_t, 10000>          buffer;
   compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
   compiler::transform::restructureCfg(tempResource, cfg);
+  dumpCFG(std::cout, cfg);
+  EXPECT_FALSE(true); // todo
+}
+
+TEST(ControlflowTransform, NestedDoLoop) {
+  //   0
+  //   |
+  //   1
+  //   |
+  //   2
+  //  / \
+  // 3   4
+  //     |
+  //     5
+  //    / \
+  //   1   4
+
+  std::pmr::monotonic_buffer_resource resource;
+  std::pmr::polymorphic_allocator<>   allocator {&resource};
+
+  ControlFlow cfg(allocator);
+  createCFG(cfg, 6, 0, 3, {{0, 1}, {1, 2}, {2, 3}, {2, 4}, {4, 5}, {5, 2}, {5, 4}});
+  dumpCFG(std::cout, cfg);
+
+  std::array<uint8_t, 10000>          buffer;
+  compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
+  compiler::transform::restructureCfg(tempResource, cfg);
+  dumpCFG(std::cout, cfg);
   EXPECT_FALSE(true); // todo
 }
 
@@ -156,6 +185,7 @@ TEST(PostDominatorTree, BranchWithMultipleExitsIntoTail) {
   std::array<uint8_t, 10000>          buffer;
   compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
   compiler::transform::restructureCfg(tempResource, cfg);
+  dumpCFG(std::cout, cfg);
   EXPECT_FALSE(true); // todo
 }
 
@@ -196,5 +226,6 @@ TEST(FindBranchExitsAndMerges, DeeplyNestedBranches) {
   std::array<uint8_t, 10000>          buffer;
   compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
   compiler::transform::restructureCfg(tempResource, cfg);
+  dumpCFG(std::cout, cfg);
   EXPECT_FALSE(true); // todo
 }

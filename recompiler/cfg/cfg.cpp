@@ -20,7 +20,7 @@ void ControlFlow::removeEdge(rvsdg::nodeid_t from, rvsdg::nodeid_t to) {
   pred.erase(std::remove(pred.begin(), pred.end(), from), pred.end());
 }
 
-void ControlFlow::replaceSuccessor(rvsdg::nodeid_t from, rvsdg::nodeid_t oldSucc, rvsdg::nodeid_t newSucc) {
+void ControlFlow::redirectEdge(rvsdg::nodeid_t from, rvsdg::nodeid_t oldSucc, rvsdg::nodeid_t newSucc) {
   assert(from.isValid() && oldSucc.isValid() && newSucc.isValid());
 
   auto& succ = _successors[from.value];

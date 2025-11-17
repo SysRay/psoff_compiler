@@ -74,8 +74,9 @@ enum class eNodeType {
 };
 
 struct Base {
-  nodeid_t  id {};
-  eNodeType type;
+  nodeid_t   id {};
+  eNodeType  type;
+  regionid_t parentRegion = {};
 
   std::pmr::vector<uint32_t> inputs  = {}; ///< inputs for this region
   std::pmr::vector<uint32_t> outputs = {}; ///< outputs indices for this region
@@ -179,7 +180,8 @@ class Builder {
   // ------------------------------------------------------------
 
   bool regionContains(regionid_t rid, nodeid_t bid) const;
-  void moveBlockToRegion(nodeid_t bid, regionid_t dest);
+  void moveNodeToRegion(nodeid_t bid, regionid_t dest);
+  void swapNodeRegion(nodeid_t rid, nodeid_t bid);
 
   //------------------------------------------------------------
   //  Block replacement / removal

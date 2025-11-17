@@ -54,7 +54,7 @@ class ControlFlow: public rvsdg::Builder {
 
   void addEdge(rvsdg::nodeid_t from, rvsdg::nodeid_t to);
   void removeEdge(rvsdg::nodeid_t from, rvsdg::nodeid_t to);
-  void replaceSuccessor(rvsdg::nodeid_t from, rvsdg::nodeid_t oldSucc, rvsdg::nodeid_t newSucc);
+  void redirectEdge(rvsdg::nodeid_t from, rvsdg::nodeid_t oldSucc, rvsdg::nodeid_t newSucc);
 
   private:
   std::pmr::vector<std::pmr::vector<rvsdg::nodeid_t>> _successors;

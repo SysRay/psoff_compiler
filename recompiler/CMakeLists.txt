@@ -6,6 +6,7 @@ add_library(psOff_recompiler STATIC
   ir/debug_strings.cpp
 
   cfg/cfg.cpp
+  cfg/rvsdg.cpp
   cfg/debug_strings.cpp
   analysis/debug_string.cpp
   transform/restructure.cpp
