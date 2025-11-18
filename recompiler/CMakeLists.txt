@@ -4,6 +4,7 @@ option(ENABLE_DEFAULT_LOGGING "printf logs" OFF)
 add_library(psOff_recompiler STATIC
   builder.cpp
   ir/debug_strings.cpp
+  ir/ir.cpp
 
   cfg/cfg.cpp
   cfg/rvsdg.cpp

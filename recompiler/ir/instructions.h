@@ -104,8 +104,10 @@ constexpr inline eInstKind conv(InstructionKind_t code) {
 
 namespace internal {
 struct InstDef {
-  InstCore         core;
-  std::string_view name;
+  InstCore                                core;
+  std::array<Operand, config::kMaxDstOps> dstOperands;
+  std::array<Operand, config::kMaxSrcOps> srcOperands;
+  std::string_view                        name;
 };
 
 constexpr auto makeInstDef(eInstKind kind, eInstructionGroup group, util::Flags<ir::eInstructionFlags> flags, auto&& dstOps, auto&& srcOps,
@@ -123,15 +125,15 @@ constexpr auto makeInstDef(eInstKind kind, eInstructionGroup group, util::Flags<
   return InstDef {
     .core =
         ir::InstCore {
-            .kind        = conv(kind),
-            .group       = group,
-            .flags       = flags,
-            .numDst      = (uint8_t)dstOps.size(),
-            .numSrc      = (uint8_t)srcOps.size(),
-            .dstOperands = toArray.template operator()<decltype(ir::InstCore::dstOperands)>(dstOps),
-            .srcOperands = toArray.template operator()<decltype(ir::InstCore::srcOperands)>(srcOps),
+            .kind   = conv(kind),
+            .group  = group,
+            .flags  = flags,
+            .numDst = (uint8_t)dstOps.size(),
+            .numSrc = (uint8_t)srcOps.size(),
         },
-    .name = name
+    .dstOperands = toArray.template operator()<decltype(InstDef::dstOperands)>(dstOps),
+    .srcOperands = toArray.template operator()<decltype(InstDef::srcOperands)>(srcOps),
+    .name        = name
   };
 }
 
@@ -243,7 +245,7 @@ static constexpr std::array kInstTable = {
     __INST_NO_OPS(BarrierOp, kBarrier, kHasSideEffects),
     __INST_NO_DST(JumpAbsOp, kFlowControl, kHasSideEffects, __OPS(i64)),
     __INST_NO_DST(CondJumpAbsOp, kFlowControl, kHasSideEffects, __OPS(i1, i64)),
-    __INST_NO_SRC(ConstantOp, kConstant, kConstant, __OPS(f32)),
+    __INST_NO_SRC(ConstantOp, kConstant, kConstant, __OPS(i64)),
 };
 #undef __INST
 #undef __INST_NO_OPS

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ir/ir.h"
 #include "rvsdg.h"
 
 #include <cstdint>
@@ -8,10 +9,10 @@
 
 namespace compiler::cfg {
 
-class ControlFlow: public rvsdg::Builder {
+class ControlFlow {
   public:
   ControlFlow(std::pmr::polymorphic_allocator<> allocator, size_t expectedBlocks = 128)
-      : rvsdg::Builder(allocator, expectedBlocks), _successors(allocator), _predecessors(allocator) {
+      : _successors(allocator), _predecessors(allocator), _nodeBuilder(allocator, expectedBlocks), _instructions(allocator) {
     _successors.reserve(expectedBlocks);
     _predecessors.reserve(expectedBlocks);
   }
@@ -27,26 +28,32 @@ class ControlFlow: public rvsdg::Builder {
   rvsdg::nodeid_t inline createSimpleNode() {
     _successors.emplace_back();
     _predecessors.emplace_back();
-    return createNode<rvsdg::SimpleNode>();
+    return _nodeBuilder.__createNode<rvsdg::SimpleNode>();
   }
 
   rvsdg::nodeid_t inline createGammaNode() {
     _successors.emplace_back();
     _predecessors.emplace_back();
-    return createNode<rvsdg::GammaNode>();
+    return _nodeBuilder.__createNode<rvsdg::GammaNode>();
   }
 
   rvsdg::nodeid_t inline createThetaNode() {
     _successors.emplace_back();
     _predecessors.emplace_back();
-    return createNode<rvsdg::ThetaNode>(createRegion());
+    return _nodeBuilder.__createNode<rvsdg::ThetaNode>(_nodeBuilder.createRegion());
   }
 
   rvsdg::nodeid_t inline createLambdaNode() {
     _successors.emplace_back();
     _predecessors.emplace_back();
-    return createNode<rvsdg::LambdaNode>(createRegion());
+    return _nodeBuilder.__createNode<rvsdg::LambdaNode>(_nodeBuilder.createRegion());
   }
+
+  auto* accessNodes() { return &_nodeBuilder; }
+
+  auto* accessInstructions() { return &_instructions; }
+
+  void swap(ir::InstructionManager&& inst) { std::swap(_instructions, inst); }
 
   // ------------------------------------------------------------
   // Block edge manipulation
@@ -59,6 +66,9 @@ class ControlFlow: public rvsdg::Builder {
   private:
   std::pmr::vector<std::pmr::vector<rvsdg::nodeid_t>> _successors;
   std::pmr::vector<std::pmr::vector<rvsdg::nodeid_t>> _predecessors;
+
+  rvsdg::Builder         _nodeBuilder;
+  ir::InstructionManager _instructions;
 };
 
 } // namespace compiler::cfg

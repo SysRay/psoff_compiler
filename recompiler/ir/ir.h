@@ -4,28 +4,22 @@
 #include "types.h"
 
 #include <array>
+#include <deque>
 #include <type_traits>
 
 namespace compiler::ir {
 
 struct Operand {
+  OperandId_t    id    = 0;
   OperandKind_t  kind  = 0;
   OperandFlags_t flags = 0;
 
+  ConstantId_t constantId = {};
+
   OperandType type = OperandType::i32();
 };
 
-struct InstConstant {
-  OperandType type = OperandType::i32();
-
-  union {
-    int64_t  value_i64;
-    uint64_t value_u64;
-    double   value_f64;
-  };
-};
-
-struct alignas(64) InstCore {
+struct alignas(16) InstCore {
   InstructionKind_t                  kind  = -1;
   eInstructionGroup                  group = eInstructionGroup::kUnknown;
   util::Flags<ir::eInstructionFlags> flags;
@@ -37,19 +31,15 @@ struct alignas(64) InstCore {
     uint8_t numSrc : 4;
   };
 
-  std::array<Operand, config::kMaxDstOps> dstOperands;
-
-  union {
-    std::array<Operand, config::kMaxSrcOps> srcOperands;
-    InstConstant                            srcConstant;
-  };
+  OperandId_t dstStartId; ///< index into operand table
+  OperandId_t srcStartId; ///< index into operand table
 
   inline bool isValid() const { return group != eInstructionGroup::kUnknown; }
 
   inline bool isConstant() const { return flags.is_set(ir::eInstructionFlags::kConstant); }
 };
 
-static_assert(sizeof(InstCore) <= 64); ///< cache lines
+static_assert(sizeof(InstCore) <= 32); ///< cache lines
 static_assert(config::kMaxOps <= 15);  ///< only 4 bits
 
 // // Handle enum bits to underlying conversion
@@ -86,4 +76,77 @@ template <typename Enum>
 constexpr Flags<Enum> operator|(Enum lhs, Flags<Enum> rhs) {
   return Flags<Enum>(static_cast<std::underlying_type_t<Enum>>(lhs) | rhs.value);
 }
+
+struct ConstantValue {
+  union {
+    int64_t  value_i64;
+    uint64_t value_u64;
+    double   value_f64;
+  };
+};
+
+class InstructionManager {
+  public:
+  InstructionManager(std::pmr::polymorphic_allocator<> allocator, size_t expectedInstructions = 256)
+      : _instruction(allocator), _operands(allocator), _constants(allocator) {}
+
+  InstructionId_t createInstruction(InstCore const& instr);
+
+  // inline InstructionId_t createVirtualInstruction(InstCore&& instr) {
+  //   instr.flags |= ir::eInstructionFlags::kVirtual;
+  //   return createInstruction(std::move(instr));
+  // }
+
+  inline InstCore& accessInst(InstructionId_t id) { return _instruction[id]; }
+
+  inline const InstCore& getInst(InstructionId_t id) const { return _instruction[id]; }
+
+  inline Operand& getDst(InstructionId_t id, uint32_t index) {
+    const InstCore& inst = _instruction[id];
+    return _operands[inst.dstStartId + index];
+  }
+
+  inline const Operand& getDst(InstructionId_t id, uint32_t index) const {
+    const InstCore& inst = _instruction[id];
+    return _operands[inst.dstStartId + index];
+  }
+
+  inline Operand& getSrc(InstructionId_t id, uint32_t index) {
+    const InstCore& inst = _instruction[id];
+    return _operands[inst.srcStartId + index];
+  }
+
+  inline const Operand& getSrc(InstructionId_t id, uint32_t index) const {
+    const InstCore& inst = _instruction[id];
+    return _operands[inst.srcStartId + index];
+  }
+
+  // void setDstValueId(InstructionId_t id, uint32_t idx, ValueId_t v) { getDst(id, idx).valueId = v; }
+
+  // void setSrcValueId(InstructionId_t id, uint32_t idx, ValueId_t v) { getSrc(id, idx).valueId = v; }
+
+  inline void setDstOperand(InstructionId_t id, uint32_t idx, const Operand& op) { getDst(id, idx) = op; }
+
+  inline void setSrcOperand(InstructionId_t id, uint32_t idx, const Operand& op) { getSrc(id, idx) = op; }
+
+  inline Operand& getOperand(OperandId_t id) { return _operands[id]; }
+
+  inline const Operand& getOperand(OperandId_t id) const { return _operands[id]; }
+
+  inline OperandId_t operandCount() const { return _operands.size(); }
+
+  inline auto instructionCount() const { return _instruction.size(); }
+
+  inline ConstantId_t createConstant(const ConstantValue& c) {
+    // todo make unique
+    _constants.push_back(c);
+    return ConstantId_t(_constants.size() - 1);
+  }
+
+  private:
+  std::pmr::deque<InstCore>      _instruction; // todo boost::stable_vector?
+  std::pmr::deque<Operand>       _operands;
+  std::pmr::deque<ConstantValue> _constants;
+};
+
 } // namespace compiler::ir

@@ -38,3 +38,22 @@ template <typename Container, typename T>
 bool contains(const Container& container, const T& value) {
   return std::find(container.begin(), container.end(), value) != container.end();
 }
+
+template <typename Tag, typename T = uint32_t>
+struct id_t {
+  using underlying_t = T;
+
+  static inline constexpr id_t NO_VALUE() { return id_t(std::numeric_limits<underlying_t>::max()); };
+
+  underlying_t value = NO_VALUE().value;
+
+  constexpr id_t() = default;
+
+  constexpr explicit id_t(underlying_t v): value(v) {}
+
+  constexpr operator underlying_t() const { return value; }
+
+  constexpr bool operator==(id_t const&) const = default;
+
+  constexpr bool isValid() const { return value != NO_VALUE().value; }
+};

@@ -112,18 +112,6 @@ template <typename T>
 concept NodeConcept = std::derived_from<T, Base>;
 
 class Builder {
-  protected:
-  template <typename T, typename... Args>
-  requires NodeConcept<T>
-  nodeid_t createNode(Args&&... args) {
-    auto const id = nodeid_t((uint32_t)_blocks.size());
-
-    Base* block = _blocks.emplace_back(_blocks.get_allocator().new_object<T>(_blocks.get_allocator(), std::forward<Args>(args)...));
-    block->id   = id;
-
-    return id;
-  }
-
   public:
   Builder(std::pmr::polymorphic_allocator<> allocator, size_t expectedBlocks) {
     _blocks.reserve(expectedBlocks);
@@ -139,6 +127,17 @@ class Builder {
     _regions.emplace_back(_regions.get_allocator());
     _regions.back().id = rid;
     return rid;
+  }
+
+  template <typename T, typename... Args>
+  requires NodeConcept<T>
+  nodeid_t __createNode(Args&&... args) {
+    auto const id = nodeid_t((uint32_t)_blocks.size());
+
+    Base* block = _blocks.emplace_back(_blocks.get_allocator().new_object<T>(_blocks.get_allocator(), std::forward<Args>(args)...));
+    block->id   = id;
+
+    return id;
   }
 
   // ------------------------------------------------------------

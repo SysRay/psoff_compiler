@@ -1,43 +1,40 @@
 #include "instruction_builder.h"
 
+#include "ir/ir.h"
+
 namespace compiler::frontend::translate::create {
-ir::InstCore literalOp(uint32_t value) {
-  auto inst                  = ir::getInfo(ir::eInstKind::ConstantOp);
-  inst.srcConstant.value_u64 = value;
-  inst.dstOperands[0].kind   = getOperandKind(eOperandKind::Literal());
-  inst.dstOperands[0].type = inst.srcConstant.type = ir::OperandType::i32();
-  return inst;
+
+static ir::Operand& create(ir::Operand& lhs, OpDst const& rhs, ir::OperandType type) {
+  lhs.kind  = getOperandKind(rhs.kind);
+  lhs.flags = rhs.flags;
+  lhs.type  = type;
+  return lhs;
 }
 
-ir::InstCore constantOp(OpDst dst, uint64_t value, ir::OperandType type) {
-  auto inst                  = ir::getInfo(ir::eInstKind::ConstantOp);
-  inst.srcConstant.value_u64 = value;
-  inst.dstOperands[0].kind   = getOperandKind(dst.kind);
-  inst.dstOperands[0].flags  = dst.flags;
-  inst.dstOperands[0].type = inst.srcConstant.type = type;
-  return inst;
+static ir::Operand& create(ir::Operand& lhs, OpSrc const& rhs, ir::OperandType type) {
+  lhs.kind  = getOperandKind(rhs.kind);
+  lhs.flags = rhs.flags;
+  lhs.type  = type;
+  return lhs;
 }
 
-ir::InstCore constantOp(OpDst dst, int16_t value, ir::OperandType type) {
-  auto inst                  = ir::getInfo(ir::eInstKind::ConstantOp);
-  inst.srcConstant.value_u64 = (uint64_t)((int64_t)value);
-  inst.dstOperands[0].kind   = getOperandKind(dst.kind);
-  inst.dstOperands[0].flags  = dst.flags;
-  inst.dstOperands[0].type = inst.srcConstant.type = type;
-  return inst;
+InstructionId_t IR::constantOp(OpDst dst, ir::ConstantValue value, ir::OperandType type) {
+  auto  id    = _ir.createInstruction(ir::getInfo(ir::eInstKind::ConstantOp));
+  auto& dstOp = _ir.getDst(id, 0);
+
+  create(_ir.getDst(id, 0), dst, type).constantId = _ir.createConstant(value);
+  return id;
 }
 
-ir::InstCore moveOp(OpDst dst, OpSrc src, ir::OperandType type) {
-  auto inst                 = ir::getInfo(ir::eInstKind::MoveOp);
-  inst.dstOperands[0].kind  = getOperandKind(dst.kind);
-  inst.srcOperands[0].kind  = getOperandKind(src.kind);
-  inst.dstOperands[0].flags = dst.flags;
-  inst.srcOperands[0].flags = src.flags;
-  inst.dstOperands[0].type = inst.srcOperands[0].type = type;
-  return inst;
+InstructionId_t IR::moveOp(OpDst dst, OpSrc src, ir::OperandType type) {
+  auto id = _ir.createInstruction(ir::getInfo(ir::eInstKind::MoveOp));
+
+  create(_ir.getDst(id, 0), dst, type);
+  create(_ir.getSrc(id, 0), src, type);
+  return id;
 }
 
-ir::InstCore selectOp(OpDst dst, OpSrc predicate, OpSrc srcTrue, OpSrc srcFalse, ir::OperandType type) {
+InstructionId_t IR::selectOp(OpDst dst, OpSrc predicate, OpSrc srcTrue, OpSrc srcFalse, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::SelectOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(predicate.kind);
@@ -51,7 +48,7 @@ ir::InstCore selectOp(OpDst dst, OpSrc predicate, OpSrc srcTrue, OpSrc srcFalse,
   return inst;
 }
 
-ir::InstCore bitReverseOp(OpDst dst, OpSrc src, ir::OperandType type) {
+InstructionId_t IR::bitReverseOp(OpDst dst, OpSrc src, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::BitReverseOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src.kind);
@@ -61,7 +58,7 @@ ir::InstCore bitReverseOp(OpDst dst, OpSrc src, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore bitCountOp(OpDst dst, OpSrc src, ir::OperandType type) {
+InstructionId_t IR::bitCountOp(OpDst dst, OpSrc src, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::BitCountOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src.kind);
@@ -71,7 +68,7 @@ ir::InstCore bitCountOp(OpDst dst, OpSrc src, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore findILsbOp(OpDst dst, OpSrc src, ir::OperandType type) {
+InstructionId_t IR::findILsbOp(OpDst dst, OpSrc src, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::FindILsbOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src.kind);
@@ -82,7 +79,7 @@ ir::InstCore findILsbOp(OpDst dst, OpSrc src, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore findUMsbOp(OpDst dst, OpSrc src, ir::OperandType type) {
+InstructionId_t IR::findUMsbOp(OpDst dst, OpSrc src, ir::OperandType type) {
   auto inst                = ir::getInfo(ir::eInstKind::FindUMsbOp);
   inst.dstOperands[0].kind = getOperandKind(dst.kind);
   inst.srcOperands[0].kind = getOperandKind(src.kind);
@@ -91,7 +88,7 @@ ir::InstCore findUMsbOp(OpDst dst, OpSrc src, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore findSMsbOp(OpDst dst, OpSrc src, ir::OperandType type) {
+InstructionId_t IR::findSMsbOp(OpDst dst, OpSrc src, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::FindUMsbOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src.kind);
@@ -102,7 +99,7 @@ ir::InstCore findSMsbOp(OpDst dst, OpSrc src, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore signExtendI32Op(OpDst dst, OpSrc src, ir::OperandType type) {
+InstructionId_t IR::signExtendI32Op(OpDst dst, OpSrc src, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::SignExtendOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src.kind);
@@ -113,7 +110,7 @@ ir::InstCore signExtendI32Op(OpDst dst, OpSrc src, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore bitsetOp(OpDst dst, OpSrc src, OpSrc offset, OpSrc value, ir::OperandType type) {
+InstructionId_t IR::bitsetOp(OpDst dst, OpSrc src, OpSrc offset, OpSrc value, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::BitsetOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src.kind);
@@ -131,7 +128,7 @@ ir::InstCore bitsetOp(OpDst dst, OpSrc src, OpSrc offset, OpSrc value, ir::Opera
   return inst;
 }
 
-ir::InstCore bitFieldInsertOp(OpDst dst, OpSrc value, OpSrc offset, OpSrc count, ir::OperandType type) {
+InstructionId_t IR::bitFieldInsertOp(OpDst dst, OpSrc value, OpSrc offset, OpSrc count, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::BitFieldInsertOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(value.kind);
@@ -146,7 +143,7 @@ ir::InstCore bitFieldInsertOp(OpDst dst, OpSrc value, OpSrc offset, OpSrc count,
   return inst;
 }
 
-ir::InstCore bitUIExtractOp(OpDst dst, OpSrc base, OpSrc offset, OpSrc count, ir::OperandType type) {
+InstructionId_t IR::bitUIExtractOp(OpDst dst, OpSrc base, OpSrc offset, OpSrc count, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::BitUIExtractOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(base.kind);
@@ -160,7 +157,7 @@ ir::InstCore bitUIExtractOp(OpDst dst, OpSrc base, OpSrc offset, OpSrc count, ir
   return inst;
 }
 
-ir::InstCore bitSIExtractOp(OpDst dst, OpSrc base, OpSrc offset, OpSrc count, ir::OperandType type) {
+InstructionId_t IR::bitSIExtractOp(OpDst dst, OpSrc base, OpSrc offset, OpSrc count, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::BitSIExtractOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(base.kind);
@@ -174,7 +171,7 @@ ir::InstCore bitSIExtractOp(OpDst dst, OpSrc base, OpSrc offset, OpSrc count, ir
   return inst;
 }
 
-ir::InstCore bitUIExtractOp(OpDst dst, OpSrc base, OpSrc compact, ir::OperandType type) {
+InstructionId_t IR::bitUIExtractOp(OpDst dst, OpSrc base, OpSrc compact, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::BitUIExtractCompactOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(base.kind);
@@ -186,7 +183,7 @@ ir::InstCore bitUIExtractOp(OpDst dst, OpSrc base, OpSrc compact, ir::OperandTyp
   return inst;
 }
 
-ir::InstCore bitSIExtractOp(OpDst dst, OpSrc base, OpSrc compact, ir::OperandType type) {
+InstructionId_t IR::bitSIExtractOp(OpDst dst, OpSrc base, OpSrc compact, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::BitSIExtractCompactOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(base.kind);
@@ -198,7 +195,7 @@ ir::InstCore bitSIExtractOp(OpDst dst, OpSrc base, OpSrc compact, ir::OperandTyp
   return inst;
 }
 
-ir::InstCore bitCmpOp(OpDst dst, OpSrc base, ir::OperandType type, OpSrc index) {
+InstructionId_t IR::bitCmpOp(OpDst dst, OpSrc base, ir::OperandType type, OpSrc index) {
   auto inst                 = ir::getInfo(ir::eInstKind::BitCmpOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(base.kind);
@@ -212,29 +209,29 @@ ir::InstCore bitCmpOp(OpDst dst, OpSrc base, ir::OperandType type, OpSrc index) 
   return inst;
 }
 
-ir::InstCore returnOp() {
+InstructionId_t IR::returnOp() {
   return ir::getInfo(ir::eInstKind::ReturnOp);
 }
 
-ir::InstCore discardOp(OpSrc predicate) {
+InstructionId_t IR::discardOp(OpSrc predicate) {
   auto inst                 = ir::getInfo(ir::eInstKind::DiscardOp);
   inst.srcOperands[0].kind  = getOperandKind(predicate.kind);
   inst.srcOperands[0].flags = predicate.flags;
   return inst;
 }
 
-ir::InstCore barrierOp() {
+InstructionId_t IR::barrierOp() {
   return ir::getInfo(ir::eInstKind::BarrierOp);
 }
 
-ir::InstCore jumpAbsOp(OpSrc addr) {
+InstructionId_t IR::jumpAbsOp(OpSrc addr) {
   auto inst                = ir::getInfo(ir::eInstKind::JumpAbsOp);
   inst.srcOperands[0].kind = getOperandKind(addr.kind);
   inst.srcOperands[1].type = ir::OperandType::i64();
   return inst;
 }
 
-ir::InstCore cjumpAbsOp(OpSrc predicate, bool invert, OpSrc addr) {
+InstructionId_t IR::cjumpAbsOp(OpSrc predicate, bool invert, OpSrc addr) {
   auto inst                 = ir::getInfo(ir::eInstKind::CondJumpAbsOp);
   inst.srcOperands[0].kind  = getOperandKind(predicate.kind);
   inst.srcOperands[1].kind  = getOperandKind(addr.kind);
@@ -244,7 +241,7 @@ ir::InstCore cjumpAbsOp(OpSrc predicate, bool invert, OpSrc addr) {
   return inst;
 }
 
-ir::InstCore bitFieldMaskOp(OpDst dst, OpSrc size, OpSrc offset, ir::OperandType type) {
+InstructionId_t IR::bitFieldMaskOp(OpDst dst, OpSrc size, OpSrc offset, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::BitFieldMaskOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(size.kind);
@@ -256,7 +253,7 @@ ir::InstCore bitFieldMaskOp(OpDst dst, OpSrc size, OpSrc offset, ir::OperandType
   return inst;
 }
 
-ir::InstCore bitAndOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+InstructionId_t IR::bitAndOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::BitAndOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -268,7 +265,7 @@ ir::InstCore bitAndOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore bitOrOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+InstructionId_t IR::bitOrOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::BitOrOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -280,7 +277,7 @@ ir::InstCore bitOrOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore bitXorOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+InstructionId_t IR::bitXorOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::BitXorOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -292,7 +289,7 @@ ir::InstCore bitXorOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore cmpIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type, CmpIPredicate op) {
+InstructionId_t IR::cmpIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type, CmpIPredicate op) {
   auto inst                 = ir::getInfo(ir::eInstKind::CmpIOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -306,7 +303,7 @@ ir::InstCore cmpIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type, Cmp
   return inst;
 }
 
-ir::InstCore cmpFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type, CmpFPredicate op) {
+InstructionId_t IR::cmpFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type, CmpFPredicate op) {
   auto inst                 = ir::getInfo(ir::eInstKind::CmpFOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -320,7 +317,7 @@ ir::InstCore cmpFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type, Cmp
   return inst;
 }
 
-ir::InstCore mulIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+InstructionId_t IR::mulIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::MulIOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -332,7 +329,7 @@ ir::InstCore mulIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore mulIExtendedOp(OpDst low, OpDst high, OpSrc src0, OpSrc src1, ir::OperandType type) {
+InstructionId_t IR::mulIExtendedOp(OpDst low, OpDst high, OpSrc src0, OpSrc src1, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::MulIExtendedOp);
   inst.dstOperands[0].kind  = getOperandKind(low.kind);
   inst.dstOperands[1].kind  = getOperandKind(high.kind);
@@ -346,7 +343,7 @@ ir::InstCore mulIExtendedOp(OpDst low, OpDst high, OpSrc src0, OpSrc src1, ir::O
   return inst;
 }
 
-ir::InstCore max3UIOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type) {
+InstructionId_t IR::max3UIOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::Max3UIOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -360,7 +357,7 @@ ir::InstCore max3UIOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::Operand
   return inst;
 }
 
-ir::InstCore maxUIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+InstructionId_t IR::maxUIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::MaxUIOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -372,7 +369,7 @@ ir::InstCore maxUIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore max3SIOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type) {
+InstructionId_t IR::max3SIOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::Max3SIOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -386,7 +383,7 @@ ir::InstCore max3SIOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::Operand
   return inst;
 }
 
-ir::InstCore maxSIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+InstructionId_t IR::maxSIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::MaxSIOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -398,7 +395,7 @@ ir::InstCore maxSIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore max3FOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type) {
+InstructionId_t IR::max3FOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::Max3FOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -412,7 +409,7 @@ ir::InstCore max3FOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandT
   return inst;
 }
 
-ir::InstCore maxFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+InstructionId_t IR::maxFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::MaxFOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -424,7 +421,7 @@ ir::InstCore maxFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore maxNOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+InstructionId_t IR::maxNOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::MaxNOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -436,7 +433,7 @@ ir::InstCore maxNOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore min3UIOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type) {
+InstructionId_t IR::min3UIOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::Min3UIOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -450,7 +447,7 @@ ir::InstCore min3UIOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::Operand
   return inst;
 }
 
-ir::InstCore minUIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+InstructionId_t IR::minUIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::MinUIOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -462,7 +459,7 @@ ir::InstCore minUIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore min3SIOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type) {
+InstructionId_t IR::min3SIOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::Min3SIOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -476,7 +473,7 @@ ir::InstCore min3SIOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::Operand
   return inst;
 }
 
-ir::InstCore minSIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+InstructionId_t IR::minSIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::MinSIOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -488,7 +485,7 @@ ir::InstCore minSIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore min3FOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type) {
+InstructionId_t IR::min3FOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::Min3FOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -502,7 +499,7 @@ ir::InstCore min3FOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandT
   return inst;
 }
 
-ir::InstCore minFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+InstructionId_t IR::minFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::MinFOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -514,7 +511,7 @@ ir::InstCore minFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore minNOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+InstructionId_t IR::minNOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::MinNOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -526,7 +523,7 @@ ir::InstCore minNOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore medUIOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type) {
+InstructionId_t IR::medUIOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::MedUIOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -540,7 +537,7 @@ ir::InstCore medUIOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandT
   return inst;
 }
 
-ir::InstCore medSIOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type) {
+InstructionId_t IR::medSIOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::MedSIOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -554,7 +551,7 @@ ir::InstCore medSIOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandT
   return inst;
 }
 
-ir::InstCore medFOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type) {
+InstructionId_t IR::medFOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::MedFOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -568,7 +565,7 @@ ir::InstCore medFOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandTy
   return inst;
 }
 
-ir::InstCore addIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+InstructionId_t IR::addIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::AddIOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -580,7 +577,7 @@ ir::InstCore addIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore ldexpOp(OpDst dst, OpSrc vsrc, OpSrc vexp, ir::OperandType type) {
+InstructionId_t IR::ldexpOp(OpDst dst, OpSrc vsrc, OpSrc vexp, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::LdexpOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(vsrc.kind);
@@ -592,7 +589,7 @@ ir::InstCore ldexpOp(OpDst dst, OpSrc vsrc, OpSrc vexp, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore addFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+InstructionId_t IR::addFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::AddFOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -604,7 +601,7 @@ ir::InstCore addFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore subFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+InstructionId_t IR::subFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::SubFOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -616,7 +613,7 @@ ir::InstCore subFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore mulFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+InstructionId_t IR::mulFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::MulFOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -628,7 +625,7 @@ ir::InstCore mulFOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore fmaFOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type) {
+InstructionId_t IR::fmaFOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::FmaFOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -642,7 +639,7 @@ ir::InstCore fmaFOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandTy
   return inst;
 }
 
-ir::InstCore fmaIOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type) {
+InstructionId_t IR::fmaIOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::FmaIOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -656,7 +653,7 @@ ir::InstCore fmaIOp(OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, ir::OperandTy
   return inst;
 }
 
-ir::InstCore addcIOp(OpDst dst, OpDst carryOut, OpSrc src0, OpSrc src1, OpSrc carryIn, ir::OperandType type) {
+InstructionId_t IR::addcIOp(OpDst dst, OpDst carryOut, OpSrc src0, OpSrc src1, OpSrc carryIn, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::AddCarryIOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.dstOperands[1].kind  = getOperandKind(carryOut.kind);
@@ -672,7 +669,7 @@ ir::InstCore addcIOp(OpDst dst, OpDst carryOut, OpSrc src0, OpSrc src1, OpSrc ca
   return inst;
 }
 
-ir::InstCore subIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+InstructionId_t IR::subIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::SubIOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -684,7 +681,7 @@ ir::InstCore subIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore subbIOp(OpDst dst, OpDst carryOut, OpSrc src0, OpSrc src1, OpSrc carryIn, ir::OperandType type) {
+InstructionId_t IR::subbIOp(OpDst dst, OpDst carryOut, OpSrc src0, OpSrc src1, OpSrc carryIn, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::SubBurrowIOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.dstOperands[1].kind  = getOperandKind(carryOut.kind);
@@ -700,7 +697,7 @@ ir::InstCore subbIOp(OpDst dst, OpDst carryOut, OpSrc src0, OpSrc src1, OpSrc ca
   return inst;
 }
 
-ir::InstCore shiftLUIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+InstructionId_t IR::shiftLUIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::ShiftLUIOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -712,7 +709,7 @@ ir::InstCore shiftLUIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type)
   return inst;
 }
 
-ir::InstCore shiftRUIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+InstructionId_t IR::shiftRUIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::ShiftRUIOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -724,7 +721,7 @@ ir::InstCore shiftRUIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type)
   return inst;
 }
 
-ir::InstCore shiftRSIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
+InstructionId_t IR::shiftRSIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::ShiftRSIOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -736,7 +733,7 @@ ir::InstCore shiftRSIOp(OpDst dst, OpSrc src0, OpSrc src1, ir::OperandType type)
   return inst;
 }
 
-ir::InstCore truncFOp(OpDst dst, OpSrc src0) {
+InstructionId_t IR::truncFOp(OpDst dst, OpSrc src0) {
   auto inst                 = ir::getInfo(ir::eInstKind::TruncFOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -745,7 +742,7 @@ ir::InstCore truncFOp(OpDst dst, OpSrc src0) {
   return inst;
 }
 
-ir::InstCore extFOp(OpDst dst, OpSrc src0) {
+InstructionId_t IR::extFOp(OpDst dst, OpSrc src0) {
   auto inst                 = ir::getInfo(ir::eInstKind::ExtFOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -754,7 +751,7 @@ ir::InstCore extFOp(OpDst dst, OpSrc src0) {
   return inst;
 }
 
-ir::InstCore convFPToSIOp(OpDst dst, ir::OperandType dstType, OpSrc src0, ir::OperandType srcType) {
+InstructionId_t IR::convFPToSIOp(OpDst dst, ir::OperandType dstType, OpSrc src0, ir::OperandType srcType) {
   auto inst                 = ir::getInfo(ir::eInstKind::FPToSIOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -765,7 +762,7 @@ ir::InstCore convFPToSIOp(OpDst dst, ir::OperandType dstType, OpSrc src0, ir::Op
   return inst;
 }
 
-ir::InstCore convSIToFPOp(OpDst dst, ir::OperandType dstType, OpSrc src0, ir::OperandType srcType) {
+InstructionId_t IR::convSIToFPOp(OpDst dst, ir::OperandType dstType, OpSrc src0, ir::OperandType srcType) {
   auto inst                 = ir::getInfo(ir::eInstKind::SIToFPOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -776,7 +773,7 @@ ir::InstCore convSIToFPOp(OpDst dst, ir::OperandType dstType, OpSrc src0, ir::Op
   return inst;
 }
 
-ir::InstCore convFPToUIOp(OpDst dst, ir::OperandType dstType, OpSrc src0, ir::OperandType srcType) {
+InstructionId_t IR::convFPToUIOp(OpDst dst, ir::OperandType dstType, OpSrc src0, ir::OperandType srcType) {
   auto inst                 = ir::getInfo(ir::eInstKind::FPToUIOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -787,7 +784,7 @@ ir::InstCore convFPToUIOp(OpDst dst, ir::OperandType dstType, OpSrc src0, ir::Op
   return inst;
 }
 
-ir::InstCore convUIToFPOp(OpDst dst, ir::OperandType dstType, OpSrc src0, ir::OperandType srcType) {
+InstructionId_t IR::convUIToFPOp(OpDst dst, ir::OperandType dstType, OpSrc src0, ir::OperandType srcType) {
   auto inst                 = ir::getInfo(ir::eInstKind::UIToFPOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -798,7 +795,7 @@ ir::InstCore convUIToFPOp(OpDst dst, ir::OperandType dstType, OpSrc src0, ir::Op
   return inst;
 }
 
-ir::InstCore convSI4ToFloat(OpDst dst, OpSrc src0) {
+InstructionId_t IR::convSI4ToFloat(OpDst dst, OpSrc src0) {
   auto inst                 = ir::getInfo(ir::eInstKind::SI4ToFloat);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -807,7 +804,7 @@ ir::InstCore convSI4ToFloat(OpDst dst, OpSrc src0) {
   return inst;
 }
 
-ir::InstCore packHalf2x16Op(OpDst dst, OpSrc src0, OpSrc src1) {
+InstructionId_t IR::packHalf2x16Op(OpDst dst, OpSrc src0, OpSrc src1) {
   auto inst                 = ir::getInfo(ir::eInstKind::PackHalf2x16Op);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -818,7 +815,7 @@ ir::InstCore packHalf2x16Op(OpDst dst, OpSrc src0, OpSrc src1) {
   return inst;
 }
 
-ir::InstCore unpackHalf2x16(OpDst low, OpDst high, OpSrc src) {
+InstructionId_t IR::unpackHalf2x16(OpDst low, OpDst high, OpSrc src) {
   auto inst                 = ir::getInfo(ir::eInstKind::UnpackHalf2x16);
   inst.dstOperands[0].kind  = getOperandKind(low.kind);
   inst.dstOperands[1].kind  = getOperandKind(high.kind);
@@ -829,7 +826,7 @@ ir::InstCore unpackHalf2x16(OpDst low, OpDst high, OpSrc src) {
   return inst;
 }
 
-ir::InstCore packSnorm2x16Op(OpDst dst, OpSrc src0, OpSrc src1) {
+InstructionId_t IR::packSnorm2x16Op(OpDst dst, OpSrc src0, OpSrc src1) {
   auto inst                 = ir::getInfo(ir::eInstKind::PackSnorm2x16Op);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -840,7 +837,7 @@ ir::InstCore packSnorm2x16Op(OpDst dst, OpSrc src0, OpSrc src1) {
   return inst;
 }
 
-ir::InstCore packUnorm2x16Op(OpDst dst, OpSrc src0, OpSrc src1) {
+InstructionId_t IR::packUnorm2x16Op(OpDst dst, OpSrc src0, OpSrc src1) {
   auto inst                 = ir::getInfo(ir::eInstKind::PackUnorm2x16Op);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -851,7 +848,7 @@ ir::InstCore packUnorm2x16Op(OpDst dst, OpSrc src0, OpSrc src1) {
   return inst;
 }
 
-ir::InstCore truncOp(OpDst dst, OpSrc src0, ir::OperandType type) {
+InstructionId_t IR::truncOp(OpDst dst, OpSrc src0, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::TruncOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -861,7 +858,7 @@ ir::InstCore truncOp(OpDst dst, OpSrc src0, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore ceilOp(OpDst dst, OpSrc src0, ir::OperandType type) {
+InstructionId_t IR::ceilOp(OpDst dst, OpSrc src0, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::CeilOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -871,7 +868,7 @@ ir::InstCore ceilOp(OpDst dst, OpSrc src0, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore roundEvenOp(OpDst dst, OpSrc src0, ir::OperandType type) {
+InstructionId_t IR::roundEvenOp(OpDst dst, OpSrc src0, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::RoundEvenOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -881,7 +878,7 @@ ir::InstCore roundEvenOp(OpDst dst, OpSrc src0, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore fractOp(OpDst dst, OpSrc src0, ir::OperandType type) {
+InstructionId_t IR::fractOp(OpDst dst, OpSrc src0, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::FractOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -891,7 +888,7 @@ ir::InstCore fractOp(OpDst dst, OpSrc src0, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore floorOp(OpDst dst, OpSrc src0, ir::OperandType type) {
+InstructionId_t IR::floorOp(OpDst dst, OpSrc src0, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::FloorOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -901,7 +898,7 @@ ir::InstCore floorOp(OpDst dst, OpSrc src0, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore rcpOp(OpDst dst, OpSrc src0, ir::OperandType type) {
+InstructionId_t IR::rcpOp(OpDst dst, OpSrc src0, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::RcpOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -911,7 +908,7 @@ ir::InstCore rcpOp(OpDst dst, OpSrc src0, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore rsqrtOp(OpDst dst, OpSrc src0, ir::OperandType type) {
+InstructionId_t IR::rsqrtOp(OpDst dst, OpSrc src0, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::RsqrtOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -921,7 +918,7 @@ ir::InstCore rsqrtOp(OpDst dst, OpSrc src0, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore sqrtOp(OpDst dst, OpSrc src0, ir::OperandType type) {
+InstructionId_t IR::sqrtOp(OpDst dst, OpSrc src0, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::SqrtOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -931,7 +928,7 @@ ir::InstCore sqrtOp(OpDst dst, OpSrc src0, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore exp2Op(OpDst dst, OpSrc src0) {
+InstructionId_t IR::exp2Op(OpDst dst, OpSrc src0) {
   auto inst                 = ir::getInfo(ir::eInstKind::Exp2Op);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -940,7 +937,7 @@ ir::InstCore exp2Op(OpDst dst, OpSrc src0) {
   return inst;
 }
 
-ir::InstCore log2Op(OpDst dst, OpSrc src0) {
+InstructionId_t IR::log2Op(OpDst dst, OpSrc src0) {
   auto inst                 = ir::getInfo(ir::eInstKind::Log2Op);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -949,7 +946,7 @@ ir::InstCore log2Op(OpDst dst, OpSrc src0) {
   return inst;
 }
 
-ir::InstCore sinOp(OpDst dst, OpSrc src0) {
+InstructionId_t IR::sinOp(OpDst dst, OpSrc src0) {
   auto inst                 = ir::getInfo(ir::eInstKind::SinOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -958,7 +955,7 @@ ir::InstCore sinOp(OpDst dst, OpSrc src0) {
   return inst;
 }
 
-ir::InstCore cosOp(OpDst dst, OpSrc src0) {
+InstructionId_t IR::cosOp(OpDst dst, OpSrc src0) {
   auto inst                 = ir::getInfo(ir::eInstKind::CosOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -967,7 +964,7 @@ ir::InstCore cosOp(OpDst dst, OpSrc src0) {
   return inst;
 }
 
-ir::InstCore clampFMinMaxOp(OpDst dst, OpSrc src0, ir::OperandType type) {
+InstructionId_t IR::clampFMinMaxOp(OpDst dst, OpSrc src0, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::ClampFMinMaxOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -977,7 +974,7 @@ ir::InstCore clampFMinMaxOp(OpDst dst, OpSrc src0, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore clampFZeroOp(OpDst dst, OpSrc src0, ir::OperandType type) {
+InstructionId_t IR::clampFZeroOp(OpDst dst, OpSrc src0, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::ClampFZeroOp);
   inst.dstOperands[0].kind  = getOperandKind(dst.kind);
   inst.srcOperands[0].kind  = getOperandKind(src0.kind);
@@ -987,7 +984,7 @@ ir::InstCore clampFZeroOp(OpDst dst, OpSrc src0, ir::OperandType type) {
   return inst;
 }
 
-ir::InstCore frexpOp(OpDst exp, OpDst mant, OpSrc src0, ir::OperandType type) {
+InstructionId_t IR::frexpOp(OpDst exp, OpDst mant, OpSrc src0, ir::OperandType type) {
   auto inst                 = ir::getInfo(ir::eInstKind::ClampFZeroOp);
   inst.dstOperands[0].kind  = getOperandKind(exp.kind);
   inst.dstOperands[1].kind  = getOperandKind(mant.kind);
