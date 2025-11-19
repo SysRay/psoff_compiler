@@ -1,16 +1,16 @@
-#include "frontend/ir_types.h"
 #include "../debug_strings.h"
+#include "../instruction_builder.h"
 #include "../opcodes_table.h"
 #include "builder.h"
 #include "encodings.h"
-#include "../instruction_builder.h"
+#include "frontend/ir_types.h"
 #include "translate.h"
 
 #include <format>
 #include <stdexcept>
 
 namespace compiler::frontend::translate {
-InstructionKind_t handleSopp(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
+InstructionKind_t handleSopp(parser::Context& ctx, parser::pc_t pc, parser::code_p_t* pCode) {
   using namespace parser;
 
   auto       inst = SOPP(**pCode);
@@ -18,43 +18,44 @@ InstructionKind_t handleSopp(Builder& builder, parser::pc_t pc, parser::code_p_t
 
   auto const offset = (int16_t)inst.template get<SOPP::Field::SIMM16>();
 
+  create::IRBuilder ir(ctx.instructions);
   *pCode += 1;
 
   switch (op) {
     case eOpcode::S_NOP: break; // ignore
     case eOpcode::S_ENDPGM: {
-      builder.createInstruction(create::returnOp());
+      ir.returnOp();
     } break;
     case eOpcode::S_BRANCH: {
-      builder.createInstruction(create::constantOp(OpDst(eOperandKind::Temp0()), 4 + pc + 4 * (int64_t)offset, ir::OperandType::i64()));
-      builder.createInstruction(create::jumpAbsOp(OpSrc(eOperandKind::Temp0())));
+      auto const target = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_u64 = 4 + pc + 4 * (int64_t)offset}));
+      ir.jumpAbsOp(target);
     } break;
     case eOpcode::S_CBRANCH_SCC0: {
-      builder.createInstruction(create::constantOp(OpDst(eOperandKind::Temp0()), 4 + pc + 4 * (int64_t)offset, ir::OperandType::i64()));
-      builder.createInstruction(create::cjumpAbsOp(OpSrc(eOperandKind::SCC()), true, OpSrc(eOperandKind::Temp0())));
+      auto const target = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_u64 = 4 + pc + 4 * (int64_t)offset}));
+      ir.cjumpAbsOp(OpSrc(eOperandKind::SCC()), true, target);
     } break;
     case eOpcode::S_CBRANCH_SCC1: {
-      builder.createInstruction(create::constantOp(OpDst(eOperandKind::Temp0()), 4 + pc + 4 * (int64_t)offset, ir::OperandType::i64()));
-      builder.createInstruction(create::cjumpAbsOp(OpSrc(eOperandKind::SCC()), false, OpSrc(eOperandKind::Temp0())));
+      auto const target = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_u64 = 4 + pc + 4 * (int64_t)offset}));
+      ir.cjumpAbsOp(OpSrc(eOperandKind::SCC()), false, target);
     } break;
     case eOpcode::S_CBRANCH_VCCZ: {
-      builder.createInstruction(create::constantOp(OpDst(eOperandKind::Temp0()), 4 + pc + 4 * (int64_t)offset, ir::OperandType::i64()));
-      builder.createInstruction(create::cjumpAbsOp(OpSrc(eOperandKind::VCC(), true, false), false, OpSrc(eOperandKind::Temp0())));
+      auto const target = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_u64 = 4 + pc + 4 * (int64_t)offset}));
+      ir.cjumpAbsOp(OpSrc(eOperandKind::VCC(), true, false), false, target);
     } break;
     case eOpcode::S_CBRANCH_VCCNZ: {
-      builder.createInstruction(create::constantOp(OpDst(eOperandKind::Temp0()), 4 + pc + 4 * (int64_t)offset, ir::OperandType::i64()));
-      builder.createInstruction(create::cjumpAbsOp(OpSrc(eOperandKind::VCC()), true, OpSrc(eOperandKind::Temp0())));
+      auto const target = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_u64 = 4 + pc + 4 * (int64_t)offset}));
+      ir.cjumpAbsOp(OpSrc(eOperandKind::VCC()), true, target);
     } break;
     case eOpcode::S_CBRANCH_EXECZ: {
-      builder.createInstruction(create::constantOp(OpDst(eOperandKind::Temp0()), 4 + pc + 4 * (int64_t)offset, ir::OperandType::i64()));
-      builder.createInstruction(create::cjumpAbsOp(OpSrc(eOperandKind::EXEC(), true, false), false, OpSrc(eOperandKind::Temp0())));
+      auto const target = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_u64 = 4 + pc + 4 * (int64_t)offset}));
+      ir.cjumpAbsOp(OpSrc(eOperandKind::EXEC(), true, false), false, target);
     } break;
     case eOpcode::S_CBRANCH_EXECNZ: {
-      builder.createInstruction(create::constantOp(OpDst(eOperandKind::Temp0()), 4 + pc + 4 * (int64_t)offset, ir::OperandType::i64()));
-      builder.createInstruction(create::cjumpAbsOp(OpSrc(eOperandKind::EXEC()), true, OpSrc(eOperandKind::Temp0())));
+      auto const target = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_u64 = 4 + pc + 4 * (int64_t)offset}));
+      ir.cjumpAbsOp(OpSrc(eOperandKind::EXEC()), true, target);
     } break;
     case eOpcode::S_BARRIER: {
-      builder.createInstruction(create::barrierOp());
+      ir.barrierOp();
     } break;
     // case eOpcode::S_SETKILL: {} break; // Does not exist
     case eOpcode::S_WAITCNT:

@@ -42,9 +42,9 @@ using namespace compiler::cfg;
 
 static void createCFG(ControlFlow& cfg, uint32_t numBlocks, uint32_t start, uint32_t end, std::initializer_list<rvsdg::edge_t> edges) {
   auto funcId = cfg.createLambdaNode();
-  cfg.setMainFunction(funcId);
+  cfg.nodes()->setMainFunction(funcId);
 
-  auto R = cfg.accessRegion(cfg.getMainFunction()->body);
+  auto R = cfg.nodes()->accessRegion(cfg.nodes()->getMainFunction()->body);
   for (uint32_t n = 0; n < numBlocks; ++n) {
     cfg.createSimpleNode();
   }
@@ -52,14 +52,14 @@ static void createCFG(ControlFlow& cfg, uint32_t numBlocks, uint32_t start, uint
   R->nodes.reserve(numBlocks);
 
   auto const offset = 1 + funcId;
-  cfg.moveNodeToRegion(rvsdg::nodeid_t(offset + start), R->id);
+  cfg.nodes()->moveNodeToRegion(rvsdg::nodeid_t(offset + start), R->id);
 
   for (uint32_t n = 0; n < numBlocks; ++n) {
     if (n == start || n == end) continue;
-    cfg.moveNodeToRegion(rvsdg::nodeid_t(offset + n), R->id);
+    cfg.nodes()->moveNodeToRegion(rvsdg::nodeid_t(offset + n), R->id);
   }
 
-  cfg.moveNodeToRegion(rvsdg::nodeid_t(offset + end), R->id);
+  cfg.nodes()->moveNodeToRegion(rvsdg::nodeid_t(offset + end), R->id);
 
   for (auto const edge: edges)
     cfg.addEdge(rvsdg::nodeid_t(offset + edge.from.value), rvsdg::nodeid_t(offset + edge.to.value));
@@ -162,7 +162,7 @@ TEST(ControlflowTransform, NestedDoLoop) {
 }
 
 // fig. 4
-TEST(PostDominatorTree, BranchWithMultipleExitsIntoTail) {
+TEST(ControlflowTransform, BranchWithMultipleExitsIntoTail) {
   //      0 (branch)
   //     / \
   //    1   5
@@ -189,7 +189,7 @@ TEST(PostDominatorTree, BranchWithMultipleExitsIntoTail) {
   EXPECT_FALSE(true); // todo
 }
 
-TEST(FindBranchExitsAndMerges, DeeplyNestedBranches) {
+TEST(ControlflowTransform, DeeplyNestedBranches) {
   /*
    *           0
    *          / \

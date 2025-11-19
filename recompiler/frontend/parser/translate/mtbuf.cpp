@@ -1,4 +1,5 @@
 #include "../debug_strings.h"
+#include "../instruction_builder.h"
 #include "../opcodes_table.h"
 #include "builder.h"
 #include "encodings.h"
@@ -8,12 +9,13 @@
 #include <stdexcept>
 
 namespace compiler::frontend::translate {
-InstructionKind_t handleMtbuf(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
+InstructionKind_t handleMtbuf(parser::Context& ctx, parser::pc_t pc, parser::code_p_t* pCode) {
   using namespace parser;
 
   auto       inst = MTBUF(getU64(*pCode));
   auto const op   = (parser::eOpcode)(OPcodeStart_MTBUF + inst.template get<MTBUF::Field::OP>());
 
+  create::IRBuilder ir(ctx.instructions);
   *pCode += 2;
 
   switch (op) {

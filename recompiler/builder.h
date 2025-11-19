@@ -1,8 +1,7 @@
 #pragma once
-
 #include "frontend/parser/shader_input.h"
+#include "include/checkpoint_resource.h"
 #include "include/flags.h"
-#include "ir/ir.h"
 
 #include <array>
 #include <memory_resource>
@@ -32,10 +31,7 @@ uint64_t getAddr(uint64_t addr); ///< User implementation
 
 class Builder {
   public:
-  Builder(util::Flags<ShaderBuildFlags> const& flags = {})
-      : _buffer(std::make_unique_for_overwrite<uint8_t[]>(MEMORY_SIZE)),
-        _bufferTemp(std::make_unique_for_overwrite<uint8_t[]>(MEMORY_SIZE)),
-        _debugFlags(flags) {}
+  Builder(util::Flags<ShaderBuildFlags> const& flags = {}): _bufferTemp(std::make_unique_for_overwrite<uint8_t[]>(MEMORY_SIZE)), _debugFlags(flags) {}
 
   bool createShader(frontend::ShaderStage stage, uint32_t id, frontend::ShaderHeader const* header, uint32_t const* gpuRegs);
   bool createShader(ShaderDump_t const&);
@@ -48,9 +44,9 @@ class Builder {
 
   HostMapping* getHostMapping(uint64_t pc);
 
-  auto& getTempBuffer() { return _poolTemp; }
+  auto* getTempBuffer() { return &_poolTemp; }
 
-  auto& getBuffer() { return _pool; }
+  auto* getBuffer() { return &_pool; }
 
   // // Getter for flags
   template <ShaderBuildFlags item>
@@ -64,10 +60,10 @@ class Builder {
   bool processBinary();
 
   private:
-  std::unique_ptr<uint8_t[]>          _buffer;
-  std::unique_ptr<uint8_t[]>          _bufferTemp;
-  std::pmr::monotonic_buffer_resource _pool {_buffer.get(), MEMORY_SIZE};
-  std::pmr::monotonic_buffer_resource _poolTemp {_bufferTemp.get(), MEMORY_SIZE};
+  std::pmr::monotonic_buffer_resource _pool {MEMORY_SIZE};
+
+  std::unique_ptr<uint8_t[]> _bufferTemp;
+  util::checkpoint_resource  _poolTemp {_bufferTemp.get(), MEMORY_SIZE};
 
   util::Flags<ShaderBuildFlags> _debugFlags = {};
   frontend::ShaderInput         _shaderInput;

@@ -7,11 +7,12 @@ cfg::ControlFlow transformRg2Cfg(std::pmr::polymorphic_allocator<> allocator, an
   uint32_t const   expectedBlocks = 1 + 1.5 * rb.getNumRegions();
   cfg::ControlFlow cfg(allocator, expectedBlocks); // Leave some place for extra branch nodes
 
+  auto nodes = cfg.nodes();
   // Add all blocks to root regions (unstructured cyclic cfg)
   auto funcId = cfg.createLambdaNode();
-  cfg.setMainFunction(funcId);
+  nodes->setMainFunction(funcId);
 
-  auto rootRegion = cfg.accessRegion(cfg.getMainFunction()->body);
+  auto rootRegion = nodes->accessRegion(nodes->getMainFunction()->body);
   rootRegion->nodes.reserve(expectedBlocks);
 
   auto const stopId = cfg.createSimpleNode(); // add it at end later
@@ -25,14 +26,14 @@ cfg::ControlFlow transformRg2Cfg(std::pmr::polymorphic_allocator<> allocator, an
   // 1. Create all blocks for code regions
   for (analysis::regionid_t i {0}; i.value < rb.getNumRegions(); ++i.value) {
     auto const blockId = cfg.createSimpleNode();
-    cfg.moveNodeToRegion(blockId, rootRegion->id);
+    nodes->moveNodeToRegion(blockId, rootRegion->id);
     assert(blockId == cfg::rvsdg::nodeid_t(offset + i.value));
   }
 
   // 2. create edges
   for (analysis::regionid_t i {0}; i.value < rb.getNumRegions(); ++i.value) {
     auto const blockId = cfg::rvsdg::nodeid_t(offset + i.value);
-    auto       block   = cfg.accessNode<cfg::rvsdg::SimpleNode>(blockId);
+    auto       block   = nodes->accessNode<cfg::rvsdg::SimpleNode>(blockId);
 
     auto const [start, end] = rb.getRegion(i);
     block->instructions.insert(block->instructions.end(), instructions.begin() + start, instructions.begin() + end);
@@ -50,7 +51,7 @@ cfg::ControlFlow transformRg2Cfg(std::pmr::polymorphic_allocator<> allocator, an
         cfg.addEdge(blockId, cfg::rvsdg::nodeid_t(offset + successors[0].value));
 
         auto const branchId = cfg.createSimpleNode();
-        cfg.moveNodeToRegion(branchId, rootRegion->id);
+        nodes->moveNodeToRegion(branchId, rootRegion->id);
 
         cfg.addEdge(blockId, branchId);
         cfg.addEdge(branchId, cfg::rvsdg::nodeid_t(offset + successors[1].value));
@@ -58,7 +59,7 @@ cfg::ControlFlow transformRg2Cfg(std::pmr::polymorphic_allocator<> allocator, an
     }
   }
 
-  cfg.moveNodeToRegion(stopId, rootRegion->id); // exit at end
+  nodes->moveNodeToRegion(stopId, rootRegion->id); // exit at end
   return cfg;
 }
 } // namespace compiler::frontend::transform

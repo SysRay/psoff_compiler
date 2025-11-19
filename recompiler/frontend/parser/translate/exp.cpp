@@ -1,9 +1,9 @@
-#include "frontend/ir_types.h"
 #include "../debug_strings.h"
+#include "../instruction_builder.h"
 #include "../opcodes_table.h"
 #include "builder.h"
 #include "encodings.h"
-#include "../instruction_builder.h"
+#include "frontend/ir_types.h"
 #include "translate.h"
 
 #include <bitset>
@@ -11,7 +11,7 @@
 #include <stdexcept>
 
 namespace compiler::frontend::translate {
-InstructionKind_t handleExp(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
+InstructionKind_t handleExp(parser::Context& ctx, parser::pc_t pc, parser::code_p_t* pCode) {
   using namespace parser;
 
   auto inst = EXP(getU64(*pCode));
@@ -26,12 +26,13 @@ InstructionKind_t handleExp(Builder& builder, parser::pc_t pc, parser::code_p_t*
   auto src2 = OpSrc(eOperandKind::VGPR(inst.template get<EXP::Field::VSRC2>()));
   auto src3 = OpSrc(eOperandKind::VGPR(inst.template get<EXP::Field::VSRC2>()));
 
+  create::IRBuilder ir(ctx.instructions);
   *pCode += 2;
 
   if (target >= 0x0 && target <= 0x7) { // Attachments
     bool const useExecMask = inst.template get<EXP::Field::VM>();
     if (useExecMask) {
-      builder.createInstruction(create::discardOp(OpSrc(eOperandKind::EXEC(), true, false)));
+      ir.discardOp(OpSrc(eOperandKind::EXEC(), true, false));
     }
 
   } else if (target == 0x8 && enable.any()) { // Write to depth

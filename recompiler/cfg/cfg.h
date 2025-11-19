@@ -49,7 +49,9 @@ class ControlFlow {
     return _nodeBuilder.__createNode<rvsdg::LambdaNode>(_nodeBuilder.createRegion());
   }
 
-  auto* accessNodes() { return &_nodeBuilder; }
+  auto* nodes() { return &_nodeBuilder; }
+
+  auto* nodes() const { return &_nodeBuilder; }
 
   auto* accessInstructions() { return &_instructions; }
 

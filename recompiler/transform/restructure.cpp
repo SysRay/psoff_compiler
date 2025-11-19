@@ -14,7 +14,7 @@
 namespace compiler::transform {
 
 struct GraphAdapter {
-  const cfg::ControlFlow& g;
+  cfg::ControlFlow& g;
 
   auto getSuccessors(uint32_t idx) const {
     return g.getSuccessors(cfg::rvsdg::nodeid_t {idx}) | std::views::transform([](auto id) { return id.value; });
@@ -24,7 +24,7 @@ struct GraphAdapter {
     return g.getPredecessors(cfg::rvsdg::nodeid_t {idx}) | std::views::transform([](auto id) { return id.value; });
   }
 
-  size_t size() const { return g.blocksCount(); }
+  size_t size() const { return g.nodes()->blocksCount(); }
 
   GraphAdapter(cfg::ControlFlow& g): g(g) {}
 };
@@ -34,7 +34,7 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, cfg::
   // Find SCCs
   // find entry, exit and continue edges
   // collaps into loop node
-  auto region = cfg.getRegion(regionId);
+  auto region = cfg.nodes()->getRegion(regionId);
   if (region->nodes.empty()) return;
 
   auto checkpoint = checkpoint_resource.checkpoint();
@@ -51,9 +51,9 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, cfg::
     }
 
     auto const loopId = cfg.createThetaNode();
-    auto       loop   = cfg.accessNode<cfg::rvsdg::ThetaNode>(loopId);
+    auto       loop   = cfg.nodes()->accessNode<cfg::rvsdg::ThetaNode>(loopId);
 
-    auto loopRegions = cfg.accessRegion(loop->body);
+    auto loopRegions = cfg.nodes()->accessRegion(loop->body);
     loopRegions->nodes.reserve(2 + scc.size()); // entry mux + exit mux + sccNodes
 
     // Theta node: First result is predicate for exit or continue (latch)
@@ -71,7 +71,7 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, cfg::
       headerId = cfg::rvsdg::nodeid_t(sccEdges.entryEdges[0].second);
       cfg.redirectEdge(cfg::rvsdg::nodeid_t(sccEdges.entryEdges[0].first), headerId, loopId);
 
-      cfg.swapNodeRegion(loopId, headerId);
+      cfg.nodes()->swapNodeRegion(loopId, headerId);
     }
 
     // cfg.moveNodeToRegion(headerId, loopRegions->id); // done by swapNode
@@ -105,10 +105,10 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, cfg::
     // add scc nodes to region
     for (auto id: scc) {
       if (id == headerId.value || id == exitId.value) continue;
-      cfg.moveNodeToRegion(cfg::rvsdg::nodeid_t(id), loopRegions->id);
+      cfg.nodes()->moveNodeToRegion(cfg::rvsdg::nodeid_t(id), loopRegions->id);
     }
 
-    cfg.moveNodeToRegion(exitId, loopRegions->id);
+    cfg.nodes()->moveNodeToRegion(exitId, loopRegions->id);
 
     tasks.push_back(loopRegions->id);
   }
@@ -121,7 +121,7 @@ void restructureCfg(util::checkpoint_resource& checkpoint_resource, cfg::Control
   auto checkpoint = checkpoint_resource.checkpoint();
 
   std::pmr::vector<cfg::rvsdg::regionid_t> tasks;
-  tasks.push_back(cfg.getMainFunction()->body);
+  tasks.push_back(cfg.nodes()->getMainFunction()->body);
 
   while (!tasks.empty()) {
     auto const regionId = tasks.back();

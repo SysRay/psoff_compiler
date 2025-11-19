@@ -69,8 +69,8 @@ TEST_F(RegionBuilderTest, InitialRegionCreation) {
   // Test CFG creation
   auto cfg = compiler::frontend::transform::transformRg2Cfg(allocator, builder, instructions);
 
-  ASSERT_EQ(cfg.regionCount(), 1);
-  auto rootRegion = cfg.getRegion(cfg.getNode<rvsdg::LambdaNode>(cfg.getMainFunctionId())->body);
+  ASSERT_EQ(cfg.nodes()->regionCount(), 1);
+  auto rootRegion = cfg.nodes()->getRegion(cfg.nodes()->getNode<rvsdg::LambdaNode>(cfg.nodes()->getMainFunctionId())->body);
   ASSERT_EQ(rootRegion->nodes.size(), 2); // code regions + stop
 
   EXPECT_TRUE(succEquals(cfg, rootRegion->nodes.begin()->value, {rootRegion->nodes.back().value}));
@@ -103,8 +103,8 @@ TEST_F(RegionBuilderTest, SimpleJumpSplitsRegions) {
   // Test CFG creation
   auto cfg = compiler::frontend::transform::transformRg2Cfg(allocator, builder, instructions);
 
-  ASSERT_EQ(cfg.regionCount(), 1);
-  auto rootRegion = cfg.getRegion(cfg.getNode<rvsdg::LambdaNode>(cfg.getMainFunctionId())->body);
+  ASSERT_EQ(cfg.nodes()->regionCount(), 1);
+  auto rootRegion = cfg.nodes()->getRegion(cfg.nodes()->getNode<rvsdg::LambdaNode>(cfg.nodes()->getMainFunctionId())->body);
   ASSERT_EQ(rootRegion->nodes.size(), 1 + 3);
 
   EXPECT_TRUE(succEquals(cfg, rootRegion->nodes.front().value, {offsetId + 2}));
@@ -142,8 +142,8 @@ TEST_F(RegionBuilderTest, ConditionalJumpCreatesMultipleSuccessors) {
   // Test CFG creation
   auto cfg = compiler::frontend::transform::transformRg2Cfg(allocator, builder, instructions);
 
-  ASSERT_EQ(cfg.regionCount(), 1);
-  auto rootRegion = cfg.getRegion(cfg.getNode<rvsdg::LambdaNode>(cfg.getMainFunctionId())->body);
+  ASSERT_EQ(cfg.nodes()->regionCount(), 1);
+  auto rootRegion = cfg.nodes()->getRegion(cfg.nodes()->getNode<rvsdg::LambdaNode>(cfg.nodes()->getMainFunctionId())->body);
   ASSERT_EQ(rootRegion->nodes.size(), 1 + 4);
 
   EXPECT_EQ(cfg.getSuccessors(rootRegion->nodes.front()).size(), 2);

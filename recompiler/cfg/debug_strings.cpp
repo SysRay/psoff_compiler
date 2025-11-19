@@ -4,7 +4,7 @@
 
 namespace compiler::cfg {
 void dumpBlock(std::ostream& os, const ControlFlow& cfg, rvsdg::nodeid_t bid, const std::string& indent) {
-  const auto* B = cfg.getNodeBase(bid);
+  const auto* B = cfg.nodes()->getNodeBase(bid);
 
   // Block header: ^bbX:
   os << indent << "^bb" << B->id.value << ":\n";
@@ -22,7 +22,7 @@ void dumpBlock(std::ostream& os, const ControlFlow& cfg, rvsdg::nodeid_t bid, co
 static void dumpNode(std::ostream& os, const ControlFlow& cfg, rvsdg::nodeid_t bid, const std::string& indent);
 
 static void dumpRegion(std::ostream& os, const ControlFlow& cfg, rvsdg::regionid_t rid, const std::string& indent) {
-  auto R = cfg.getRegion(rid);
+  auto R = cfg.nodes()->getRegion(rid);
 
   os << indent << "region @" << R->id.value << ":\n";
 
@@ -40,30 +40,30 @@ static void dumpRegion(std::ostream& os, const ControlFlow& cfg, rvsdg::regionid
 }
 
 void dumpNode(std::ostream& os, const ControlFlow& cfg, rvsdg::nodeid_t bid, const std::string& indent) {
-  const auto* B = cfg.getNodeBase(bid);
+  const auto* B = cfg.nodes()->getNodeBase(bid);
 
   os << indent << "^bb" << B->id;
 
   switch (B->type) {
     case rvsdg::eNodeType::SimpleNode: {
-      auto node = cfg.getNode<rvsdg::SimpleNode>(B->id);
+      auto node = cfg.nodes()->getNode<rvsdg::SimpleNode>(B->id);
       os << " Simple {\n";
       // todo dump instructions
     } break;
     case rvsdg::eNodeType::GammaNode: {
-      auto node = cfg.getNode<rvsdg::GammaNode>(B->id);
+      auto node = cfg.nodes()->getNode<rvsdg::GammaNode>(B->id);
       os << " Gamma {\n";
       for (uint32_t n = 0; n < node->branches.size(); ++n) {
         dumpRegion(os, cfg, node->branches[n], indent + "  ");
       }
     } break;
     case rvsdg::eNodeType::ThetaNode: {
-      auto node = cfg.getNode<rvsdg::ThetaNode>(B->id);
+      auto node = cfg.nodes()->getNode<rvsdg::ThetaNode>(B->id);
       os << " Theta {\n";
       dumpRegion(os, cfg, node->body, indent + "  ");
     } break;
     case rvsdg::eNodeType::LambdaNode: {
-      auto node = cfg.getNode<rvsdg::LambdaNode>(B->id);
+      auto node = cfg.nodes()->getNode<rvsdg::LambdaNode>(B->id);
       os << " Lambda {\n";
       dumpRegion(os, cfg, node->body, indent + "  ");
     } break;
@@ -82,8 +82,8 @@ void dumpNode(std::ostream& os, const ControlFlow& cfg, rvsdg::nodeid_t bid, con
 void dumpCFG(std::ostream& os, const ControlFlow& cfg) {
   os << "cfg {\n";
 
-  if (cfg.getMainFunctionId().isValid()) {
-    dumpNode(os, cfg, cfg.getMainFunctionId(), "  ");
+  if (cfg.nodes()->getMainFunctionId().isValid()) {
+    dumpNode(os, cfg, cfg.nodes()->getMainFunctionId(), "  ");
   }
 
   os << "}\n";

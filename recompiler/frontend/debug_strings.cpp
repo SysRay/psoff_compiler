@@ -33,8 +33,7 @@ static void printKind(std::ostream& os, eOperandKind kind, uint16_t numdw, bool 
     if (is64bit) {
       switch (kind.base()) {
         case eOperandKind::eBase::VccLo: os << "VCC"; break;
-        case eOperandKind::eBase::CustomTemp0Lo: os << "TEMP0"; break;
-        case eOperandKind::eBase::CustomTemp1Lo: os << "TEMP1"; break;
+        case eOperandKind::eBase::CUSTOM_UNSET: os << "NOT_SET"; break;
         case eOperandKind::eBase::ExecLo: os << "EXEC"; break;
         case eOperandKind::eBase::Literal: os << "LITERAL"; break;
         default: os << "UNK" << std::dec << (uint16_t)kind.base(); break;
@@ -43,10 +42,6 @@ static void printKind(std::ostream& os, eOperandKind kind, uint16_t numdw, bool 
       switch (kind.base()) {
         case eOperandKind::eBase::VccLo: os << "VCC_LO"; break;
         case eOperandKind::eBase::VccHi: os << "VCC_HI"; break;
-        case eOperandKind::eBase::CustomTemp0Lo: os << "TEMP0_LO"; break;
-        case eOperandKind::eBase::CustomTemp0Hi: os << "TEMP0_HI"; break;
-        case eOperandKind::eBase::CustomTemp1Lo: os << "TEMP1_LO"; break;
-        case eOperandKind::eBase::CustomTemp1Hi: os << "TEMP1_HI"; break;
         case eOperandKind::eBase::M0: os << "M0"; break;
         case eOperandKind::eBase::CustomVskip: os << "VSKIP"; break;
         case eOperandKind::eBase::ExecLo: os << "EXEC_LO"; break;

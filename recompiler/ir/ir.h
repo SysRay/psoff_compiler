@@ -26,10 +26,8 @@ struct alignas(16) InstCore {
 
   InstructionUserData_t userData = 0;
 
-  struct {
-    uint8_t numDst : 4;
-    uint8_t numSrc : 4;
-  };
+  uint8_t numDst;
+  uint8_t numSrc;
 
   OperandId_t dstStartId; ///< index into operand table
   OperandId_t srcStartId; ///< index into operand table
@@ -39,7 +37,7 @@ struct alignas(16) InstCore {
   inline bool isConstant() const { return flags.is_set(ir::eInstructionFlags::kConstant); }
 };
 
-static_assert(sizeof(InstCore) <= 32); ///< cache lines
+static_assert(sizeof(InstCore) <= 16); ///< cache lines
 static_assert(config::kMaxOps <= 15);  ///< only 4 bits
 
 // // Handle enum bits to underlying conversion
@@ -88,36 +86,31 @@ struct ConstantValue {
 class InstructionManager {
   public:
   InstructionManager(std::pmr::polymorphic_allocator<> allocator, size_t expectedInstructions = 256)
-      : _instruction(allocator), _operands(allocator), _constants(allocator) {}
+      : _instructions(allocator), _operands(allocator), _constants(allocator) {}
 
-  InstructionId_t createInstruction(InstCore const& instr);
+  InstructionId_t createInstruction(InstCore const& instr, bool isVirtual = false);
 
-  // inline InstructionId_t createVirtualInstruction(InstCore&& instr) {
-  //   instr.flags |= ir::eInstructionFlags::kVirtual;
-  //   return createInstruction(std::move(instr));
-  // }
+  inline InstCore& accessInstr(InstructionId_t id) { return _instructions[id]; }
 
-  inline InstCore& accessInst(InstructionId_t id) { return _instruction[id]; }
-
-  inline const InstCore& getInst(InstructionId_t id) const { return _instruction[id]; }
+  inline const InstCore& getInstr(InstructionId_t id) const { return _instructions[id]; }
 
   inline Operand& getDst(InstructionId_t id, uint32_t index) {
-    const InstCore& inst = _instruction[id];
+    const InstCore& inst = _instructions[id];
     return _operands[inst.dstStartId + index];
   }
 
   inline const Operand& getDst(InstructionId_t id, uint32_t index) const {
-    const InstCore& inst = _instruction[id];
+    const InstCore& inst = _instructions[id];
     return _operands[inst.dstStartId + index];
   }
 
   inline Operand& getSrc(InstructionId_t id, uint32_t index) {
-    const InstCore& inst = _instruction[id];
+    const InstCore& inst = _instructions[id];
     return _operands[inst.srcStartId + index];
   }
 
   inline const Operand& getSrc(InstructionId_t id, uint32_t index) const {
-    const InstCore& inst = _instruction[id];
+    const InstCore& inst = _instructions[id];
     return _operands[inst.srcStartId + index];
   }
 
@@ -135,7 +128,7 @@ class InstructionManager {
 
   inline OperandId_t operandCount() const { return _operands.size(); }
 
-  inline auto instructionCount() const { return _instruction.size(); }
+  inline auto instructionCount() const { return _instructions.size(); }
 
   inline ConstantId_t createConstant(const ConstantValue& c) {
     // todo make unique
@@ -143,8 +136,12 @@ class InstructionManager {
     return ConstantId_t(_constants.size() - 1);
   }
 
+  auto& access() { return _instructions; };
+
+  auto& get() const { return _instructions; };
+
   private:
-  std::pmr::deque<InstCore>      _instruction; // todo boost::stable_vector?
+  std::pmr::deque<InstCore>      _instructions; // todo boost::stable_vector?
   std::pmr::deque<Operand>       _operands;
   std::pmr::deque<ConstantValue> _constants;
 };

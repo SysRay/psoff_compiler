@@ -14,6 +14,8 @@ struct OpSrc {
   eOperandKind    kind;
   OperandFlagsSrc flags {0};
 
+  ConstantId_t constantId = {};
+
   constexpr explicit OpSrc(): kind(eOperandKind::SGPR(0)) {}
 
   constexpr explicit OpSrc(eOperandKind kind): kind(kind) {}
@@ -21,6 +23,10 @@ struct OpSrc {
   constexpr explicit OpSrc(eOperandKind kind, OperandFlagsSrc flags): kind(kind), flags(flags) {}
 
   constexpr explicit OpSrc(eOperandKind kind, bool negate, bool abs): kind(kind), flags(negate, abs) {}
+
+  constexpr explicit OpSrc(ConstantId_t id): kind(eOperandKind::Unset()), constantId(id) {}
+
+  constexpr explicit OpSrc(ConstantId_t id, bool negate, bool abs): kind(eOperandKind::Unset()), constantId(id), flags(negate, abs) {}
 
   constexpr OpSrc& operator=(OpSrc const& other) = default;
 };
@@ -39,11 +45,12 @@ struct OpDst {
 };
 
 namespace create {
-class IR {
+class IRBuilder {
   ir::InstructionManager& _ir;
+  bool                    _isVirtual;
 
   public:
-  IR(ir::InstructionManager& manager): _ir(manager) {}
+  IRBuilder(ir::InstructionManager& manager, bool isVirtual = false): _ir(manager), _isVirtual(isVirtual) {}
 
   InstructionId_t constantOp(OpDst dst, ir::ConstantValue, ir::OperandType type);
   InstructionId_t moveOp(OpDst dst, OpSrc src, ir::OperandType type);

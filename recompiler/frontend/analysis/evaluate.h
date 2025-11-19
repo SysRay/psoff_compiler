@@ -16,13 +16,13 @@ class Evaluate {
 
   ~Evaluate() {}
 
-  std::optional<ir::InstConstant> check(size_t index, ir::Operand const& reg);
+  std::optional<ir::ConstantValue> check(size_t index, ir::Operand const& reg);
 
   private:
-  std::optional<ir::InstConstant> check(size_t index, regionid_t currentBlock);
-  std::optional<ir::InstConstant> findInstruction(ir::Operand const& reg, size_t index, regionid_t region);
+  std::optional<ir::ConstantValue> check(size_t index, regionid_t currentBlock);
+  std::optional<ir::ConstantValue> findInstruction(ir::Operand const& reg, size_t index, regionid_t region);
 
-  std::optional<ir::InstConstant> evaluate(ir::InstCore const& instr, std::span<ir::InstConstant> inputs) {
+  std::optional<ir::ConstantValue> evaluate(ir::InstCore const& instr, std::span<ir::ConstantValue> inputs) {
     // std::cout << "<- evaluate ";
     // ir::debug::getDebug(std::cout, instr);
     // std::cout << "\n";

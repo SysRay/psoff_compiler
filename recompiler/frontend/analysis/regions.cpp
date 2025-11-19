@@ -160,12 +160,12 @@ void RegionBuilder::dump(std::ostream& os, void* region) const {
 
 using namespace compiler::ir;
 
-bool createRegions(std::pmr::polymorphic_allocator<> allocator, std::span<ir::InstCore> instructions, pcmapping_t const& mapping) {
-  RegionBuilder regions(instructions.size(), allocator);
+bool createRegions(std::pmr::polymorphic_allocator<> allocator, ir::InstructionManager const& manager, pcmapping_t const& mapping) {
+  RegionBuilder regions(manager.instructionCount(), allocator);
 
   // 1: Collect all jumps (no region splitting yet)
-  for (size_t n = 0; n < instructions.size(); ++n) {
-    auto const& inst = instructions[n];
+  for (size_t n = 0; n < manager.instructionCount(); ++n) {
+    auto const& inst = manager.get()[n];
     if (inst.group != eInstructionGroup::kFlowControl) continue;
 
     switch (conv(inst.kind)) {
@@ -178,19 +178,21 @@ bool createRegions(std::pmr::polymorphic_allocator<> allocator, std::span<ir::In
       } break;
 
       case eInstKind::JumpAbsOp: {
-        auto const targetPc = evaluate(allocator, instructions, regions, n, inst.srcOperands[0]);
-        if (!targetPc) return false;
+        // todo
+        // auto const targetPc = evaluate(allocator, instructions, regions, n, inst.srcOperands[0]);
+        // if (!targetPc) return false;
 
-        auto const targetIt = std::lower_bound(mapping.begin(), mapping.end(), targetPc->value_u64, [](auto const& b, uint64_t val) { return b.first < val; });
-        regions.addJump(n, targetIt->second);
+        // auto const targetIt = std::lower_bound(mapping.begin(), mapping.end(), targetPc->value_u64, [](auto const& b, uint64_t val) { return b.first < val;
+        // }); regions.addJump(n, targetIt->second);
       } break;
 
       case eInstKind::CondJumpAbsOp: {
-        auto const targetPc = evaluate(allocator, instructions, regions, n, inst.srcOperands[1]);
-        if (!targetPc) return false;
+        // todo
+        // auto const targetPc = evaluate(allocator, instructions, regions, n, inst.srcOperands[1]);
+        // if (!targetPc) return false;
 
-        auto const targetIt = std::lower_bound(mapping.begin(), mapping.end(), targetPc->value_u64, [](auto const& b, uint64_t val) { return b.first < val; });
-        regions.addCondJump(n, targetIt->second);
+        // auto const targetIt = std::lower_bound(mapping.begin(), mapping.end(), targetPc->value_u64, [](auto const& b, uint64_t val) { return b.first < val;
+        // }); regions.addCondJump(n, targetIt->second);
       } break;
 
       default: break;
@@ -201,18 +203,18 @@ bool createRegions(std::pmr::polymorphic_allocator<> allocator, std::span<ir::In
   regions.finalize();
 
   // Output/debug
-  regions.for_each([&](uint32_t start, uint32_t end, void* region) {
-    regions.dump(std::cout, region);
-    for (auto n = start; n < end; ++n) {
-      auto it = std::find_if(mapping.begin(), mapping.end(), [n](auto const& item) { return item.second == n; });
-      if (it == mapping.end())
-        std::cout << "\t";
-      else
-        std::cout << std::hex << it->first;
-      std::cout << '\t' << std::dec << n << "| ";
-      ir::debug::getDebug(std::cout, instructions[n]);
-    }
-  });
+  // regions.for_each([&](uint32_t start, uint32_t end, void* region) {
+  //   regions.dump(std::cout, region);
+  //   for (auto n = start; n < end; ++n) {
+  //     auto it = std::find_if(mapping.begin(), mapping.end(), [n](auto const& item) { return item.second == n; });
+  //     if (it == mapping.end())
+  //       std::cout << "\t";
+  //     else
+  //       std::cout << std::hex << it->first;
+  //     std::cout << '\t' << std::dec << n << "| ";
+  //     ir::debug::getDebug(std::cout, manager.getInstr(n));
+  //   }
+  // });
 
   return true;
 }

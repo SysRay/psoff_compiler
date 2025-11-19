@@ -1,16 +1,16 @@
-#include "frontend/ir_types.h"
 #include "../debug_strings.h"
+#include "../instruction_builder.h"
 #include "../opcodes_table.h"
 #include "builder.h"
 #include "encodings.h"
-#include "../instruction_builder.h"
+#include "frontend/ir_types.h"
 #include "translate.h"
 
 #include <format>
 #include <stdexcept>
 
 namespace compiler::frontend::translate {
-InstructionKind_t handleSmrd(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
+InstructionKind_t handleSmrd(parser::Context& ctx, parser::pc_t pc, parser::code_p_t* pCode) {
   using namespace parser;
 
   auto       inst = SMRD(**pCode);
@@ -22,9 +22,10 @@ InstructionKind_t handleSmrd(Builder& builder, parser::pc_t pc, parser::code_p_t
   auto const sOffset   = eOperandKind((eOperandKind_t)offsetImm); // either imm or op
   auto const isImm     = (bool)inst.template get<SMRD::Field::IMM>();
 
+  create::IRBuilder ir(ctx.instructions);
   if (!isImm && sOffset.isLiteral()) {
     *pCode += 1;
-    builder.createInstruction(create::literalOp(**pCode));
+    ir.constantOp(OpDst(eOperandKind::Literal()), ir::ConstantValue {.value_u64 = **pCode}, ir::OperandType::i32());
   }
 
   *pCode += 1;

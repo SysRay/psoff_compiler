@@ -1,29 +1,31 @@
-#include "frontend/ir_types.h"
 #include "../debug_strings.h"
+#include "../instruction_builder.h"
 #include "../opcodes_table.h"
 #include "builder.h"
 #include "encodings.h"
-#include "../instruction_builder.h"
+#include "frontend/ir_types.h"
 #include "translate.h"
 
 #include <format>
 #include <stdexcept>
 
 namespace compiler::frontend::translate {
-InstructionKind_t handleVintrp(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
+InstructionKind_t handleVintrp(parser::Context& ctx, parser::pc_t pc, parser::code_p_t* pCode) {
   using namespace parser;
 
   auto       inst = VINTRP(**pCode);
   auto const op   = (parser::eOpcode)(OPcodeStart_VINTRP + inst.template get<VINTRP::Field::OP>());
 
   auto const vdst    = OpDst(eOperandKind((eOperandKind_t)inst.template get<VINTRP::Field::VDST>()));
-  auto const src0    = OpSrc(eOperandKind((eOperandKind_t)inst.template get<VINTRP::Field::VSRC>()));
+  auto       src0    = OpSrc(eOperandKind((eOperandKind_t)inst.template get<VINTRP::Field::VSRC>()));
   auto const channel = (uint8_t)inst.template get<VINTRP::Field::ATTRCHAN>();
   auto const attr    = (uint8_t)inst.template get<VINTRP::Field::ATTR>();
 
+  create::IRBuilder ir(ctx.instructions);
+  create::IRBuilder vir(ctx.instructions, true);
   if (src0.kind.isLiteral()) {
     *pCode += 1;
-    builder.createInstruction(create::literalOp(**pCode));
+    src0 = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_u64 = **pCode}));
   }
   *pCode += 1;
   return conv(op);
