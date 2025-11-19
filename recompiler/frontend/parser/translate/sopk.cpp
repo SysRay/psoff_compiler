@@ -27,68 +27,68 @@ InstructionKind_t handleSopk(parser::Context& ctx, parser::pc_t pc, parser::code
       ir.constantOp(sdst, ir::ConstantValue {.value_i64 = imm16}, ir::OperandType::i32());
     } break;
     case eOpcode::S_MOVK_HI_I32: {
-      auto const K = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_u64 = (uint32_t)imm16 << 16u}));
+      auto const K = OpSrc(ir.constantIOp((uint32_t)imm16 << 16u));
       ir.bitFieldInsertOp(sdst, K, OpSrc(eOperandKind::createImm(16)), OpSrc(eOperandKind::createImm(16)), ir::OperandType::i32());
     } break;
     case eOpcode::S_CMOVK_I32: {
-      auto const K = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_i64 = imm16}));
+      auto const K = OpSrc(ir.constantIOp((uint32_t)imm16 << 16u));
       ir.selectOp(sdst, OpSrc(eOperandKind::SCC()), K, OpSrc(sdst.kind), ir::OperandType::i32());
     } break;
     case eOpcode::S_CMPK_EQ_I32: {
-      auto const K = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_i64 = imm16}));
+      auto const K = OpSrc(ir.constantIOp((uint32_t)imm16 << 16u));
       ir.cmpIOp(OpDst(eOperandKind::SCC()), OpSrc(sdst.kind), K, ir::OperandType::i32(), CmpIPredicate::eq);
     } break;
     case eOpcode::S_CMPK_LG_I32: {
-      auto const K = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_i64 = imm16}));
+      auto const K = OpSrc(ir.constantIOp((uint32_t)imm16 << 16u));
       ir.cmpIOp(OpDst(eOperandKind::SCC()), OpSrc(sdst.kind), K, ir::OperandType::i32(), CmpIPredicate::ne);
     } break;
     case eOpcode::S_CMPK_GT_I32: {
-      auto const K = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_i64 = imm16}));
+      auto const K = OpSrc(ir.constantIOp((uint32_t)imm16 << 16u));
       ir.cmpIOp(OpDst(eOperandKind::SCC()), OpSrc(sdst.kind), K, ir::OperandType::i32(), CmpIPredicate::sgt);
     } break;
     case eOpcode::S_CMPK_GE_I32: {
-      auto const K = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_i64 = imm16}));
+      auto const K = OpSrc(ir.constantIOp((uint32_t)imm16 << 16u));
       ir.cmpIOp(OpDst(eOperandKind::SCC()), OpSrc(sdst.kind), K, ir::OperandType::i32(), CmpIPredicate::sge);
     } break;
     case eOpcode::S_CMPK_LT_I32: {
-      auto const K = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_i64 = imm16}));
+      auto const K = OpSrc(ir.constantIOp((uint32_t)imm16 << 16u));
       ir.cmpIOp(OpDst(eOperandKind::SCC()), OpSrc(sdst.kind), K, ir::OperandType::i32(), CmpIPredicate::slt);
     } break;
     case eOpcode::S_CMPK_LE_I32: {
-      auto const K = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_i64 = imm16}));
+      auto const K = OpSrc(ir.constantIOp((uint32_t)imm16 << 16u));
       ir.cmpIOp(OpDst(eOperandKind::SCC()), OpSrc(sdst.kind), K, ir::OperandType::i32(), CmpIPredicate::sle);
     } break;
     case eOpcode::S_CMPK_EQ_U32: {
-      auto const K = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_u64 = (uint16_t)imm16}));
+      auto const K = OpSrc(ir.constantIOp((uint32_t)imm16));
       ir.cmpIOp(OpDst(eOperandKind::SCC()), OpSrc(sdst.kind), K, ir::OperandType::i32(), CmpIPredicate::eq);
     } break;
     case eOpcode::S_CMPK_LG_U32: {
-      auto const K = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_u64 = (uint16_t)imm16}));
+      auto const K = OpSrc(ir.constantIOp((uint32_t)imm16));
       ir.cmpIOp(OpDst(eOperandKind::SCC()), OpSrc(sdst.kind), K, ir::OperandType::i32(), CmpIPredicate::ne);
     } break;
     case eOpcode::S_CMPK_GT_U32: {
-      auto const K = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_u64 = (uint16_t)imm16}));
+      auto const K = OpSrc(ir.constantIOp((uint32_t)imm16));
       ir.cmpIOp(OpDst(eOperandKind::SCC()), OpSrc(sdst.kind), K, ir::OperandType::i32(), CmpIPredicate::ugt);
     } break;
     case eOpcode::S_CMPK_GE_U32: {
-      auto const K = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_u64 = (uint16_t)imm16}));
+      auto const K = OpSrc(ir.constantIOp((uint32_t)imm16));
       ir.cmpIOp(OpDst(eOperandKind::SCC()), OpSrc(sdst.kind), K, ir::OperandType::i32(), CmpIPredicate::uge);
     } break;
     case eOpcode::S_CMPK_LT_U32: {
-      auto const K = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_u64 = (uint16_t)imm16}));
+      auto const K = OpSrc(ir.constantIOp((uint32_t)imm16));
       ir.cmpIOp(OpDst(eOperandKind::SCC()), OpSrc(sdst.kind), K, ir::OperandType::i32(), CmpIPredicate::ult);
     } break;
     case eOpcode::S_CMPK_LE_U32: {
-      auto const K = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_u64 = (uint16_t)imm16}));
+      auto const K = OpSrc(ir.constantIOp((uint32_t)imm16));
       ir.cmpIOp(OpDst(eOperandKind::SCC()), OpSrc(sdst.kind), K, ir::OperandType::i32(), CmpIPredicate::ule);
     } break;
     case eOpcode::S_ADDK_I32: {
-      auto const K = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_i64 = imm16}));
+      auto const K = OpSrc(ir.constantIOp((uint32_t)imm16 << 16u));
       ir.addIOp(sdst, K, OpSrc(sdst.kind), ir::OperandType::i32());
       ir.cmpIOp(OpDst(eOperandKind::SCC()), OpSrc(sdst.kind), K, ir::OperandType::i32(), CmpIPredicate::ult);
     } break;
     case eOpcode::S_MULK_I32: {
-      auto const K = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_i64 = imm16}));
+      auto const K = OpSrc(ir.constantIOp((uint32_t)imm16 << 16u));
       ir.mulIOp(sdst, K, OpSrc(sdst.kind), ir::OperandType::i32());
     } break;
       // case eOpcode::S_CBRANCH_I_FORK: {} break; // todo

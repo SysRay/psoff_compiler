@@ -89,7 +89,7 @@ static uint16_t getNumDw(ir::OperandType type) {
   }
 }
 
-void printOperandDst(std::ostream& os, ir::Operand const& op) {
+void printOperandDst(std::ostream& os, ir::OutputOperand const& op) {
   auto const flags = OperandFlagsDst(op.flags);
   auto       kind  = eOperandKind::import(op.kind);
 
@@ -112,7 +112,7 @@ void printOperandDst(std::ostream& os, ir::Operand const& op) {
   }
 }
 
-void printOperandSrc(std::ostream& os, ir::Operand const& op) {
+void printOperandSrc(std::ostream& os, ir::InputOperand const& op) {
   auto const flags = OperandFlagsSrc(op.flags);
   auto       kind  = eOperandKind::import(op.kind);
 

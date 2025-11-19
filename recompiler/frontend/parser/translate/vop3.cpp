@@ -49,21 +49,20 @@ InstructionKind_t handleVop3(parser::Context& ctx, parser::pc_t pc, parser::code
     case eOpcode::V_MAD_F32: {
       vir.fmaFOp(vdst, src0, src1, src2, ir::OperandType::f32());
     } break;
-    // todo ssa links
-    // case eOpcode::V_MAD_I32_I24: {
-    //   builder.createVirtualInst(create::bitSIExtractOp(OpDst(eOperandKind::Temp0()), src0, OpSrc(eOperandKind::createImm(0)),
-    //                                                    OpSrc(eOperandKind::createImm(24)), ir::OperandType::i32()));
-    //   builder.createVirtualInst(create::bitSIExtractOp(OpDst(eOperandKind::Temp1()), src1, OpSrc(eOperandKind::createImm(0)),
-    //                                                    OpSrc(eOperandKind::createImm(24)), ir::OperandType::i32()));
-    //   vir.fmaIOp(vdst, OpSrc(eOperandKind::Temp0()), OpSrc(eOperandKind::Temp0()), src2, ir::OperandType::i32());
-    // } break;
-    // case eOpcode::V_MAD_U32_U24: {
-    //   builder.createVirtualInst(create::bitUIExtractOp(OpDst(eOperandKind::Temp0()), src0, OpSrc(eOperandKind::createImm(0)),
-    //                                                    OpSrc(eOperandKind::createImm(24)), ir::OperandType::i32()));
-    //   builder.createVirtualInst(create::bitUIExtractOp(OpDst(eOperandKind::Temp1()), src1, OpSrc(eOperandKind::createImm(0)),
-    //                                                    OpSrc(eOperandKind::createImm(24)), ir::OperandType::i32()));
-    //   vir.fmaIOp(vdst, OpSrc(eOperandKind::Temp0()), OpSrc(eOperandKind::Temp0()), src2, ir::OperandType::i32());
-    // } break;
+    case eOpcode::V_MAD_I32_I24: {
+      auto s0 = OpSrc(vir.bitSIExtractOp(OpDst(eOperandKind::Unset()), src0, OpSrc(eOperandKind::createImm(0)), OpSrc(eOperandKind::createImm(24)),
+                                         ir::OperandType::i32()));
+      auto s1 = OpSrc(vir.bitSIExtractOp(OpDst(eOperandKind::Unset()), src1, OpSrc(eOperandKind::createImm(0)), OpSrc(eOperandKind::createImm(24)),
+                                         ir::OperandType::i32()));
+      vir.fmaIOp(vdst, s0, s1, src2, ir::OperandType::i32());
+    } break;
+    case eOpcode::V_MAD_U32_U24: {
+      auto s0 = OpSrc(vir.bitUIExtractOp(OpDst(eOperandKind::Unset()), src0, OpSrc(eOperandKind::createImm(0)), OpSrc(eOperandKind::createImm(24)),
+                                         ir::OperandType::i32()));
+      auto s1 = OpSrc(vir.bitUIExtractOp(OpDst(eOperandKind::Unset()), src1, OpSrc(eOperandKind::createImm(0)), OpSrc(eOperandKind::createImm(24)),
+                                         ir::OperandType::i32()));
+      vir.fmaIOp(vdst, s0, s1, src2, ir::OperandType::i32());
+    } break;
     // case eOpcode::V_CUBEID_F32: {} break;  // todo
     // case eOpcode::V_CUBESC_F32: {} break;  // todo
     // case eOpcode::V_CUBETC_F32: {} break; // todo

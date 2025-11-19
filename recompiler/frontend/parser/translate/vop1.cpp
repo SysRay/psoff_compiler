@@ -44,10 +44,9 @@ InstructionKind_t handleVop1(parser::Context& ctx, parser::pc_t pc, parser::code
     src0 = OpSrc(eOperandKind((eOperandKind_t)inst.template get<VOP1::Field::SRC0>()));
     if (src0.kind.isLiteral()) {
       *pCode += 1;
-      src0 = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_u64 = **pCode}));
+      src0 = OpSrc(ir.literalOp(**pCode));
     }
   }
-
   *pCode += 1;
 
   switch (op) {

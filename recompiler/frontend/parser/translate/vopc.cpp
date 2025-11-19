@@ -41,9 +41,12 @@ InstructionKind_t handleVopc(parser::Context& ctx, parser::pc_t pc, parser::code
     src0      = OpSrc(eOperandKind((eOperandKind_t)inst.template get<VOPC::Field::SRC0>()));
     src1      = OpSrc(eOperandKind::VGPR(inst.template get<VOPC::Field::VSRC1>()));
 
-    if (src0.kind.isLiteral() || src1.kind.isLiteral()) {
+    if (src0.kind.isLiteral()) {
       *pCode += 1;
-      ir.constantOp(OpDst(eOperandKind::Literal()), ir::ConstantValue {.value_u64 = **pCode}, ir::OperandType::i32());
+      src0 = OpSrc(ir.literalOp(**pCode));
+    } else if (src1.kind.isLiteral()) {
+      *pCode += 1;
+      src1 = OpSrc(ir.literalOp(**pCode));
     }
   }
 

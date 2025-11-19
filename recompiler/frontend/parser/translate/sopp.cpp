@@ -27,31 +27,31 @@ InstructionKind_t handleSopp(parser::Context& ctx, parser::pc_t pc, parser::code
       ir.returnOp();
     } break;
     case eOpcode::S_BRANCH: {
-      auto const target = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_u64 = 4 + pc + 4 * (int64_t)offset}));
+      auto const target = OpSrc(ir.constantIOp(4 + pc + 4 * (int64_t)offset));
       ir.jumpAbsOp(target);
     } break;
     case eOpcode::S_CBRANCH_SCC0: {
-      auto const target = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_u64 = 4 + pc + 4 * (int64_t)offset}));
+      auto const target = OpSrc(ir.constantIOp(4 + pc + 4 * (int64_t)offset));
       ir.cjumpAbsOp(OpSrc(eOperandKind::SCC()), true, target);
     } break;
     case eOpcode::S_CBRANCH_SCC1: {
-      auto const target = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_u64 = 4 + pc + 4 * (int64_t)offset}));
+      auto const target = OpSrc(ir.constantIOp(4 + pc + 4 * (int64_t)offset));
       ir.cjumpAbsOp(OpSrc(eOperandKind::SCC()), false, target);
     } break;
     case eOpcode::S_CBRANCH_VCCZ: {
-      auto const target = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_u64 = 4 + pc + 4 * (int64_t)offset}));
+      auto const target = OpSrc(ir.constantIOp(4 + pc + 4 * (int64_t)offset));
       ir.cjumpAbsOp(OpSrc(eOperandKind::VCC(), true, false), false, target);
     } break;
     case eOpcode::S_CBRANCH_VCCNZ: {
-      auto const target = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_u64 = 4 + pc + 4 * (int64_t)offset}));
+      auto const target = OpSrc(ir.constantIOp(4 + pc + 4 * (int64_t)offset));
       ir.cjumpAbsOp(OpSrc(eOperandKind::VCC()), true, target);
     } break;
     case eOpcode::S_CBRANCH_EXECZ: {
-      auto const target = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_u64 = 4 + pc + 4 * (int64_t)offset}));
+      auto const target = OpSrc(ir.constantIOp(4 + pc + 4 * (int64_t)offset));
       ir.cjumpAbsOp(OpSrc(eOperandKind::EXEC(), true, false), false, target);
     } break;
     case eOpcode::S_CBRANCH_EXECNZ: {
-      auto const target = OpSrc(ctx.instructions.createConstant(ir::ConstantValue {.value_u64 = 4 + pc + 4 * (int64_t)offset}));
+      auto const target = OpSrc(ir.constantIOp(4 + pc + 4 * (int64_t)offset));
       ir.cjumpAbsOp(OpSrc(eOperandKind::EXEC()), true, target);
     } break;
     case eOpcode::S_BARRIER: {

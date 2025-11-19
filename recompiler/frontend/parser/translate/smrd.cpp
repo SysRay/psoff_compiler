@@ -19,13 +19,13 @@ InstructionKind_t handleSmrd(parser::Context& ctx, parser::pc_t pc, parser::code
   auto const sdst      = eOperandKind((eOperandKind_t)inst.template get<SMRD::Field::SDST>());
   auto const sBase     = eOperandKind((eOperandKind_t)inst.template get<SMRD::Field::SBASE>());
   auto const offsetImm = inst.template get<SMRD::Field::OFFSET>();
-  auto const sOffset   = eOperandKind((eOperandKind_t)offsetImm); // either imm or op
+  auto       sOffset   = OpSrc(eOperandKind((eOperandKind_t)offsetImm)); // either imm or op
   auto const isImm     = (bool)inst.template get<SMRD::Field::IMM>();
 
   create::IRBuilder ir(ctx.instructions);
-  if (!isImm && sOffset.isLiteral()) {
+  if (!isImm && sOffset.kind.isLiteral()) {
     *pCode += 1;
-    ir.constantOp(OpDst(eOperandKind::Literal()), ir::ConstantValue {.value_u64 = **pCode}, ir::OperandType::i32());
+    sOffset = OpSrc(ir.literalOp(**pCode));
   }
 
   *pCode += 1;

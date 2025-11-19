@@ -72,9 +72,17 @@ InstructionKind_t handleVop2(parser::Context& ctx, parser::pc_t pc, parser::code
     src0 = OpSrc(eOperandKind((eOperandKind_t)inst.template get<VOP2::Field::SRC0>()));
     src1 = OpSrc(eOperandKind::VGPR(inst.template get<VOP2::Field::VSRC1>()));
     src2 = OpSrc(eOperandKind::VCC());
-    if (src0.kind.isLiteral() || src1.kind.isLiteral()) {
+
+    if (src0.kind.isLiteral()) {
       *pCode += 1;
-      ir.constantOp(OpDst(eOperandKind::Literal()), ir::ConstantValue {.value_u64 = **pCode}, ir::OperandType::i32());
+      src0 = OpSrc(ir.literalOp(**pCode));
+      ;
+    } else if (src1.kind.isLiteral()) {
+      *pCode += 1;
+      src1 = OpSrc(ir.literalOp(**pCode));
+    } else if (src2.kind.isLiteral()) {
+      *pCode += 1;
+      src2 = OpSrc(ir.literalOp(**pCode));
     }
   }
 
@@ -104,29 +112,35 @@ InstructionKind_t handleVop2(parser::Context& ctx, parser::pc_t pc, parser::code
     case eOpcode::V_MUL_F32: {
       vir.mulFOp(vdst, src0, src1, ir::OperandType::f32());
     } break;
-    // todo ssa links
-    // case eOpcode::V_MUL_I32_I24: {
-    //   vir.bitSIExtractOp(OpDst(eOperandKind::Temp0()), src0, OpSrc(eOperandKind::createImm(0)), OpSrc(eOperandKind::createImm(24)), ir::OperandType::i32());
-    //   vir.bitSIExtractOp(OpDst(eOperandKind::Temp1()), src1, OpSrc(eOperandKind::createImm(0)), OpSrc(eOperandKind::createImm(24)), ir::OperandType::i32());
-    //   vir.mulIOp(vdst, OpSrc(eOperandKind::Temp0()), OpSrc(eOperandKind::Temp1()), ir::OperandType::i32());
-    // } break;
-    // case eOpcode::V_MUL_HI_I32_I24: {
-    //   vir.bitSIExtractOp(OpDst(eOperandKind::Temp0()), src0, OpSrc(eOperandKind::createImm(0)), OpSrc(eOperandKind::createImm(24)), ir::OperandType::i32());
-    //   vir.bitSIExtractOp(OpDst(eOperandKind::Temp1()), src1, OpSrc(eOperandKind::createImm(0)), OpSrc(eOperandKind::createImm(24)), ir::OperandType::i32());
-    //   builder.createVirtualInst(
-    //       create::mulIExtendedOp(OpDst(eOperandKind::Temp0()), vdst, OpSrc(eOperandKind::Temp0()), OpSrc(eOperandKind::Temp1()), ir::OperandType::i32()));
-    // } break;
-    // case eOpcode::V_MUL_U32_U24: {
-    //   vir.bitUIExtractOp(OpDst(eOperandKind::Temp0()), src0, OpSrc(eOperandKind::createImm(0)), OpSrc(eOperandKind::createImm(24)), ir::OperandType::i32());
-    //   vir.bitUIExtractOp(OpDst(eOperandKind::Temp1()), src1, OpSrc(eOperandKind::createImm(0)), OpSrc(eOperandKind::createImm(24)), ir::OperandType::i32());
-    //   vir.mulIOp(vdst, OpSrc(eOperandKind::Temp0()), OpSrc(eOperandKind::Temp1()), ir::OperandType::i32());
-    // } break;
-    // case eOpcode::V_MUL_HI_U32_U24: {
-    //   vir.bitUIExtractOp(OpDst(eOperandKind::Temp0()), src0, OpSrc(eOperandKind::createImm(0)), OpSrc(eOperandKind::createImm(24)), ir::OperandType::i32());
-    //   vir.bitUIExtractOp(OpDst(eOperandKind::Temp1()), src1, OpSrc(eOperandKind::createImm(0)), OpSrc(eOperandKind::createImm(24)), ir::OperandType::i32());
-    //   builder.createVirtualInst(
-    //       create::mulIExtendedOp(OpDst(eOperandKind::Temp0()), vdst, OpSrc(eOperandKind::Temp0()), OpSrc(eOperandKind::Temp1()), ir::OperandType::i32()));
-    // } break;
+    case eOpcode::V_MUL_I32_I24: {
+      auto s0 = OpSrc(
+          vir.bitSIExtractOp(OpDst(eOperandKind::Unset()), src0, OpSrc(eOperandKind::createImm(0)), OpSrc(eOperandKind::createImm(24)), ir::OperandType::i32()),
+          0);
+      auto s1 = OpSrc(vir.bitSIExtractOp(OpDst(eOperandKind::Unset()), src1, OpSrc(eOperandKind::createImm(0)), OpSrc(eOperandKind::createImm(24)),
+                                         ir::OperandType::i32()));
+      vir.mulIOp(vdst, s0, s1, ir::OperandType::i32());
+    } break;
+    case eOpcode::V_MUL_HI_I32_I24: {
+      auto s0 = OpSrc(vir.bitSIExtractOp(OpDst(eOperandKind::Unset()), src0, OpSrc(eOperandKind::createImm(0)), OpSrc(eOperandKind::createImm(24)),
+                                         ir::OperandType::i32()));
+      auto s1 = OpSrc(vir.bitSIExtractOp(OpDst(eOperandKind::Unset()), src1, OpSrc(eOperandKind::createImm(0)), OpSrc(eOperandKind::createImm(24)),
+                                         ir::OperandType::i32()));
+      vir.mulIExtendedOp(OpDst(eOperandKind::Unset()), vdst, s0, s1, ir::OperandType::i32());
+    } break;
+    case eOpcode::V_MUL_U32_U24: {
+      auto s0 = OpSrc(vir.bitUIExtractOp(OpDst(eOperandKind::Unset()), src0, OpSrc(eOperandKind::createImm(0)), OpSrc(eOperandKind::createImm(24)),
+                                         ir::OperandType::i32()));
+      auto s1 = OpSrc(vir.bitUIExtractOp(OpDst(eOperandKind::Unset()), src1, OpSrc(eOperandKind::createImm(0)), OpSrc(eOperandKind::createImm(24)),
+                                         ir::OperandType::i32()));
+      vir.mulIOp(vdst, s0, s1, ir::OperandType::i32());
+    } break;
+    case eOpcode::V_MUL_HI_U32_U24: {
+      auto s0 = OpSrc(vir.bitUIExtractOp(OpDst(eOperandKind::Unset()), src0, OpSrc(eOperandKind::createImm(0)), OpSrc(eOperandKind::createImm(24)),
+                                         ir::OperandType::i32()));
+      auto s1 = OpSrc(vir.bitUIExtractOp(OpDst(eOperandKind::Unset()), src1, OpSrc(eOperandKind::createImm(0)), OpSrc(eOperandKind::createImm(24)),
+                                         ir::OperandType::i32()));
+      vir.mulIExtendedOp(OpDst(eOperandKind::Unset()), vdst, s0, s1, ir::OperandType::i32());
+    } break;
     case eOpcode::V_MIN_LEGACY_F32: {
       vir.minNOp(vdst, src1, src0, ir::OperandType::f32());
     } break;
@@ -185,14 +199,14 @@ InstructionKind_t handleVop2(parser::Context& ctx, parser::pc_t pc, parser::code
       vir.fmaFOp(vdst, src0, src1, OpSrc(vdst.kind, src2.flags), ir::OperandType::f32());
     } break;
     case eOpcode::V_MADMK_F32: {
-      ir.constantOp(OpDst(eOperandKind::Literal()), ir::ConstantValue {.value_u64 = **pCode}, ir::OperandType::i32());
+      auto K = OpSrc(ir.constantFOp(std::bit_cast<float>(**pCode)), src2.flags);
       *pCode += 1;
-      vir.fmaFOp(vdst, src0, OpSrc(eOperandKind::Literal(), src2.flags), src1, ir::OperandType::f32());
+      vir.fmaFOp(vdst, src0, K, src1, ir::OperandType::f32());
     } break;
     case eOpcode::V_MADAK_F32: {
-      ir.constantOp(OpDst(eOperandKind::Literal()), ir::ConstantValue {.value_u64 = **pCode}, ir::OperandType::i32());
+      auto K = OpSrc(ir.constantFOp(std::bit_cast<float>(**pCode)), src2.flags);
       *pCode += 1;
-      vir.fmaFOp(vdst, src0, src1, OpSrc(eOperandKind::Literal(), src2.flags), ir::OperandType::f32());
+      vir.fmaFOp(vdst, src0, src1, K, ir::OperandType::f32());
     } break;
     case eOpcode::V_BCNT_U32_B32: {
       vir.bitCountOp(OpDst(vdst.kind), src0, ir::OperandType::i32());
