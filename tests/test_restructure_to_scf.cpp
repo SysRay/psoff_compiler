@@ -151,7 +151,33 @@ TEST(ControlflowTransform, NestedDoLoop) {
   std::pmr::polymorphic_allocator<>   allocator {&resource};
 
   ControlFlow cfg(allocator);
-  createCFG(cfg, 6, 0, 3, {{0, 1}, {1, 2}, {2, 3}, {2, 4}, {4, 5}, {5, 2}, {5, 4}});
+  createCFG(cfg, 6, 0, 3, {{0, 1}, {1, 2}, {2, 3}, {2, 4}, {4, 5}, {5, 1}, {5, 4}});
+  dumpCFG(std::cout, cfg);
+
+  std::array<uint8_t, 10000>          buffer;
+  compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
+  compiler::transform::restructureCfg(tempResource, cfg);
+  dumpCFG(std::cout, cfg);
+  EXPECT_FALSE(true); // todo
+}
+TEST(ControlflowTransform, NestedDoLoopSelfs) {
+  //   0
+  //   |
+  //   1
+  //   |
+  //   2
+  //  / \
+  // 3   4
+  //     |
+  //     5
+  //    / \
+  //   2   5
+
+  std::pmr::monotonic_buffer_resource resource;
+  std::pmr::polymorphic_allocator<>   allocator {&resource};
+
+  ControlFlow cfg(allocator);
+  createCFG(cfg, 6, 0, 3, {{0, 1}, {1, 2}, {2, 3}, {2, 4}, {4, 5}, {5, 2}, {5, 5}});
   dumpCFG(std::cout, cfg);
 
   std::array<uint8_t, 10000>          buffer;

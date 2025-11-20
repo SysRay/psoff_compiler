@@ -10,9 +10,10 @@ bool Builder::regionContains(rvsdg::regionid_t rid, rvsdg::nodeid_t bid) const {
   return false;
 }
 
-void Builder::moveNodeToRegion(rvsdg::nodeid_t bid, rvsdg::regionid_t dest) {
-  assert(bid.isValid() && dest.isValid());
+void Builder::moveNodeToRegion(rvsdg::nodeid_t bid, rvsdg::regionid_t dst) {
+  assert(bid.isValid() && dst.isValid());
   auto base = accessNodeBase(bid);
+  if (base->parentRegion == dst) return;
 
   // Remove from current region
   auto srcRegionId = base->parentRegion;
@@ -26,32 +27,24 @@ void Builder::moveNodeToRegion(rvsdg::nodeid_t bid, rvsdg::regionid_t dest) {
   }
 
   // Insert into new region
-  _regions[dest.value].nodes.push_back(bid);
-  base->parentRegion = dest;
+  _regions[dst.value].nodes.push_back(bid);
+  base->parentRegion = dst;
 }
 
-void Builder::swapNodeRegion(nodeid_t rid, nodeid_t bid) {
-  assert(bid.isValid() && rid.isValid());
-  auto baseR = accessNodeBase(rid);
-  auto baseB = accessNodeBase(bid);
+bool Builder::insertNodeToRegion(nodeid_t src, nodeid_t dst) {
+  assert(src.isValid() && dst.isValid());
 
-  if (baseR->parentRegion.isValid()) { // move baseB
-    auto region = accessRegion(baseR->parentRegion);
-    auto it     = std::find(region->nodes.begin(), region->nodes.end(), rid);
-    if (it != region->nodes.end()) {
-      *it = bid;
-    }
-  }
+  auto baseB = accessNodeBase(dst);
+  if (!baseB->parentRegion.isValid()) return false;
 
-  if (baseB->parentRegion.isValid()) { // move baseB
-    auto region = accessRegion(baseB->parentRegion);
-    auto it     = std::find(region->nodes.begin(), region->nodes.end(), bid);
-    if (it != region->nodes.end()) {
-      *it = rid;
-    }
-  }
+  auto region = accessRegion(baseB->parentRegion);
+  auto it     = std::find(region->nodes.begin(), region->nodes.end(), dst);
+  if (it == region->nodes.end()) return false;
+  *it = src;
 
-  std::swap(baseB->parentRegion, baseR->parentRegion);
+  accessNodeBase(src)->parentRegion = region->id;
+  baseB->parentRegion               = regionid_t(); // invalidate
+  return true;
 }
 
 void Builder::replaceBlockInRegion(rvsdg::regionid_t rid, rvsdg::nodeid_t oldB, rvsdg::nodeid_t newB) {

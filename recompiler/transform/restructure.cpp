@@ -4,6 +4,7 @@
 #include "include/checkpoint_resource.h"
 #include "include/common.h"
 #include "ir/debug_strings.h"
+#include "logging.h"
 #include "transform.h"
 
 #include <memory_resource>
@@ -62,19 +63,23 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, cfg::
     // Handle entries
     cfg::rvsdg::nodeid_t headerId = {};
     if (sccEdges.entryEdges.size() > 1) {
-      // Restructure entries
-      uint32_t const sizePreds = sccEdges.entryEdges.size() + sccEdges.backEdges.size();
 
-      // Create demux and use as entry
-      throw std::runtime_error("loop multiple entries");
+      // First value passed to Theta Node is the branch selector value (q-value)
+      // redirect all edges to loop and set the branch value
+      for (auto const& edge: sccEdges.entryEdges) {
+        cfg.redirectEdge(cfg::rvsdg::nodeid_t(edge.first), cfg::rvsdg::nodeid_t(edge.second), loopId);
+        // todo branch value
+      }
+
+      headerId = cfg::rvsdg::nodeid_t(sccEdges.entryEdges[0].second);
+      cfg.nodes()->insertNodeToRegion(loopId, headerId);
     } else {
       headerId = cfg::rvsdg::nodeid_t(sccEdges.entryEdges[0].second);
       cfg.redirectEdge(cfg::rvsdg::nodeid_t(sccEdges.entryEdges[0].first), headerId, loopId);
-
-      cfg.nodes()->swapNodeRegion(loopId, headerId);
+      cfg.nodes()->insertNodeToRegion(loopId, headerId);
     }
 
-    // cfg.moveNodeToRegion(headerId, loopRegions->id); // done by swapNode
+    cfg.nodes()->moveNodeToRegion(headerId, loopRegions->id);
 
     // Handle backedge
 
@@ -85,30 +90,52 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, cfg::
     //   loop.exit = cfg::rvsdg::nodeid_t(sccEdges.backEdges[0].first);
     // }
 
-    // Handle exits
-    cfg::rvsdg::nodeid_t exitId = {};
-    if (sccEdges.exitEdges.size() > 1) {
-      // Restructure exits
-      throw std::runtime_error("loop multiple entries");
-    } else {
-      if (sccEdges.exitEdges[0].first == sccEdges.backEdges[0].first) {
-        // already tail based loop -> use node is latch
-        exitId = cfg::rvsdg::nodeid_t(sccEdges.exitEdges[0].first);
+    // Restructure exits if needed
 
-        cfg.accessSuccessors(exitId).clear();
-        cfg.addEdge(loopId, cfg::rvsdg::nodeid_t(sccEdges.exitEdges[0].second));
-      } else {
-        throw std::runtime_error("loop natch");
+    // Special case:       // already tail based loop -> use node as latch
+    if (sccEdges.exitEdges.size() == 1 && sccEdges.exitEdges[0].first == sccEdges.backEdges[0].first) {
+      cfg::rvsdg::nodeid_t exitLatchId = cfg::rvsdg::nodeid_t(sccEdges.exitEdges[0].first);
+
+      cfg.removeEdge(exitLatchId, cfg::rvsdg::nodeid_t(sccEdges.exitEdges[0].second));
+      cfg.removeEdge(exitLatchId, cfg::rvsdg::nodeid_t(sccEdges.backEdges[0].second));
+      // todo branch value
+
+      for (auto id: std::ranges::reverse_view(scc)) {
+        if (id == headerId || id == exitLatchId) continue;
+        cfg.nodes()->moveNodeToRegion(cfg::rvsdg::nodeid_t(id), loopRegions->id);
+      }
+
+      cfg.nodes()->moveNodeToRegion(exitLatchId, loopRegions->id);
+      tasks.push_back(loopRegions->id);
+      return;
+    }
+    // - Special case
+
+    // First value return from Theta Node is the loop predicate (r-value)
+    // (Optional) Second value is for entry selection (q-value)
+    // redirect all from loop to exits
+    cfg::rvsdg::nodeid_t exitLatchId = cfg.createSimpleNode();
+    for (auto const& [from, to]: sccEdges.exitEdges) {
+      cfg.redirectEdge(cfg::rvsdg::nodeid_t(from), cfg::rvsdg::nodeid_t(to), exitLatchId);
+      cfg.addEdge(loopId, cfg::rvsdg::nodeid_t(to));
+      // todo branch value
+    }
+
+    if (sccEdges.backEdges.size() > 0) {
+      for (auto const& edge: sccEdges.backEdges) {
+        cfg.redirectEdge(cfg::rvsdg::nodeid_t(edge.first), cfg::rvsdg::nodeid_t(edge.second), exitLatchId);
+        // todo branch value
       }
     }
 
     // add scc nodes to region
-    for (auto id: scc) {
-      if (id == headerId.value || id == exitId.value) continue;
+    // Note scc lists reversed nodes -> reverse to get previous order
+    for (auto id: std::ranges::reverse_view(scc)) {
+      if (id == headerId.value) continue;
       cfg.nodes()->moveNodeToRegion(cfg::rvsdg::nodeid_t(id), loopRegions->id);
     }
 
-    cfg.nodes()->moveNodeToRegion(exitId, loopRegions->id);
+    cfg.nodes()->moveNodeToRegion(exitLatchId, loopRegions->id);
 
     tasks.push_back(loopRegions->id);
   }

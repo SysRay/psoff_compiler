@@ -180,7 +180,14 @@ class Builder {
 
   bool regionContains(regionid_t rid, nodeid_t bid) const;
   void moveNodeToRegion(nodeid_t bid, regionid_t dest);
-  void swapNodeRegion(nodeid_t rid, nodeid_t bid);
+
+  /**
+   * @brief Insert Node src at pos of dst (becomes regionless)
+   *
+   * @param src
+   * @param dst
+   */
+  bool insertNodeToRegion(nodeid_t src, nodeid_t dst);
 
   //------------------------------------------------------------
   //  Block replacement / removal

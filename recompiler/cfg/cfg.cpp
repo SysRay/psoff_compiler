@@ -36,4 +36,23 @@ void ControlFlow::redirectEdge(rvsdg::nodeid_t from, rvsdg::nodeid_t oldSucc, rv
   _predecessors[newSucc.value].push_back(from);
 }
 
+void ControlFlow::redirectEdgeReversed(rvsdg::nodeid_t oldPred, rvsdg::nodeid_t to, rvsdg::nodeid_t newPred) {
+  assert(oldPred.isValid() && to.isValid() && newPred.isValid());
+
+  // 1. Fix successors of oldPred -> remove 'to'
+  auto& succOld = _successors[oldPred.value];
+  succOld.erase(std::remove(succOld.begin(), succOld.end(), to), succOld.end());
+
+  // 2. Fix predecessors of 'to' -> replace oldPred with newPred
+  auto& pred = _predecessors[to.value];
+  for (auto& p: pred) {
+    if (p == oldPred) {
+      p = newPred;
+      break;
+    }
+  }
+
+  // 3. Add 'to' to successors of newPred
+  _successors[newPred.value].push_back(to);
+}
 } // namespace compiler::cfg

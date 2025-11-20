@@ -64,6 +64,7 @@ class ControlFlow {
   void addEdge(rvsdg::nodeid_t from, rvsdg::nodeid_t to);
   void removeEdge(rvsdg::nodeid_t from, rvsdg::nodeid_t to);
   void redirectEdge(rvsdg::nodeid_t from, rvsdg::nodeid_t oldSucc, rvsdg::nodeid_t newSucc);
+  void redirectEdgeReversed(rvsdg::nodeid_t oldPred, rvsdg::nodeid_t to, rvsdg::nodeid_t newPred);
 
   private:
   std::pmr::vector<std::pmr::vector<rvsdg::nodeid_t>> _successors;
