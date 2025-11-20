@@ -32,9 +32,10 @@ struct GraphAdapter {
 
 static void collapseCycles(util::checkpoint_resource& checkpoint_resource, cfg::ControlFlow& cfg, std::pmr::vector<cfg::rvsdg::regionid_t>& tasks,
                            cfg::rvsdg::regionid_t regionId) {
-  // Find SCCs
-  // find entry, exit and continue edges
-  // collaps into loop node
+  // 1. Find SCCs
+  // 2. find entries, exits and back edges
+  // 3 .collaps into loop node
+
   auto region = cfg.nodes()->getRegion(regionId);
   if (region->nodes.empty()) return;
 
@@ -55,12 +56,12 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, cfg::
     auto       loop   = cfg.nodes()->accessNode<cfg::rvsdg::ThetaNode>(loopId);
 
     auto loopRegions = cfg.nodes()->accessRegion(loop->body);
-    loopRegions->nodes.reserve(2 + scc.size()); // entry mux + exit mux + sccNodes
+    loopRegions->nodes.reserve(1 + scc.size()); //  exit + sccNodes
 
     // Theta node: First result is predicate for exit or continue (latch)
     // Body region contains single entry and single exit
 
-    // Handle entries
+    // // Restructure entries to one entry
     cfg::rvsdg::nodeid_t headerId = {};
     if (sccEdges.entryEdges.size() > 1) {
 
@@ -81,16 +82,7 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, cfg::
 
     cfg.nodes()->moveNodeToRegion(headerId, loopRegions->id);
 
-    // Handle backedge
-
-    // if (sccEdges.backEdges.size() > 1) {
-    //   // Restructure backedges
-    //   throw std::runtime_error("loop multiple back edges");
-    // } else {
-    //   loop.exit = cfg::rvsdg::nodeid_t(sccEdges.backEdges[0].first);
-    // }
-
-    // Restructure exits if needed
+    // // Restructure exits to one exit
 
     // Special case:       // already tail based loop -> use node as latch
     if (sccEdges.exitEdges.size() == 1 && sccEdges.exitEdges[0].first == sccEdges.backEdges[0].first) {
