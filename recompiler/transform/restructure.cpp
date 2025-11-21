@@ -64,7 +64,6 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, cfg::
     // // Restructure entries to one entry
     cfg::rvsdg::nodeid_t headerId = {};
     if (sccEdges.entryEdges.size() > 1) {
-
       // First value passed to Theta Node is the branch selector value (q-value)
       // redirect all edges to loop and set the branch value
       for (auto const& edge: sccEdges.entryEdges) {
@@ -72,6 +71,7 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, cfg::
         // todo branch value
       }
 
+      // todo create demux
       headerId = cfg::rvsdg::nodeid_t(sccEdges.entryEdges[0].second);
       cfg.nodes()->insertNodeToRegion(loopId, headerId);
     } else {
@@ -92,6 +92,9 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, cfg::
       cfg.removeEdge(exitLatchId, cfg::rvsdg::nodeid_t(sccEdges.backEdges[0].second));
       // todo branch value
 
+      cfg.addEdge(loopId, cfg::rvsdg::nodeid_t(sccEdges.exitEdges[0].second));
+
+      // Add nodes to region
       for (auto id: std::ranges::reverse_view(scc)) {
         if (id == headerId || id == exitLatchId) continue;
         cfg.nodes()->moveNodeToRegion(cfg::rvsdg::nodeid_t(id), loopRegions->id);
@@ -120,7 +123,9 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, cfg::
       }
     }
 
-    // add scc nodes to region
+    // todo demux for exits
+
+    // // Add nodes to region
     // Note scc lists reversed nodes -> reverse to get previous order
     for (auto id: std::ranges::reverse_view(scc)) {
       if (id == headerId.value) continue;
