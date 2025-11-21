@@ -17,7 +17,6 @@ option(ENABLE_DEFAULT_LOGGING "printf logs" ON)
 
 add_subdirectory(recompiler)
 add_subdirectory(dump_reader)
-add_subdirectory(graph_test)
 
 add_subdirectory(tests)
 add_subdirectory(benchmarks)

@@ -18,10 +18,7 @@ struct eOperandKind {
     SGPR  = 0,
     VccLo = 106,
     VccHi,
-    CustomTemp0Lo,
-    CustomTemp0Hi,
-    CustomTemp1Lo,
-    CustomTemp1Hi,
+    CUSTOM_UNSET,
     M0          = 124,
     CustomVskip = 125,
     ExecLo      = 126,
@@ -125,9 +122,7 @@ struct eOperandKind {
 
   static constexpr eOperandKind VSKIP() { return eOperandKind((eOperandKind_t)eBase::CustomVskip); }
 
-  static constexpr eOperandKind Temp0() { return eOperandKind((eOperandKind_t)eBase::CustomTemp0Lo); }
-
-  static constexpr eOperandKind Temp1() { return eOperandKind((eOperandKind_t)eBase::CustomTemp1Lo); }
+  static constexpr eOperandKind Unset() { return eOperandKind((eOperandKind_t)eBase::CUSTOM_UNSET); }
 
   private:
   static constexpr eKind getKind(eOperandKind_t b) {
@@ -136,12 +131,7 @@ struct eOperandKind {
     return eKind::Register;
   }
 
-  static constexpr bool is64bit(eOperandKind_t b) {
-    if (b == (eOperandKind_t)eBase::ExecLo || b == (eOperandKind_t)eBase::VccLo || b == (eOperandKind_t)eBase::CustomTemp0Lo ||
-        b == (eOperandKind_t)eBase::CustomTemp1Lo)
-      return true;
-    return false;
-  }
+  static constexpr bool is64bit(eOperandKind_t b) { return b == (eOperandKind_t)eBase::ExecLo || b == (eOperandKind_t)eBase::VccLo; }
 
   __OperandTypeData _v;
 

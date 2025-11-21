@@ -4,6 +4,7 @@
 #include "frontend/analysis/analysis.h"
 #include "frontend/parser.h"
 #include "ir/debug_strings.h"
+#include "ir/ir.h"
 
 #include <filesystem>
 
@@ -24,11 +25,11 @@ static std::string_view getFileTpye(frontend::ShaderStage stage) {
 }
 
 void Builder::print() const {
-  std::cout << "\nInstructions:\n";
-  for (size_t n = 0; n < _instructions.size(); ++n) {
-    std::cout << std::dec << n << "| ";
-    ir::debug::getDebug(std::cout, _instructions[n]);
-  }
+  // std::cout << "\nInstructions:\n";
+  // for (size_t n = 0; n < _instructions.size(); ++n) {
+  //   std::cout << std::dec << n << "| ";
+  //   ir::debug::getDebug(std::cout, _instructions[n]);
+  // }
 }
 
 bool Builder::createShader(frontend::ShaderStage stage, uint32_t id, frontend::ShaderHeader const* header, uint32_t const* gpuRegs) {
@@ -177,19 +178,22 @@ bool Builder::processBinary() {
   auto const      size    = _hostMapping[0].size_dw;
   if (pCode == nullptr) return false;
 
+  auto instr = ir::InstructionManager(getBuffer(), size);
   {
-    std::pmr::monotonic_buffer_resource checkpoint(&_poolTemp); // todo pass checkpoint around instead of temp
+    auto checkpoint = getTempBuffer()->checkpoint();
 
     // parse instructions
-    frontend::analysis::pcmapping_t pcMapping {&checkpoint}; // map pc to instructions for resolving jmp
+    frontend::analysis::pcmapping_t pcMapping {checkpoint.obj}; // map pc to instructions for resolving jmp
     pcMapping.reserve(_hostMapping[0].size_dw);
 
     auto curCode = pCode;
+
+    frontend::parser::Context ctx(*this, instr);
     try {
       while (curCode < (pCode + size)) {
         auto const pc = pcStart + (frontend::parser::pc_t)curCode - (frontend::parser::pc_t)pCode;
-        pcMapping.push_back({pc, _instructions.size()});
-        frontend::parser::parseInstruction(*this, pc, &curCode);
+        pcMapping.push_back({pc, instr.instructionCount()});
+        frontend::parser::parseInstruction(ctx, pc, &curCode);
       }
     } catch (std::runtime_error const& ex) {
       printf("%s error:%s", _name, ex.what());
@@ -197,7 +201,7 @@ bool Builder::processBinary() {
     }
 
     // create code regions
-    if (!frontend::analysis::createRegions(&checkpoint, getInstructions(), pcMapping)) {
+    if (!frontend::analysis::createRegions(getTempBuffer(), instr, pcMapping)) {
       printf("Couldn't create regions");
       return false;
     }

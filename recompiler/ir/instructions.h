@@ -104,8 +104,10 @@ constexpr inline eInstKind conv(InstructionKind_t code) {
 
 namespace internal {
 struct InstDef {
-  InstCore         core;
-  std::string_view name;
+  InstCore                                      core;
+  std::array<OutputOperand, config::kMaxDstOps> dstOperands;
+  std::array<InputOperand, config::kMaxSrcOps>  srcOperands;
+  std::string_view                              name;
 };
 
 constexpr auto makeInstDef(eInstKind kind, eInstructionGroup group, util::Flags<ir::eInstructionFlags> flags, auto&& dstOps, auto&& srcOps,
@@ -123,127 +125,136 @@ constexpr auto makeInstDef(eInstKind kind, eInstructionGroup group, util::Flags<
   return InstDef {
     .core =
         ir::InstCore {
-            .kind        = conv(kind),
-            .group       = group,
-            .flags       = flags,
-            .numDst      = (uint8_t)dstOps.size(),
-            .numSrc      = (uint8_t)srcOps.size(),
-            .dstOperands = toArray.template operator()<decltype(ir::InstCore::dstOperands)>(dstOps),
-            .srcOperands = toArray.template operator()<decltype(ir::InstCore::srcOperands)>(srcOps),
+            .kind   = conv(kind),
+            .group  = group,
+            .flags  = flags,
+            .numDst = (uint8_t)dstOps.size(),
+            .numSrc = (uint8_t)srcOps.size(),
         },
-    .name = name
+    .dstOperands = toArray.template operator()<decltype(InstDef::dstOperands)>(dstOps),
+    .srcOperands = toArray.template operator()<decltype(InstDef::srcOperands)>(srcOps),
+    .name        = name
   };
 }
 
-namespace compiler::ir::ops {
-constexpr Operand i1 {.type = OperandType::i1()};
-constexpr Operand i32 {.type = OperandType::i32()};
-constexpr Operand i64 {.type = OperandType::i64()};
-constexpr Operand f32 {.type = OperandType::f32()};
-constexpr Operand f64 {.type = OperandType::f64()};
+namespace compiler::ir::o {
+constexpr OutputOperand i1 {.type = OperandType::i1()};
+constexpr OutputOperand i32 {.type = OperandType::i32()};
+constexpr OutputOperand i64 {.type = OperandType::i64()};
+constexpr OutputOperand f32 {.type = OperandType::f32()};
+constexpr OutputOperand f64 {.type = OperandType::f64()};
 // ...
-} // namespace compiler::ir::ops
+} // namespace compiler::ir::o
+
+namespace compiler::ir::i {
+constexpr InputOperand i1 {.type = OperandType::i1()};
+constexpr InputOperand i32 {.type = OperandType::i32()};
+constexpr InputOperand i64 {.type = OperandType::i64()};
+constexpr InputOperand f32 {.type = OperandType::f32()};
+constexpr InputOperand f64 {.type = OperandType::f64()};
+// ...
+} // namespace compiler::ir::i
 
 #define __OPS(...) __VA_ARGS__
 #define __INST(kind, group, flags, dstOps, srcOps)                                                                                                             \
   makeInstDef(eInstKind::kind, eInstructionGroup::group, {eInstructionFlags::flags}, std::array {dstOps}, std::array {srcOps}, #kind)
 
 #define __INST_NO_OPS(kind, group, flags)                                                                                                                      \
-  makeInstDef(eInstKind::kind, eInstructionGroup::group, {eInstructionFlags::flags}, std::array<Operand, 0> {}, std::array<Operand, 0> {}, #kind)
+  makeInstDef(eInstKind::kind, eInstructionGroup::group, {eInstructionFlags::flags}, std::array<OutputOperand, 0> {}, std::array<InputOperand, 0> {}, #kind)
 
 #define __INST_NO_DST(kind, group, flags, srcOps)                                                                                                              \
-  makeInstDef(eInstKind::kind, eInstructionGroup::group, {eInstructionFlags::flags}, std::array<Operand, 0> {}, std::array {srcOps}, #kind)
+  makeInstDef(eInstKind::kind, eInstructionGroup::group, {eInstructionFlags::flags}, std::array<OutputOperand, 0> {}, std::array {srcOps}, #kind)
 
 #define __INST_NO_SRC(kind, group, flags, dstOps)                                                                                                              \
-  makeInstDef(eInstKind::kind, eInstructionGroup::group, {eInstructionFlags::flags}, std::array {dstOps}, std::array<Operand, 0> {}, #kind)
+  makeInstDef(eInstKind::kind, eInstructionGroup::group, {eInstructionFlags::flags}, std::array {dstOps}, std::array<InputOperand, 0> {}, #kind)
 
-using namespace compiler::ir::ops;
+using namespace compiler::ir;
 static constexpr std::array kInstTable = {
-    __INST(MoveOp, kALU, kNone, __OPS(i32), __OPS(i32)),
-    __INST(SelectOp, kALU, kNone, __OPS(i32), __OPS(i1, i32, i32)),
-    __INST(BitReverseOp, kBIT, kNone, __OPS(i32), __OPS(i32)),
-    __INST(BitCountOp, kBIT, kNone, __OPS(i32), __OPS(i32)),
-    __INST(BitAndOp, kBIT, kNone, __OPS(i32), __OPS(i32, i32)),
-    __INST(BitOrOp, kBIT, kNone, __OPS(i32), __OPS(i32, i32)),
-    __INST(BitXorOp, kBIT, kNone, __OPS(i32), __OPS(i32, i32)),
-    __INST(BitFieldMaskOp, kBIT, kNone, __OPS(i32), __OPS(i32, i32)),
-    __INST(FindILsbOp, kBIT, kNone, __OPS(i32), __OPS(i32)),
-    __INST(FindUMsbOp, kBIT, kNone, __OPS(i32), __OPS(i32)),
-    __INST(FindSMsbOp, kBIT, kNone, __OPS(i32), __OPS(i32)),
-    __INST(SignExtendOp, kBIT, kNone, __OPS(i32), __OPS(i32)),
-    __INST(BitsetOp, kBIT, kNone, __OPS(i32), __OPS(i32, i32, i1)),
-    __INST(BitCmpOp, kBIT, kNone, __OPS(i1), __OPS(i32, i32)),
-    __INST(BitFieldInsertOp, kBIT, kNone, __OPS(i32), __OPS(i32, i32, i32)),
-    __INST(BitUIExtractOp, kBIT, kNone, __OPS(i32), __OPS(i32, i32, i32)),
-    __INST(BitSIExtractOp, kBIT, kNone, __OPS(i32), __OPS(i32, i32, i32)),
-    __INST(BitUIExtractCompactOp, kBIT, kNone, __OPS(i32), __OPS(i32, i32)),
-    __INST(BitSIExtractCompactOp, kBIT, kNone, __OPS(i32), __OPS(i32, i32)),
-    __INST(ShiftLUIOp, kBIT, kNone, __OPS(i32), __OPS(i32, i32)),
-    __INST(ShiftRUIOp, kBIT, kNone, __OPS(i32), __OPS(i32, i32)),
-    __INST(ShiftRSIOp, kBIT, kNone, __OPS(i32), __OPS(i32, i32)),
-    __INST(Max3UIOp, kALU, kNone, __OPS(i32), __OPS(i32, i32, i32)),
-    __INST(MaxUIOp, kALU, kNone, __OPS(i32), __OPS(i32, i32)),
-    __INST(Max3SIOp, kALU, kNone, __OPS(i32), __OPS(i32, i32, i32)),
-    __INST(MaxSIOp, kALU, kNone, __OPS(i32), __OPS(i32, i32)),
-    __INST(Max3FOp, kALU, kNone, __OPS(f32), __OPS(f32, f32, f32)),
-    __INST(MaxFOp, kALU, kNone, __OPS(f32), __OPS(f32, f32)),
-    __INST(MaxNOp, kALU, kNone, __OPS(f32), __OPS(f32, f32)),
-    __INST(MedUIOp, kALU, kNone, __OPS(i32), __OPS(i32, i32)),
-    __INST(MedSIOp, kALU, kNone, __OPS(i32), __OPS(i32, i32)),
-    __INST(MedFOp, kALU, kNone, __OPS(i32), __OPS(i32, i32)),
-    __INST(MinUIOp, kALU, kNone, __OPS(i32), __OPS(i32, i32)),
-    __INST(Min3UIOp, kALU, kNone, __OPS(i32), __OPS(i32, i32, i32)),
-    __INST(MinSIOp, kALU, kNone, __OPS(i32), __OPS(i32, i32)),
-    __INST(Min3SIOp, kALU, kNone, __OPS(i32), __OPS(i32, i32, i32)),
-    __INST(MinFOp, kALU, kNone, __OPS(f32), __OPS(f32, f32)),
-    __INST(Min3FOp, kALU, kNone, __OPS(f32), __OPS(f32, f32, f32)),
-    __INST(MinNOp, kALU, kNone, __OPS(f32), __OPS(f32, f32)),
-    __INST(CmpIOp, kALU, kNone, __OPS(i1), __OPS(i32, i32)),
-    __INST(CmpFOp, kALU, kNone, __OPS(i1), __OPS(f32, f32)),
-    __INST(AddFOp, kALU, kNone, __OPS(f32), __OPS(f32, f32)),
-    __INST(SubFOp, kALU, kNone, __OPS(f32), __OPS(f32, f32)),
-    __INST(MulFOp, kALU, kNone, __OPS(f32), __OPS(f32, f32)),
-    __INST(FmaFOp, kALU, kNone, __OPS(f32), __OPS(f32, f32, f32)),
-    __INST(FmaIOp, kALU, kNone, __OPS(i32), __OPS(i32, i32, i32)),
-    __INST(MulIOp, kALU, kNone, __OPS(i32), __OPS(i32, i32)),
-    __INST(MulIExtendedOp, kALU, kNone, __OPS(i32, i32), __OPS(i32, i32)),
-    __INST(AddIOp, kALU, kNone, __OPS(i32), __OPS(i32, i32)),
-    __INST(AddCarryIOp, kALU, kNone, __OPS(i32, i1), __OPS(i32, i32, i1)),
-    __INST(SubIOp, kALU, kNone, __OPS(i32), __OPS(i32, i32)),
-    __INST(SubBurrowIOp, kALU, kNone, __OPS(i32, i1), __OPS(i32, i32, i1)),
-    __INST(FPToSIOp, kALU, kNone, __OPS(i32), __OPS(f32)),
-    __INST(SIToFPOp, kALU, kNone, __OPS(f32), __OPS(i32)),
-    __INST(FPToUIOp, kALU, kNone, __OPS(i32), __OPS(f32)),
-    __INST(UIToFPOp, kALU, kNone, __OPS(f32), __OPS(i32)),
-    __INST(SI4ToFloat, kALU, kNone, __OPS(f32), __OPS(i32)),
-    __INST(TruncFOp, kALU, kNone, __OPS(f32), __OPS(f64)),
-    __INST(ExtFOp, kALU, kNone, __OPS(f64), __OPS(f32)),
-    __INST(TruncOp, kALU, kNone, __OPS(f32), __OPS(f32)),
-    __INST(CeilOp, kALU, kNone, __OPS(f32), __OPS(f32)),
-    __INST(RoundEvenOp, kALU, kNone, __OPS(f32), __OPS(f32)),
-    __INST(FractOp, kALU, kNone, __OPS(f32), __OPS(f32)),
-    __INST(FloorOp, kALU, kNone, __OPS(f32), __OPS(f32)),
-    __INST(Exp2Op, kALU, kNone, __OPS(f32), __OPS(f32)),
-    __INST(Log2Op, kALU, kNone, __OPS(f32), __OPS(f32)),
-    __INST(RcpOp, kALU, kNone, __OPS(f32), __OPS(f32)),
-    __INST(RsqrtOp, kALU, kNone, __OPS(f32), __OPS(f32)),
-    __INST(SqrtOp, kALU, kNone, __OPS(f32), __OPS(f32)),
-    __INST(SinOp, kALU, kNone, __OPS(f32), __OPS(f32)),
-    __INST(CosOp, kALU, kNone, __OPS(f32), __OPS(f32)),
-    __INST(LdexpOp, kALU, kNone, __OPS(f32), __OPS(f32, i32)),
-    __INST(ClampFMinMaxOp, kALU, kNone, __OPS(f32), __OPS(f32)),
-    __INST(ClampFZeroOp, kALU, kNone, __OPS(f32), __OPS(f32)),
-    __INST(FrexpOp, kALU, kNone, __OPS(f32, i32), __OPS(f32)),
-    __INST(PackHalf2x16Op, kALU, kNone, __OPS(i32), __OPS(f32, f32)),
-    __INST(UnpackHalf2x16, kALU, kNone, __OPS(f32, f32), __OPS(i32)),
-    __INST(PackSnorm2x16Op, kALU, kNone, __OPS(i32), __OPS(f32, f32)),
-    __INST(PackUnorm2x16Op, kALU, kNone, __OPS(i32), __OPS(f32, f32)),
+    __INST(MoveOp, kALU, kNone, __OPS(o::i32), __OPS(i::i32)),
+    __INST(SelectOp, kALU, kNone, __OPS(o::i32), __OPS(i::i1, i::i32, i::i32)),
+    __INST(BitReverseOp, kBIT, kNone, __OPS(o::i32), __OPS(i::i32)),
+    __INST(BitCountOp, kBIT, kNone, __OPS(o::i32), __OPS(i::i32)),
+    __INST(BitAndOp, kBIT, kNone, __OPS(o::i32), __OPS(i::i32, i::i32)),
+    __INST(BitOrOp, kBIT, kNone, __OPS(o::i32), __OPS(i::i32, i::i32)),
+    __INST(BitXorOp, kBIT, kNone, __OPS(o::i32), __OPS(i::i32, i::i32)),
+    __INST(BitFieldMaskOp, kBIT, kNone, __OPS(o::i32), __OPS(i::i32, i::i32)),
+    __INST(FindILsbOp, kBIT, kNone, __OPS(o::i32), __OPS(i::i32)),
+    __INST(FindUMsbOp, kBIT, kNone, __OPS(o::i32), __OPS(i::i32)),
+    __INST(FindSMsbOp, kBIT, kNone, __OPS(o::i32), __OPS(i::i32)),
+    __INST(SignExtendOp, kBIT, kNone, __OPS(o::i32), __OPS(i::i32)),
+    __INST(BitsetOp, kBIT, kNone, __OPS(o::i32), __OPS(i::i32, i::i32, i::i1)),
+    __INST(BitCmpOp, kBIT, kNone, __OPS(o::i1), __OPS(i::i32, i::i32)),
+    __INST(BitFieldInsertOp, kBIT, kNone, __OPS(o::i32), __OPS(i::i32, i::i32, i::i32)),
+    __INST(BitUIExtractOp, kBIT, kNone, __OPS(o::i32), __OPS(i::i32, i::i32, i::i32)),
+    __INST(BitSIExtractOp, kBIT, kNone, __OPS(o::i32), __OPS(i::i32, i::i32, i::i32)),
+    __INST(BitUIExtractCompactOp, kBIT, kNone, __OPS(o::i32), __OPS(i::i32, i::i32)),
+    __INST(BitSIExtractCompactOp, kBIT, kNone, __OPS(o::i32), __OPS(i::i32, i::i32)),
+    __INST(ShiftLUIOp, kBIT, kNone, __OPS(o::i32), __OPS(i::i32, i::i32)),
+    __INST(ShiftRUIOp, kBIT, kNone, __OPS(o::i32), __OPS(i::i32, i::i32)),
+    __INST(ShiftRSIOp, kBIT, kNone, __OPS(o::i32), __OPS(i::i32, i::i32)),
+    __INST(Max3UIOp, kALU, kNone, __OPS(o::i32), __OPS(i::i32, i::i32, i::i32)),
+    __INST(MaxUIOp, kALU, kNone, __OPS(o::i32), __OPS(i::i32, i::i32)),
+    __INST(Max3SIOp, kALU, kNone, __OPS(o::i32), __OPS(i::i32, i::i32, i::i32)),
+    __INST(MaxSIOp, kALU, kNone, __OPS(o::i32), __OPS(i::i32, i::i32)),
+    __INST(Max3FOp, kALU, kNone, __OPS(o::f32), __OPS(i::f32, i::f32, i::f32)),
+    __INST(MaxFOp, kALU, kNone, __OPS(o::f32), __OPS(i::f32, i::f32)),
+    __INST(MaxNOp, kALU, kNone, __OPS(o::f32), __OPS(i::f32, i::f32)),
+    __INST(MedUIOp, kALU, kNone, __OPS(o::i32), __OPS(i::i32, i::i32)),
+    __INST(MedSIOp, kALU, kNone, __OPS(o::i32), __OPS(i::i32, i::i32)),
+    __INST(MedFOp, kALU, kNone, __OPS(o::i32), __OPS(i::i32, i::i32)),
+    __INST(MinUIOp, kALU, kNone, __OPS(o::i32), __OPS(i::i32, i::i32)),
+    __INST(Min3UIOp, kALU, kNone, __OPS(o::i32), __OPS(i::i32, i::i32, i::i32)),
+    __INST(MinSIOp, kALU, kNone, __OPS(o::i32), __OPS(i::i32, i::i32)),
+    __INST(Min3SIOp, kALU, kNone, __OPS(o::i32), __OPS(i::i32, i::i32, i::i32)),
+    __INST(MinFOp, kALU, kNone, __OPS(o::f32), __OPS(i::f32, i::f32)),
+    __INST(Min3FOp, kALU, kNone, __OPS(o::f32), __OPS(i::f32, i::f32, i::f32)),
+    __INST(MinNOp, kALU, kNone, __OPS(o::f32), __OPS(i::f32, i::f32)),
+    __INST(CmpIOp, kALU, kNone, __OPS(o::i1), __OPS(i::i32, i::i32)),
+    __INST(CmpFOp, kALU, kNone, __OPS(o::i1), __OPS(i::f32, i::f32)),
+    __INST(AddFOp, kALU, kNone, __OPS(o::f32), __OPS(i::f32, i::f32)),
+    __INST(SubFOp, kALU, kNone, __OPS(o::f32), __OPS(i::f32, i::f32)),
+    __INST(MulFOp, kALU, kNone, __OPS(o::f32), __OPS(i::f32, i::f32)),
+    __INST(FmaFOp, kALU, kNone, __OPS(o::f32), __OPS(i::f32, i::f32, i::f32)),
+    __INST(FmaIOp, kALU, kNone, __OPS(o::i32), __OPS(i::i32, i::i32, i::i32)),
+    __INST(MulIOp, kALU, kNone, __OPS(o::i32), __OPS(i::i32, i::i32)),
+    __INST(MulIExtendedOp, kALU, kNone, __OPS(o::i32, o::i32), __OPS(i::i32, i::i32)),
+    __INST(AddIOp, kALU, kNone, __OPS(o::i32), __OPS(i::i32, i::i32)),
+    __INST(AddCarryIOp, kALU, kNone, __OPS(o::i32, o::i1), __OPS(i::i32, i::i32, i::i1)),
+    __INST(SubIOp, kALU, kNone, __OPS(o::i32), __OPS(i::i32, i::i32)),
+    __INST(SubBurrowIOp, kALU, kNone, __OPS(o::i32, o::i1), __OPS(i::i32, i::i32, i::i1)),
+    __INST(FPToSIOp, kALU, kNone, __OPS(o::i32), __OPS(i::f32)),
+    __INST(SIToFPOp, kALU, kNone, __OPS(o::f32), __OPS(i::i32)),
+    __INST(FPToUIOp, kALU, kNone, __OPS(o::i32), __OPS(i::f32)),
+    __INST(UIToFPOp, kALU, kNone, __OPS(o::f32), __OPS(i::i32)),
+    __INST(SI4ToFloat, kALU, kNone, __OPS(o::f32), __OPS(i::i32)),
+    __INST(TruncFOp, kALU, kNone, __OPS(o::f32), __OPS(i::f64)),
+    __INST(ExtFOp, kALU, kNone, __OPS(o::f64), __OPS(i::f32)),
+    __INST(TruncOp, kALU, kNone, __OPS(o::f32), __OPS(i::f32)),
+    __INST(CeilOp, kALU, kNone, __OPS(o::f32), __OPS(i::f32)),
+    __INST(RoundEvenOp, kALU, kNone, __OPS(o::f32), __OPS(i::f32)),
+    __INST(FractOp, kALU, kNone, __OPS(o::f32), __OPS(i::f32)),
+    __INST(FloorOp, kALU, kNone, __OPS(o::f32), __OPS(i::f32)),
+    __INST(Exp2Op, kALU, kNone, __OPS(o::f32), __OPS(i::f32)),
+    __INST(Log2Op, kALU, kNone, __OPS(o::f32), __OPS(i::f32)),
+    __INST(RcpOp, kALU, kNone, __OPS(o::f32), __OPS(i::f32)),
+    __INST(RsqrtOp, kALU, kNone, __OPS(o::f32), __OPS(i::f32)),
+    __INST(SqrtOp, kALU, kNone, __OPS(o::f32), __OPS(i::f32)),
+    __INST(SinOp, kALU, kNone, __OPS(o::f32), __OPS(i::f32)),
+    __INST(CosOp, kALU, kNone, __OPS(o::f32), __OPS(i::f32)),
+    __INST(LdexpOp, kALU, kNone, __OPS(o::f32), __OPS(i::f32, i::i32)),
+    __INST(ClampFMinMaxOp, kALU, kNone, __OPS(o::f32), __OPS(i::f32)),
+    __INST(ClampFZeroOp, kALU, kNone, __OPS(o::f32), __OPS(i::f32)),
+    __INST(FrexpOp, kALU, kNone, __OPS(o::f32, o::i32), __OPS(i::f32)),
+    __INST(PackHalf2x16Op, kALU, kNone, __OPS(o::i32), __OPS(i::f32, i::f32)),
+    __INST(UnpackHalf2x16, kALU, kNone, __OPS(o::f32, o::f32), __OPS(i::i32)),
+    __INST(PackSnorm2x16Op, kALU, kNone, __OPS(o::i32), __OPS(i::f32, i::f32)),
+    __INST(PackUnorm2x16Op, kALU, kNone, __OPS(o::i32), __OPS(i::f32, i::f32)),
     __INST_NO_OPS(ReturnOp, kFlowControl, kHasSideEffects),
-    __INST_NO_DST(DiscardOp, kFlowControl, kHasSideEffects, __OPS(i1)),
+    __INST_NO_DST(DiscardOp, kFlowControl, kHasSideEffects, __OPS(i::i1)),
     __INST_NO_OPS(BarrierOp, kBarrier, kHasSideEffects),
-    __INST_NO_DST(JumpAbsOp, kFlowControl, kHasSideEffects, __OPS(i64)),
-    __INST_NO_DST(CondJumpAbsOp, kFlowControl, kHasSideEffects, __OPS(i1, i64)),
-    __INST_NO_SRC(ConstantOp, kConstant, kConstant, __OPS(f32)),
+    __INST_NO_DST(JumpAbsOp, kFlowControl, kHasSideEffects, __OPS(i::i64)),
+    __INST_NO_DST(CondJumpAbsOp, kFlowControl, kHasSideEffects, __OPS(i::i1, i::i64)),
+    __INST_NO_SRC(ConstantOp, kConstant, kConstant, __OPS(o::i64)),
 };
 #undef __INST
 #undef __INST_NO_OPS

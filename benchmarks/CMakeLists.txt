@@ -10,6 +10,7 @@ FetchContent_MakeAvailable(googlebenchmark)
 include_directories(${googlebenchmark_install_SOURCE_DIR}/include)
 
 add_executable(bench_analysis
+  bench_main.cpp
   bench_scc.cpp
   bench_regions.cpp
 )

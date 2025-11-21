@@ -37,7 +37,7 @@ int main(int argc, char* argv[]) {
   file.read((char*)data.data(), fsize);
 
   // // Build Shader
-  compiler::Builder builder(1000);
+  compiler::Builder builder {};
   builder.createShader(data);
   builder.print();
 

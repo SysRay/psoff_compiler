@@ -1,16 +1,16 @@
-#include "frontend/ir_types.h"
 #include "../debug_strings.h"
+#include "../instruction_builder.h"
 #include "../opcodes_table.h"
 #include "builder.h"
 #include "encodings.h"
-#include "../instruction_builder.h"
+#include "frontend/ir_types.h"
 #include "translate.h"
 
 #include <format>
 #include <stdexcept>
 
 namespace compiler::frontend::translate {
-InstructionKind_t handleSmrd(Builder& builder, parser::pc_t pc, parser::code_p_t* pCode) {
+InstructionKind_t handleSmrd(parser::Context& ctx, parser::pc_t pc, parser::code_p_t* pCode) {
   using namespace parser;
 
   auto       inst = SMRD(**pCode);
@@ -19,12 +19,13 @@ InstructionKind_t handleSmrd(Builder& builder, parser::pc_t pc, parser::code_p_t
   auto const sdst      = eOperandKind((eOperandKind_t)inst.template get<SMRD::Field::SDST>());
   auto const sBase     = eOperandKind((eOperandKind_t)inst.template get<SMRD::Field::SBASE>());
   auto const offsetImm = inst.template get<SMRD::Field::OFFSET>();
-  auto const sOffset   = eOperandKind((eOperandKind_t)offsetImm); // either imm or op
+  auto       sOffset   = OpSrc(eOperandKind((eOperandKind_t)offsetImm)); // either imm or op
   auto const isImm     = (bool)inst.template get<SMRD::Field::IMM>();
 
-  if (!isImm && sOffset.isLiteral()) {
+  create::IRBuilder ir(ctx.instructions);
+  if (!isImm && sOffset.kind.isLiteral()) {
     *pCode += 1;
-    builder.createInstruction(create::literalOp(**pCode));
+    sOffset = OpSrc(ir.literalOp(**pCode));
   }
 
   *pCode += 1;

@@ -11,9 +11,14 @@
 struct MockRegionBuilder {
   std::vector<fixed_containers::FixedVector<int32_t, 2>> edges;
 
-  int32_t getNumRegions() const { return static_cast<int32_t>(edges.size()); }
+  fixed_containers::FixedVector<int32_t, 2> getSuccessors(uint32_t idx) const { return edges[idx]; }
 
-  fixed_containers::FixedVector<int32_t, 2> getSuccessorsIdx(uint32_t idx) const { return edges[idx]; }
+  auto getPredecessors(uint32_t idx) const {
+    assert(false); // not needed
+    return edges[idx];
+  }
+
+  int32_t size() const { return static_cast<int32_t>(edges.size()); }
 };
 
 static MockRegionBuilder makeGraph(std::size_t num_nodes, std::size_t outer_loop_size = 20, std::size_t inner_loop_size = 4, unsigned int seed = 42) {
@@ -60,23 +65,17 @@ static MockRegionBuilder makeGraph(std::size_t num_nodes, std::size_t outer_loop
 }
 
 static void BM_SCCBuilder_Calculate(benchmark::State& state) {
-  auto regions = makeGraph(16384, /*loop_size=*/20);
+  auto regions = makeGraph(5000, /*loop_size=*/20);
 
   std::pmr::monotonic_buffer_resource pool(100_MB);
 
   for (auto _: state) {
     std::pmr::monotonic_buffer_resource checkpoint(&pool);
-    auto                                result = compiler::analysis::SCCBuilder<MockRegionBuilder>(&checkpoint, regions).calculate();
+    auto                                result = compiler::analysis::SCCBuilder<MockRegionBuilder>(&checkpoint, regions).calculate(0);
     benchmark::DoNotOptimize(result);
   }
 
-  state.SetComplexityN(16384);
+  state.SetComplexityN(5000);
 }
 
-BENCHMARK(BM_SCCBuilder_Calculate)
-    ->RangeMultiplier(2)
-    ->MinWarmUpTime(0.05)
-    ->MinTime(1)
-    ->Unit(benchmark::kMillisecond);
-
-BENCHMARK_MAIN();
+BENCHMARK(BM_SCCBuilder_Calculate)->RangeMultiplier(2)->MinWarmUpTime(0.05)->MinTime(1)->Unit(benchmark::kMillisecond);
