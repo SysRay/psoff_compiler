@@ -7,22 +7,19 @@
 
 namespace compiler::ir {
 
-enum class eInstructionFlags : InstructionFlags_t {
-  kNone           = 0,
-  kHasSideEffects = 1u << 0, ///< cannot be removed / reordered
-  kWritesEXEC     = 1u << 1, ///< Writes to exec
-  kVirtual        = 1u << 2, ///< Instructions that run only with Exec set
-  kBarrier        = 1u << 3, ///< e.g. exec barrier, waitcnt
-  kConstant       = 1u << 4, ///< use src constant
+enum class eDialect : uint8_t {
+  kUnknown,
+  kCore,
+  kMath,
 };
 
-enum class eInstructionGroup : InstructionGroup_t {
-  kUnknown,
-  kALU,
-  kBIT,
-  kConstant,
-  kFlowControl,
-  kBarrier,
+enum class eInstructionFlags : InstructionFlags_t {
+  kNone           = 0,
+  kTerminator     = 1u << 1,
+  kHasSideEffects = 1u << 2, ///< cannot be removed / reordered
+  kVirtual        = 1u << 3, ///< Instructions that run only with Exec set
+  kBarrier        = 1u << 4, ///< e.g. exec barrier, waitcnt
+  kConstant       = 1u << 5,
 };
 
 struct OperandType {

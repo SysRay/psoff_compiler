@@ -36,8 +36,9 @@ struct OutputOperand {
 };
 
 struct alignas(16) InstCore {
-  InstructionKind_t                  kind  = -1;
-  eInstructionGroup                  group = eInstructionGroup::kUnknown;
+  InstructionKind_t kind    = -1;
+  eDialect          dialect = eDialect::kUnknown;
+
   util::Flags<ir::eInstructionFlags> flags;
 
   InstructionUserData_t userData = 0;
@@ -53,9 +54,9 @@ struct alignas(16) InstCore {
     ConstantId_t constantId;
   };
 
-  inline bool isValid() const { return group != eInstructionGroup::kUnknown; }
+  inline bool isValid() const { return dialect != eDialect::kUnknown; }
 
-  inline bool isConstant() const { return group == eInstructionGroup::kConstant; }
+  inline bool isConstant() const { return flags.is_set(eInstructionFlags::kConstant); }
 
   inline auto getSrcStart() const { return srcStartId; }
 
@@ -63,7 +64,6 @@ struct alignas(16) InstCore {
 };
 
 static_assert(sizeof(InstCore) <= 16); ///< cache lines
-static_assert(config::kMaxOps <= 15);  ///< only 4 bits
 
 // // Handle enum bits to underlying conversion
 template <typename Enum>

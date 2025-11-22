@@ -5,6 +5,7 @@ add_library(psOff_recompiler STATIC
   builder.cpp
   ir/debug_strings.cpp
   ir/ir.cpp
+  ir/dialects/core/builder.cpp
 
   cfg/cfg.cpp
   cfg/rvsdg.cpp

@@ -35,7 +35,5 @@ using InstructionGroup_t    = uint8_t;
 } // namespace compiler
 
 namespace compiler::config {
-static constexpr uint32_t kMaxOps    = 5;
-static constexpr uint32_t kMaxSrcOps = 3;
-static constexpr uint32_t kMaxDstOps = 2;
+
 } // namespace compiler::config

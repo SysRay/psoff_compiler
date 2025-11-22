@@ -166,7 +166,7 @@ bool createRegions(std::pmr::polymorphic_allocator<> allocator, ir::InstructionM
   // 1: Collect all jumps (no region splitting yet)
   for (size_t n = 0; n < manager.instructionCount(); ++n) {
     auto const& inst = manager.get()[n];
-    if (inst.group != eInstructionGroup::kFlowControl) continue;
+    if (inst.flags.is_set(eInstructionFlags::kTerminator)) continue;
 
     switch (conv(inst.kind)) {
       case eInstKind::ReturnOp: {
