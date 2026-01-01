@@ -6,6 +6,7 @@
 #include "ir/debug_strings.h"
 #include "ir/ir.h"
 
+#include <cstring>
 #include <filesystem>
 
 namespace compiler {

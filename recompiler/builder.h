@@ -4,9 +4,10 @@
 #include "include/flags.h"
 
 #include <array>
+#include <memory>
 #include <memory_resource>
 
-constexpr auto operator""_MB(size_t x) -> size_t {
+constexpr auto operator""_MB(unsigned long long x) -> size_t {
   return 1024L * 1024L * x;
 }
 

@@ -1,8 +1,8 @@
 #pragma once
 #include "include/common.h"
 
+#include <cstdint>
 #include <limits>
-#include <stdint.h>
 
 namespace compiler {
 
@@ -34,6 +34,4 @@ using InstructionGroup_t    = uint8_t;
 
 } // namespace compiler
 
-namespace compiler::config {
-
-} // namespace compiler::config
+namespace compiler::config {} // namespace compiler::config

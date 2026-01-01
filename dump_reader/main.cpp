@@ -16,7 +16,7 @@ int main(int argc, char* argv[]) {
   // // Read Dump
   std::filesystem::path fp = argv[1];
   if (!std::filesystem::exists(fp)) {
-    printf("Missing file: %S\n", fp.c_str());
+    printf("Missing file: %s\n", fp.string().c_str());
     return 1;
   }
 

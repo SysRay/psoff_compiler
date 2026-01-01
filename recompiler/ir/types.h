@@ -2,6 +2,7 @@
 
 #include "config.h"
 
+#include <functional>
 #include <limits>
 #include <utility>
 
@@ -39,7 +40,7 @@ struct OperandType {
 
   struct __OperandTypeData {
     union {
-      struct _struct {
+      struct {
         OperandType_t base  : 4;
         OperandType_t kind  : 3;
         OperandType_t lanes : 9;

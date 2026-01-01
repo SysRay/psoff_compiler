@@ -21,7 +21,7 @@ void dumpBlock(std::ostream& os, const ControlFlow& cfg, rvsdg::nodeid_t bid, co
 
 static void dumpNode(std::ostream& os, const ControlFlow& cfg, rvsdg::nodeid_t bid, const std::string& indent);
 
-static void dumpRegion(std::ostream& os, const ControlFlow& cfg, rvsdg::regionid_t rid, const std::string& indent) {
+void dumpRegion(std::ostream& os, const ControlFlow& cfg, rvsdg::regionid_t rid, const std::string& indent) {
   auto R = cfg.nodes()->getRegion(rid);
 
   os << indent << "region @" << R->id.value << ":\n";

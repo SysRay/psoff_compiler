@@ -1,5 +1,7 @@
 include(FetchContent)
 
+set(BENCHMARK_ENABLE_ASSEMBLY_TESTS OFF)
+
 FetchContent_Declare(
   googlebenchmark
   GIT_REPOSITORY https://github.com/google/benchmark.git

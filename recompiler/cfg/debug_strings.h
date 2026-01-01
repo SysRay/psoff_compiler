@@ -1,6 +1,8 @@
 #pragma once
 #include "cfg.h"
 
+#include <ostream>
+
 namespace compiler::cfg {
 void dumpBlock(std::ostream& os, const ControlFlow& cfg, rvsdg::nodeid_t bid, const std::string& indent = "");
 

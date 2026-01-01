@@ -5,6 +5,7 @@
 
 #include <array>
 #include <deque>
+#include <memory_resource>
 #include <type_traits>
 #include <vector>
 

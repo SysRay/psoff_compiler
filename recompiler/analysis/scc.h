@@ -4,13 +4,13 @@
 #include <functional>
 #include <iostream>
 #include <memory_resource>
+#include <set>
 #include <span>
-#include <unordered_set>
 #include <vector>
 
 namespace compiler::analysis {
 using scc_node_t  = uint32_t;
-using scc_nodes_t = std::pmr::unordered_set<scc_node_t>;
+using scc_nodes_t = std::pmr::set<scc_node_t>;
 
 struct SCC {
   std::pmr::vector<scc_nodes_t> nodes;
@@ -107,8 +107,8 @@ struct SCCEdges {
 
 template <SCCBuilderConcept Graph>
 SCCEdges const classifySCC(std::pmr::polymorphic_allocator<> alloc, Graph const& graph, scc_nodes_t const& scc) {
-  SCCEdges                           result(alloc);
-  std::pmr::unordered_set<scc_node_t> entries(alloc);
+  SCCEdges    result(alloc);
+  scc_nodes_t entries(alloc);
 
   for (scc_node_t node: scc) {
     // Check successors for exits and repetitions

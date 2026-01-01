@@ -9,6 +9,7 @@
 
 #include <memory_resource>
 #include <queue>
+#include <ranges>
 #include <stack>
 #include <stdexcept>
 

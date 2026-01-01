@@ -48,7 +48,7 @@ struct eOperandKind {
 
   struct __OperandTypeData {
     union {
-      struct _struct {
+      struct {
         eOperandKind_t base : 10;
         eOperandKind_t kind : 3;
         eOperandKind_t b64  : 1;

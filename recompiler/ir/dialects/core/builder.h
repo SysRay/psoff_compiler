@@ -1,6 +1,7 @@
 #pragma once
 
 #include "instructions.h"
+
 #include <span>
 
 namespace compiler::ir::dialect::core {

@@ -44,19 +44,17 @@ constexpr auto makeInstDef(eDialect dialect, InstructionKind_t kind, util::Flags
     return result;
   };
 
-  return InstDef {
-    .core =
-        InstCore {
-            .kind    = kind,
-            .dialect = dialect,
-            .flags   = flags,
-            .numDst  = (uint8_t)dstOps.size(),
-            .numSrc  = (uint8_t)srcOps.size(),
-        },
-    .dstOperands = toArray.template operator()<decltype(InstDef::dstOperands)>(dstOps),
-    .srcOperands = toArray.template operator()<decltype(InstDef::srcOperands)>(srcOps),
-    .name        = name
-  };
+  return InstDef {.core =
+                      InstCore {
+                          .kind    = kind,
+                          .dialect = dialect,
+                          .flags   = flags,
+                          .numDst  = (uint8_t)dstOps.size(),
+                          .numSrc  = (uint8_t)srcOps.size(),
+                      },
+                  .dstOperands = toArray.template operator()<decltype(InstDef::dstOperands)>(dstOps),
+                  .srcOperands = toArray.template operator()<decltype(InstDef::srcOperands)>(srcOps),
+                  .name        = name};
 }
 
 } // namespace internal
