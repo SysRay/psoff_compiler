@@ -4,14 +4,6 @@
 #include <fstream>
 #include <iostream>
 
-namespace compiler {
-uint64_t getAddr(uint64_t addr) {
-  printf("Error: getAddr called!");
-  exit(1);
-  return 0;
-}
-} // namespace compiler
-
 int main(int argc, char* argv[]) {
   // // Read Dump
   std::filesystem::path fp = argv[1];

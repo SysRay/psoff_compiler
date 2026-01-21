@@ -1,9 +1,10 @@
 #include "../debug_strings.h"
-#include "../instruction_builder.h"
 #include "../opcodes_table.h"
 #include "builder.h"
 #include "encodings.h"
 #include "frontend/ir_types.h"
+#include "ir/dialects/arith/builder.h"
+#include "ir/dialects/core/builder.h"
 #include "translate.h"
 
 #include <bitset>
@@ -23,15 +24,12 @@ static bool isSDST(parser::eOpcode op) {
 
 InstructionKind_t handleVop2(parser::Context& ctx, parser::pc_t pc, parser::code_p_t* pCode, bool extended) {
   using namespace parser;
+  using namespace ir::dialect;
 
   eOpcode op;
 
-  OpDst vdst;
-  OpDst sdst;
+  OpDst vdst, sdst;
   OpSrc src0, src1, src2;
-
-  create::IRBuilder ir(ctx.instructions);
-  create::IRBuilder vir(ctx.instructions, true);
 
   if (extended) {
     auto inst  = VOP3(getU64(*pCode));
@@ -50,39 +48,53 @@ InstructionKind_t handleVop2(parser::Context& ctx, parser::pc_t pc, parser::code
     std::bitset<3> const abs    = inst.template get<VOP3::Field::ABS>();
     auto const           clamp  = inst.template get<VOP3::Field::CLAMP>();
 
+    // todo: neg, abs, omod, clamp (each operation?)
+    // if (isSDST(op)) {
+    //   src0 = createSrc(src0_, negate[0], false);
+    //   src1 = createSrc(src1_, negate[1], false);
+    //   src2 = createSrc(src2_, negate[2], false);
+    //   vdst = createDst(vdst_, omod, false, false);
+    //   sdst = createDst(sdst_, omod, false, false);
+    // } else {
+    //   src0 = createSrc(src0_, negate[0], abs[0]);
+    //   src1 = createSrc(src1_, negate[1], abs[1]);
+    //   src2 = createSrc(src2_, negate[2], abs[2]);
+    //   vdst = createDst(vdst_, omod, clamp, false);
+    // }
+
     if (isSDST(op)) {
-      src0 = OpSrc(src0_, negate[0], false);
-      src1 = OpSrc(src1_, negate[1], false);
-      src2 = OpSrc(src2_, negate[2], false);
-      vdst = OpDst(vdst_, omod, false, false);
-      sdst = OpDst(sdst_, omod, false, false);
+      src0 = createSrc(src0_);
+      src1 = createSrc(src1_);
+      src2 = createSrc(src2_);
+      vdst = createDst(vdst_);
+      sdst = createDst(sdst_);
     } else {
-      src0 = OpSrc(src0_, negate[0], abs[0]);
-      src1 = OpSrc(src1_, negate[1], abs[1]);
-      src2 = OpSrc(src2_, negate[2], abs[2]);
-      vdst = OpDst(vdst_, omod, clamp, false);
+      src0 = createSrc(src0_);
+      src1 = createSrc(src1_);
+      src2 = createSrc(src2_);
+      vdst = createDst(vdst_);
     }
+
     *pCode += 1;
   } else {
     auto inst = VOP2(**pCode);
     op        = (eOpcode)(OPcodeStart_VOP2 + inst.template get<VOP2::Field::OP>());
 
-    vdst = OpDst(eOperandKind::VGPR(inst.template get<VOP2::Field::VDST>()));
-    sdst = OpDst(eOperandKind::VCC());
-    src0 = OpSrc(eOperandKind((eOperandKind_t)inst.template get<VOP2::Field::SRC0>()));
-    src1 = OpSrc(eOperandKind::VGPR(inst.template get<VOP2::Field::VSRC1>()));
-    src2 = OpSrc(eOperandKind::VCC());
+    vdst = createDst(eOperandKind::VGPR(inst.template get<VOP2::Field::VDST>()));
+    sdst = createDst(eOperandKind::VCC());
+    src0 = createSrc(eOperandKind((eOperandKind_t)inst.template get<VOP2::Field::SRC0>()));
+    src1 = createSrc(eOperandKind::VGPR(inst.template get<VOP2::Field::VSRC1>()));
+    src2 = createSrc(eOperandKind::VCC());
 
-    if (src0.kind.isLiteral()) {
+    if (eOperandKind(src0.kind).isLiteral()) {
       *pCode += 1;
-      src0 = OpSrc(ir.literalOp(**pCode));
-      ;
-    } else if (src1.kind.isLiteral()) {
+      src0 = createSrc(ctx.create<core::ConstantOp>(createDst(), ir::ConstantValue {.value_u64 = **pCode}, ir::OperandType::i32()));
+    } else if (eOperandKind(src1.kind).isLiteral()) {
       *pCode += 1;
-      src1 = OpSrc(ir.literalOp(**pCode));
-    } else if (src2.kind.isLiteral()) {
+      src1 = createSrc(ctx.create<core::ConstantOp>(createDst(), ir::ConstantValue {.value_u64 = **pCode}, ir::OperandType::i32()));
+    } else if (eOperandKind(src2.kind).isLiteral()) {
       *pCode += 1;
-      src2 = OpSrc(ir.literalOp(**pCode));
+      src2 = createSrc(ctx.create<core::ConstantOp>(createDst(), ir::ConstantValue {.value_u64 = **pCode}, ir::OperandType::i32()));
     }
   }
 
@@ -90,163 +102,166 @@ InstructionKind_t handleVop2(parser::Context& ctx, parser::pc_t pc, parser::code
 
   switch (op) {
     case eOpcode::V_CNDMASK_B32: {
-      vir.selectOp(vdst, src2, src0, src1, ir::OperandType::f32());
+      ctx.create<core::SelectOp>(vdst, src2, src0, src1, ir::OperandType::f32());
     } break;
     case eOpcode::V_ADD_F32: {
-      vir.addFOp(vdst, src0, src1, ir::OperandType::f32());
+      ctx.create<arith::AddFOp>(vdst, src0, src1, ir::OperandType::f32());
     } break;
     case eOpcode::V_SUB_F32: {
-      vir.subFOp(vdst, src0, src1, ir::OperandType::f32());
+      ctx.create<arith::SubFOp>(vdst, src0, src1, ir::OperandType::f32());
     } break;
     case eOpcode::V_SUBREV_F32: {
-      vir.subFOp(vdst, src1, src0, ir::OperandType::f32());
+      ctx.create<arith::SubFOp>(vdst, src1, src0, ir::OperandType::f32());
     } break;
     case eOpcode::V_MAC_LEGACY_F32: {
-      vir.fmaFOp(OpDst(vdst.kind), src0, src1, OpSrc(vdst.kind, src2.flags), ir::OperandType::f32());
-      vir.clampFZeroOp(vdst, OpSrc(vdst.kind), ir::OperandType::f32());
+      // todo src2 flags
+      auto res = ctx.create<arith::FmaFOp>(createDst(), src0, src1, createSrc(eOperandKind(vdst.kind)), ir::OperandType::f32());
+      ctx.create<arith::ClampFZeroOp>(vdst, res, ir::OperandType::f32());
     } break;
     case eOpcode::V_MUL_LEGACY_F32: {
-      vir.mulFOp(OpDst(vdst.kind), src0, src1, ir::OperandType::f32());
-      vir.clampFZeroOp(vdst, OpSrc(vdst.kind), ir::OperandType::f32());
+      auto res = ctx.create<arith::MulFOp>(createDst(), src0, src1, ir::OperandType::f32());
+      ctx.create<arith::ClampFZeroOp>(vdst, res, ir::OperandType::f32());
     } break;
     case eOpcode::V_MUL_F32: {
-      vir.mulFOp(vdst, src0, src1, ir::OperandType::f32());
+      ctx.create<arith::MulFOp>(vdst, src0, src1, ir::OperandType::f32());
     } break;
     case eOpcode::V_MUL_I32_I24: {
-      auto s0 = OpSrc(
-          vir.bitSIExtractOp(OpDst(eOperandKind::Unset()), src0, OpSrc(eOperandKind::createImm(0)), OpSrc(eOperandKind::createImm(24)), ir::OperandType::i32()),
-          0);
-      auto s1 = OpSrc(vir.bitSIExtractOp(OpDst(eOperandKind::Unset()), src1, OpSrc(eOperandKind::createImm(0)), OpSrc(eOperandKind::createImm(24)),
-                                         ir::OperandType::i32()));
-      vir.mulIOp(vdst, s0, s1, ir::OperandType::i32());
+      auto s0 = ctx.create<arith::BitSIExtractOp>(createDst(), src0, createSrc(eOperandKind::createImm(0)), createSrc(eOperandKind::createImm(24)),
+                                                  ir::OperandType::i32());
+      auto s1 = ctx.create<arith::BitSIExtractOp>(createDst(), src1, createSrc(eOperandKind::createImm(0)), createSrc(eOperandKind::createImm(24)),
+                                                  ir::OperandType::i32());
+      ctx.create<arith::MulIOp>(vdst, s0, s1, ir::OperandType::i32());
     } break;
     case eOpcode::V_MUL_HI_I32_I24: {
-      auto s0 = OpSrc(vir.bitSIExtractOp(OpDst(eOperandKind::Unset()), src0, OpSrc(eOperandKind::createImm(0)), OpSrc(eOperandKind::createImm(24)),
-                                         ir::OperandType::i32()));
-      auto s1 = OpSrc(vir.bitSIExtractOp(OpDst(eOperandKind::Unset()), src1, OpSrc(eOperandKind::createImm(0)), OpSrc(eOperandKind::createImm(24)),
-                                         ir::OperandType::i32()));
-      vir.mulIExtendedOp(OpDst(eOperandKind::Unset()), vdst, s0, s1, ir::OperandType::i32());
+      auto s0 = createSrc(ctx.create<arith::BitSIExtractOp>(createDst(), src0, createSrc(eOperandKind::createImm(0)), createSrc(eOperandKind::createImm(24)),
+                                                            ir::OperandType::i32()));
+      auto s1 = createSrc(ctx.create<arith::BitSIExtractOp>(createDst(), src1, createSrc(eOperandKind::createImm(0)), createSrc(eOperandKind::createImm(24)),
+                                                            ir::OperandType::i32()));
+      ctx.create<arith::MulIExtendedOp>(createDst(), vdst, s0, s1, ir::OperandType::i32());
     } break;
     case eOpcode::V_MUL_U32_U24: {
-      auto s0 = OpSrc(vir.bitUIExtractOp(OpDst(eOperandKind::Unset()), src0, OpSrc(eOperandKind::createImm(0)), OpSrc(eOperandKind::createImm(24)),
-                                         ir::OperandType::i32()));
-      auto s1 = OpSrc(vir.bitUIExtractOp(OpDst(eOperandKind::Unset()), src1, OpSrc(eOperandKind::createImm(0)), OpSrc(eOperandKind::createImm(24)),
-                                         ir::OperandType::i32()));
-      vir.mulIOp(vdst, s0, s1, ir::OperandType::i32());
+      auto s0 = ctx.create<arith::BitUIExtractOp>(createDst(), src0, createSrc(eOperandKind::createImm(0)), createSrc(eOperandKind::createImm(24)),
+                                                  ir::OperandType::i32());
+      auto s1 = ctx.create<arith::BitUIExtractOp>(createDst(), src1, createSrc(eOperandKind::createImm(0)), createSrc(eOperandKind::createImm(24)),
+                                                  ir::OperandType::i32());
+      ctx.create<arith::MulIOp>(vdst, s0, s1, ir::OperandType::i32());
     } break;
     case eOpcode::V_MUL_HI_U32_U24: {
-      auto s0 = OpSrc(vir.bitUIExtractOp(OpDst(eOperandKind::Unset()), src0, OpSrc(eOperandKind::createImm(0)), OpSrc(eOperandKind::createImm(24)),
-                                         ir::OperandType::i32()));
-      auto s1 = OpSrc(vir.bitUIExtractOp(OpDst(eOperandKind::Unset()), src1, OpSrc(eOperandKind::createImm(0)), OpSrc(eOperandKind::createImm(24)),
-                                         ir::OperandType::i32()));
-      vir.mulIExtendedOp(OpDst(eOperandKind::Unset()), vdst, s0, s1, ir::OperandType::i32());
+      auto s0 = ctx.create<arith::BitUIExtractOp>(createDst(), src0, createSrc(eOperandKind::createImm(0)), createSrc(eOperandKind::createImm(24)),
+                                                  ir::OperandType::i32());
+      auto s1 = ctx.create<arith::BitUIExtractOp>(createDst(), src1, createSrc(eOperandKind::createImm(0)), createSrc(eOperandKind::createImm(24)),
+                                                  ir::OperandType::i32());
+      ctx.create<arith::MulIExtendedOp>(createDst(), vdst, s0, s1, ir::OperandType::i32());
     } break;
     case eOpcode::V_MIN_LEGACY_F32: {
-      vir.minNOp(vdst, src1, src0, ir::OperandType::f32());
+      ctx.create<arith::MinNOp>(vdst, src1, src0, ir::OperandType::f32());
     } break;
     case eOpcode::V_MAX_LEGACY_F32: {
-      vir.maxNOp(vdst, src1, src0, ir::OperandType::f32());
+      ctx.create<arith::MaxNOp>(vdst, src1, src0, ir::OperandType::f32());
     } break;
     case eOpcode::V_MIN_F32: {
-      vir.minFOp(vdst, src1, src0, ir::OperandType::f32());
+      ctx.create<arith::MinFOp>(vdst, src1, src0, ir::OperandType::f32());
     } break;
     case eOpcode::V_MAX_F32: {
-      vir.maxFOp(vdst, src1, src0, ir::OperandType::f32());
+      ctx.create<arith::MaxFOp>(vdst, src1, src0, ir::OperandType::f32());
     } break;
     case eOpcode::V_MIN_I32: {
-      vir.minSIOp(vdst, src1, src0, ir::OperandType::f32());
+      ctx.create<arith::MinSIOp>(vdst, src1, src0, ir::OperandType::f32());
     } break;
     case eOpcode::V_MAX_I32: {
-      vir.maxSIOp(vdst, src1, src0, ir::OperandType::f32());
+      ctx.create<arith::MaxSIOp>(vdst, src1, src0, ir::OperandType::f32());
     } break;
     case eOpcode::V_MIN_U32: {
-      vir.minUIOp(vdst, src1, src0, ir::OperandType::f32());
+      ctx.create<arith::MinUIOp>(vdst, src1, src0, ir::OperandType::f32());
     } break;
     case eOpcode::V_MAX_U32: {
-      vir.maxUIOp(vdst, src1, src0, ir::OperandType::f32());
+      ctx.create<arith::MaxUIOp>(vdst, src1, src0, ir::OperandType::f32());
     } break;
     case eOpcode::V_LSHR_B32: {
-      vir.shiftRUIOp(vdst, src0, src1, ir::OperandType::i32());
+      ctx.create<arith::ShiftRUIOp>(vdst, src0, src1, ir::OperandType::i32());
     } break;
     case eOpcode::V_LSHRREV_B32: {
-      vir.shiftRUIOp(vdst, src1, src0, ir::OperandType::i32());
+      ctx.create<arith::ShiftRUIOp>(vdst, src1, src0, ir::OperandType::i32());
     } break;
     case eOpcode::V_ASHR_I32: {
-      vir.shiftRSIOp(vdst, src0, src1, ir::OperandType::i32());
+      ctx.create<arith::ShiftRSIOp>(vdst, src0, src1, ir::OperandType::i32());
     } break;
     case eOpcode::V_ASHRREV_I32: {
-      vir.shiftRSIOp(vdst, src1, src0, ir::OperandType::i32());
+      ctx.create<arith::ShiftRSIOp>(vdst, src1, src0, ir::OperandType::i32());
     } break;
     case eOpcode::V_LSHL_B32: {
-      vir.shiftLUIOp(vdst, src0, src1, ir::OperandType::i32());
+      ctx.create<arith::ShiftLUIOp>(vdst, src0, src1, ir::OperandType::i32());
     } break;
     case eOpcode::V_LSHLREV_B32: {
-      vir.shiftLUIOp(vdst, src1, src0, ir::OperandType::i32());
+      ctx.create<arith::ShiftLUIOp>(vdst, src1, src0, ir::OperandType::i32());
     } break;
     case eOpcode::V_AND_B32: {
-      vir.bitAndOp(vdst, src0, src1, ir::OperandType::i32());
+      ctx.create<arith::BitAndOp>(vdst, src0, src1, ir::OperandType::i32());
     } break;
     case eOpcode::V_OR_B32: {
-      vir.bitOrOp(vdst, src0, src1, ir::OperandType::i32());
+      ctx.create<arith::BitOrOp>(vdst, src0, src1, ir::OperandType::i32());
     } break;
     case eOpcode::V_XOR_B32: {
-      vir.bitXorOp(vdst, src0, src1, ir::OperandType::i32());
+      ctx.create<arith::BitXorOp>(vdst, src0, src1, ir::OperandType::i32());
     } break;
     case eOpcode::V_BFM_B32: {
-      vir.bitFieldMaskOp(vdst, src0, src1, ir::OperandType::i32());
+      ctx.create<arith::BitFieldMaskOp>(vdst, src0, src1, ir::OperandType::i32());
     } break;
     case eOpcode::V_MAC_F32: {
-      vir.fmaFOp(vdst, src0, src1, OpSrc(vdst.kind, src2.flags), ir::OperandType::f32());
+      // todo src2 flags
+      ctx.create<arith::FmaFOp>(vdst, src0, src1, createSrc(eOperandKind(vdst.kind)), ir::OperandType::f32());
     } break;
     case eOpcode::V_MADMK_F32: {
-      auto K = OpSrc(ir.constantFOp(std::bit_cast<float>(**pCode)), src2.flags);
+      auto K = ctx.create<core::ConstantOp>(createDst(), ir::ConstantValue {.value_f64 = std::bit_cast<float>(**pCode)}, ir::OperandType::f32());
+      // todo src2 flags
       *pCode += 1;
-      vir.fmaFOp(vdst, src0, K, src1, ir::OperandType::f32());
+      ctx.create<arith::FmaFOp>(vdst, src0, K, src1, ir::OperandType::f32());
     } break;
     case eOpcode::V_MADAK_F32: {
-      auto K = OpSrc(ir.constantFOp(std::bit_cast<float>(**pCode)), src2.flags);
+      auto K = ctx.create<core::ConstantOp>(createDst(), ir::ConstantValue {.value_f64 = std::bit_cast<float>(**pCode)}, ir::OperandType::f32());
+      // todo src2 flags
       *pCode += 1;
-      vir.fmaFOp(vdst, src0, src1, K, ir::OperandType::f32());
+      ctx.create<arith::FmaFOp>(vdst, src0, src1, K, ir::OperandType::f32());
     } break;
     case eOpcode::V_BCNT_U32_B32: {
-      vir.bitCountOp(OpDst(vdst.kind), src0, ir::OperandType::i32());
-      vir.addIOp(vdst, OpSrc(vdst.kind), src1, ir::OperandType::i32());
+      auto res = ctx.create<arith::BitCountOp>(createDst(), src0, ir::OperandType::i32());
+      ctx.create<arith::AddIOp>(vdst, res, src1, ir::OperandType::i32());
     } break;
     // case eOpcode::V_MBCNT_LO_U32_B32: {} break; // todo
     // case eOpcode::V_MBCNT_HI_U32_B32: {} break; // todo
     case eOpcode::V_ADD_I32: {
-      vir.addIOp(vdst, src0, src1, ir::OperandType::i32());
-      vir.cmpIOp(sdst, OpSrc(vdst.kind), src0, ir::OperandType::i32(), CmpIPredicate::slt);
+      auto res = ctx.create<arith::AddIOp>(vdst, src0, src1, ir::OperandType::i32());
+      ctx.create<arith::CmpIOp>(sdst, res, src0, ir::OperandType::i32(), arith::CmpIPredicate::slt);
     } break;
     case eOpcode::V_SUB_I32: {
-      vir.subIOp(vdst, src0, src1, ir::OperandType::i32());
-      vir.cmpIOp(sdst, OpSrc(vdst.kind), src0, ir::OperandType::i32(), CmpIPredicate::sgt);
+      auto res = ctx.create<arith::SubIOp>(vdst, src0, src1, ir::OperandType::i32());
+      ctx.create<arith::CmpIOp>(sdst, res, src0, ir::OperandType::i32(), arith::CmpIPredicate::sgt);
     } break;
     case eOpcode::V_SUBREV_I32: {
-      vir.subIOp(vdst, src1, src0, ir::OperandType::i32());
-      vir.cmpIOp(sdst, OpSrc(vdst.kind), src1, ir::OperandType::i32(), CmpIPredicate::sgt);
+      auto res = ctx.create<arith::SubIOp>(vdst, src1, src0, ir::OperandType::i32());
+      ctx.create<arith::CmpIOp>(sdst, res, src1, ir::OperandType::i32(), arith::CmpIPredicate::sgt);
     } break;
     case eOpcode::V_ADDC_U32: {
-      vir.addcIOp(vdst, sdst, src0, src1, src2, ir::OperandType::i32());
+      ctx.create<arith::AddCarryIOp>(vdst, sdst, src0, src1, src2, ir::OperandType::i32());
     } break;
     case eOpcode::V_SUBB_U32: {
-      vir.subbIOp(vdst, sdst, src0, src1, src2, ir::OperandType::i32());
+      ctx.create<arith::SubBurrowIOp>(vdst, sdst, src0, src1, src2, ir::OperandType::i32());
     } break;
     case eOpcode::V_SUBBREV_U32: {
-      vir.subbIOp(vdst, sdst, src1, src0, src2, ir::OperandType::i32());
+      ctx.create<arith::SubBurrowIOp>(vdst, sdst, src1, src0, src2, ir::OperandType::i32());
     } break;
     case eOpcode::V_LDEXP_F32: {
-      vir.ldexpOp(vdst, src0, src1, ir::OperandType::f32());
+      ctx.create<arith::LdexpOp>(vdst, src0, src1, ir::OperandType::f32());
     } break;
     // case eOpcode::V_CVT_PKACCUM_U8_F32: {} break; // does not exist
     case eOpcode::V_CVT_PKNORM_I16_F32: {
-      vir.packSnorm2x16Op(vdst, src0, src1);
+      ctx.create<arith::PackSnorm2x16Op>(vdst, src0, src1);
     } break;
     case eOpcode::V_CVT_PKNORM_U16_F32: {
-      vir.packUnorm2x16Op(vdst, src0, src1);
+      ctx.create<arith::PackUnorm2x16Op>(vdst, src0, src1);
     } break;
     case eOpcode::V_CVT_PKRTZ_F16_F32: {
-      vir.packHalf2x16Op(vdst, src0, src1);
+      ctx.create<arith::PackHalf2x16Op>(vdst, src0, src1);
     } break;
       // case eOpcode::V_CVT_PK_U16_U32: { } break; // todo
       // case eOpcode::V_CVT_PK_I16_I32: { } break; // todo

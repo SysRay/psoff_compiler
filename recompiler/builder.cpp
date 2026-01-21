@@ -5,6 +5,7 @@
 #include "frontend/parser.h"
 #include "ir/debug_strings.h"
 #include "ir/ir.h"
+#include "logging.h"
 
 #include <cstring>
 #include <filesystem>
@@ -25,6 +26,12 @@ static std::string_view getFileTpye(frontend::ShaderStage stage) {
   }
 }
 
+uint64_t getAddr(uint64_t addr) {
+  printf("Error: getAddr called!");
+  exit(1);
+  return 0;
+}
+
 void Builder::print() const {
   // std::cout << "\nInstructions:\n";
   // for (size_t n = 0; n < _instructions.size(); ++n) {
@@ -35,7 +42,7 @@ void Builder::print() const {
 
 bool Builder::createShader(frontend::ShaderStage stage, uint32_t id, frontend::ShaderHeader const* header, uint32_t const* gpuRegs) {
   { // Create name
-    size_t const len = std::format("{}_{:#x}_{}", getFileTpye(stage), header->hash0, id).copy(_name, sizeof(_name) - 1);
+    size_t const len = std::format("{}_{:#x}_{}", getFileTpye(stage), header->hash0, id).copy(_name.data(), sizeof(_name) - 1);
     _name[len]       = '\0';
   }
 
@@ -142,16 +149,16 @@ bool Builder::createDump(frontend::ShaderHeader const* header, uint32_t const* g
   constexpr auto OPTIONS = alpaca::options::fixed_length_encoding;
   numBytes               = alpaca::serialize<OPTIONS>(data, binaryData);
 
-  auto const path = std::filesystem::path("shader_dumps") / (std::string(_name) + ".bin");
+  auto const path = std::filesystem::path("shader_dumps") / (std::string(getName()) + ".bin");
   try {
     std::ofstream file(path, std::ios::binary);
     file.write((char const*)binaryData.data(), binaryData.size());
     file.flush();
   } catch (...) {
-    printf("Couldn't dump shader %S\n", path.c_str());
+    LOG(eLOG_TYPE::ERROR, "Couldn't dump shader {}", path.string());
     return false;
   }
-  printf("dumped shader at %S\n", path.c_str());
+  LOG(eLOG_TYPE::INFO, "dumped shader at {}", path.string());
   return true;
 }
 
@@ -197,13 +204,13 @@ bool Builder::processBinary() {
         frontend::parser::parseInstruction(ctx, pc, &curCode);
       }
     } catch (std::runtime_error const& ex) {
-      printf("%s error:%s", _name, ex.what());
+      LOG(eLOG_TYPE::ERROR, "{} error:{}", getName().data(), ex.what());
       return {};
     }
 
     // create code regions
     if (!frontend::analysis::createRegions(getTempBuffer(), instr, pcMapping)) {
-      printf("Couldn't create regions");
+      LOG(eLOG_TYPE::ERROR, "Couldn't create regions");
       return false;
     }
   }

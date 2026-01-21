@@ -59,6 +59,31 @@ constexpr auto makeInstDef(eDialect dialect, InstructionKind_t kind, util::Flags
 
 } // namespace internal
 
+struct OpSrc {
+  OperandKind_t  kind {0};
+  OperandFlags_t flags {0};
+  SsaId_t        ssa = {};
+
+  constexpr explicit OpSrc() {}
+
+  constexpr explicit OpSrc(OperandKind_t kind, OperandFlags_t flags = 0): kind(kind), flags(flags) {}
+
+  constexpr explicit OpSrc(SsaId_t op, OperandFlags_t flags = 0): flags(flags), ssa(op) {}
+
+  constexpr OpSrc& operator=(OpSrc const& other) = default;
+};
+
+struct OpDst {
+  OperandKind_t  kind {0};
+  OperandFlags_t flags {0};
+
+  constexpr explicit OpDst() {}
+
+  constexpr explicit OpDst(OperandKind_t kind, OperandFlags_t flags = 0): kind(kind), flags(flags) {}
+
+  constexpr OpDst& operator=(OpDst const& other) = default;
+};
+
 class IRResult {
   public:
   IRResult(ir::InstructionManager& ir, InstructionId_t id): _id(id), _ir(ir) {}
@@ -66,6 +91,8 @@ class IRResult {
   operator SsaId_t() const { return _ir.getDef(_id, 0); }
 
   operator InstructionId_t() const { return _id; }
+
+  operator OpSrc() const { return OpSrc(_ir.getDef(_id, 0)); }
 
   private:
   ir::InstructionManager& _ir;

@@ -11,7 +11,7 @@ namespace compiler::ir {
 enum class eDialect : uint8_t {
   kUnknown,
   kCore,
-  kMath,
+  kArith,
 };
 
 enum class eInstructionFlags : InstructionFlags_t {

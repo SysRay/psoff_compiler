@@ -39,7 +39,7 @@ class Builder {
   bool createDump(frontend::ShaderHeader const* header, uint32_t const* gpuRegs) const;
 
   // // Getter
-  std::string_view getName() const { return _name; }
+  std::string_view getName() const { return _name.data(); }
 
   inline auto const& getShaderInput() const { return _shaderInput; }
 
@@ -71,7 +71,7 @@ class Builder {
 
   std::array<HostMapping, 2> _hostMapping {};
 
-  char _name[32] = {"dump"};
+  std::array<char, 32> _name = {"dump"};
 };
 
 } // namespace compiler

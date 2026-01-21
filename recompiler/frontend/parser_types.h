@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <utility>
 
 namespace compiler {
 class Builder;
@@ -22,6 +23,11 @@ struct Context {
   ir::InstructionManager& instructions;
 
   Context(Builder& builder, ir::InstructionManager& instructions): builder(builder), instructions(instructions) {}
+
+  template <typename Op, typename... Args>
+  inline auto create(Args&&... args) {
+    return Op::create(instructions, std::forward<Args>(args)...);
+  }
 };
 
 } // namespace compiler::frontend::parser

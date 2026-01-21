@@ -107,14 +107,14 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, cfg::
     }
     // - Special case
 
-    // First value return from Theta Node is the loop predicate (r-value)
+    // First value returned from theta-node is loop predicate (r-value)
     // (Optional) Second value is for entry selection (q-value)
-    // redirect all from loop to exits
+    // redirect everything to exit latch (Must be one output node)
     cfg::rvsdg::nodeid_t exitLatchId = cfg.createSimpleNode();
     for (auto const& [from, to]: sccEdges.exitEdges) {
       cfg.redirectEdge(cfg::rvsdg::nodeid_t(from), cfg::rvsdg::nodeid_t(to), exitLatchId);
       cfg.addEdge(loopId, cfg::rvsdg::nodeid_t(to));
-      // todo branch value
+      // todo branch condition value
     }
 
     if (sccEdges.backEdges.size() > 0) {

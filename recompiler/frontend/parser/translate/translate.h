@@ -1,6 +1,8 @@
 #pragma once
 
+#include "frontend/ir_types.h"
 #include "frontend/parser.h"
+#include "ir/dialects/types.h"
 
 namespace compiler::frontend::translate {
 InstructionKind_t handleSop1(parser::Context& ctx, parser::pc_t pc, parser::code_p_t* pCode);
@@ -22,4 +24,16 @@ InstructionKind_t handleMubuf(parser::Context& ctx, parser::pc_t pc, parser::cod
 InstructionKind_t handleMtbuf(parser::Context& ctx, parser::pc_t pc, parser::code_p_t* pCode);
 InstructionKind_t handleMimg(parser::Context& ctx, parser::pc_t pc, parser::code_p_t* pCode);
 InstructionKind_t handleDs(parser::Context& ctx, parser::pc_t pc, parser::code_p_t* pCode);
+
+inline compiler::ir::dialect::OpSrc createSrc(eOperandKind kind = eOperandKind::Unset()) {
+  return compiler::ir::dialect::OpSrc(getOperandKind(kind), 0);
+}
+
+inline compiler::ir::dialect::OpDst createDst(eOperandKind kind = eOperandKind::Unset()) {
+  return compiler::ir::dialect::OpDst(getOperandKind(kind), 0);
+}
+
+inline compiler::ir::dialect::OpSrc createSrc(SsaId_t ssa) {
+  return compiler::ir::dialect::OpSrc(ssa, 0);
+}
 } // namespace compiler::frontend::translate

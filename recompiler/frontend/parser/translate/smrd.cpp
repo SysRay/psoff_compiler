@@ -1,9 +1,9 @@
 #include "../debug_strings.h"
-#include "../instruction_builder.h"
 #include "../opcodes_table.h"
 #include "builder.h"
 #include "encodings.h"
 #include "frontend/ir_types.h"
+#include "ir/dialects/core/builder.h"
 #include "translate.h"
 
 #include <format>
@@ -19,13 +19,12 @@ InstructionKind_t handleSmrd(parser::Context& ctx, parser::pc_t pc, parser::code
   auto const sdst      = eOperandKind((eOperandKind_t)inst.template get<SMRD::Field::SDST>());
   auto const sBase     = eOperandKind((eOperandKind_t)inst.template get<SMRD::Field::SBASE>());
   auto const offsetImm = inst.template get<SMRD::Field::OFFSET>();
-  auto       sOffset   = OpSrc(eOperandKind((eOperandKind_t)offsetImm)); // either imm or op
+  auto       sOffset   = createSrc(eOperandKind((eOperandKind_t)offsetImm)); // either imm or op
   auto const isImm     = (bool)inst.template get<SMRD::Field::IMM>();
 
-  create::IRBuilder ir(ctx.instructions);
-  if (!isImm && sOffset.kind.isLiteral()) {
+  if (!isImm && eOperandKind((eOperandKind_t)offsetImm).isLiteral()) {
     *pCode += 1;
-    sOffset = OpSrc(ir.literalOp(**pCode));
+    sOffset = createSrc(ctx.create<ir::dialect::core::ConstantOp>(createDst(), ir::ConstantValue {.value_u64 = **pCode}, ir::OperandType::i32()));
   }
 
   *pCode += 1;
