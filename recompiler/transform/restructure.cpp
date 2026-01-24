@@ -89,45 +89,44 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, cfg::
 
     // // Restructure exits to one exit
 
-    // Special case: already tail based loop -> use node as latch
-    if (sccEdges.exitEdges.size() == 1 && sccEdges.exitEdges[0].first == sccEdges.backEdges[0].first) {
-      cfg::rvsdg::nodeid_t exitLatchId = cfg::rvsdg::nodeid_t(sccEdges.exitEdges[0].first);
+    // // Special case: already tail based loop -> use node as latch
+    // if (sccEdges.exitEdges.size() == 1 && sccEdges.exitEdges[0].first == sccEdges.backEdges[0].first) {
+    //   cfg::rvsdg::nodeid_t exitLatchId = cfg::rvsdg::nodeid_t(sccEdges.exitEdges[0].first);
 
-      cfg.removeEdge(exitLatchId, cfg::rvsdg::nodeid_t(sccEdges.exitEdges[0].second));
-      cfg.removeEdge(exitLatchId, cfg::rvsdg::nodeid_t(sccEdges.backEdges[0].second));
-      // todo branch value
+    //   cfg.removeEdge(exitLatchId, cfg::rvsdg::nodeid_t(sccEdges.exitEdges[0].second));
+    //   cfg.removeEdge(exitLatchId, cfg::rvsdg::nodeid_t(sccEdges.backEdges[0].second));
+    //   // todo branch value
 
-      cfg.addEdge(loopId, cfg::rvsdg::nodeid_t(sccEdges.exitEdges[0].second));
+    //   cfg.addEdge(loopId, cfg::rvsdg::nodeid_t(sccEdges.exitEdges[0].second));
 
-      // Add nodes to region
-      for (auto id: std::ranges::reverse_view(scc)) {
-        if (id == headerId || id == exitLatchId) continue;
-        cfg.nodes()->moveNodeToRegion(cfg::rvsdg::nodeid_t(id), loopRegions->id);
-      }
+    //   // Add nodes to region
+    //   for (auto id: std::ranges::reverse_view(scc)) {
+    //     if (id == headerId || id == exitLatchId) continue;
+    //     cfg.nodes()->moveNodeToRegion(cfg::rvsdg::nodeid_t(id), loopRegions->id);
+    //   }
 
-      cfg.nodes()->moveNodeToRegion(exitLatchId, loopRegions->id);
-      tasks.push_back(loopRegions->id);
-      return;
-    }
-    // - Special case
+    //   cfg.nodes()->moveNodeToRegion(exitLatchId, loopRegions->id);
+    //   tasks.push_back(loopRegions->id);
+    //   return;
+    // }
+    // // - Special case
 
     // First value returned from theta-node is loop predicate (r-value)
     // (Optional) Second value is for entry selection (q-value)
     // redirect everything to exit latch (Must be one output node)
     cfg::rvsdg::nodeid_t exitLatchId = cfg.createSimpleNode();
+    cfg::rvsdg::nodeid_t backLatchId = cfg.createSimpleNode();
 
     if (sccEdges.backEdges.size() > 0) {
       for (auto const& [from, to]: sccEdges.backEdges) {
-        cfg.redirectEdge(cfg::rvsdg::nodeid_t(from), cfg::rvsdg::nodeid_t(to), exitLatchId);
-
-        auto predBase = cfg.nodes()->accessNodeBase(cfg::rvsdg::nodeid_t(from));
-        assert(predBase->type == cfg::rvsdg::eNodeType::SimpleNode);
+        cfg.redirectEdge(cfg::rvsdg::nodeid_t(from), cfg::rvsdg::nodeid_t(to), backLatchId);
+        auto node = cfg.nodes()->accessNode<cfg::rvsdg::SimpleNode>(cfg::rvsdg::nodeid_t(backLatchId));
 
         auto predValue = cfg.create<ir::dialect::core::ConstantOp>(ir::dialect::OpDst(), ir::ConstantValue {.value_u64 = 1}, ir::OperandType::i1());
-        ((cfg::rvsdg::SimpleNode*)predBase)->instructions.push_back(predValue);
+        node->instructions.push_back(predValue);
 
         auto inId = im->createInput(ir::OperandType::i1());
-        predBase->outputs.push_back(inId);
+        node->outputs.push_back(inId);
         cfg.accessInstructions()->connect(inId, predValue);
       }
     }
@@ -136,13 +135,13 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, cfg::
       cfg.redirectEdge(cfg::rvsdg::nodeid_t(from), cfg::rvsdg::nodeid_t(to), exitLatchId);
       cfg.addEdge(loopId, cfg::rvsdg::nodeid_t(to));
 
-      auto predBase = cfg.nodes()->accessNodeBase(cfg::rvsdg::nodeid_t(from));
+      auto node = cfg.nodes()->accessNode<cfg::rvsdg::SimpleNode>(cfg::rvsdg::nodeid_t(exitLatchId));
 
       auto predValue = cfg.create<ir::dialect::core::ConstantOp>(ir::dialect::OpDst(), ir::ConstantValue {.value_u64 = 0}, ir::OperandType::i1());
-      ((cfg::rvsdg::SimpleNode*)predBase)->instructions.push_back(predValue);
+      node->instructions.push_back(predValue);
 
       auto inId = im->createInput(ir::OperandType::i1());
-      predBase->outputs.push_back(inId);
+      node->outputs.push_back(inId);
       cfg.accessInstructions()->connect(inId, predValue);
     }
 
@@ -155,7 +154,13 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, cfg::
       cfg.nodes()->moveNodeToRegion(cfg::rvsdg::nodeid_t(id), loopRegions->id);
     }
 
+    cfg::rvsdg::nodeid_t latchId = cfg.createSimpleNode(); // one exit node
+    cfg.addEdge(backLatchId, latchId);
+    cfg.addEdge(exitLatchId, latchId);
+
+    cfg.nodes()->moveNodeToRegion(backLatchId, loopRegions->id);
     cfg.nodes()->moveNodeToRegion(exitLatchId, loopRegions->id);
+    cfg.nodes()->moveNodeToRegion(latchId, loopRegions->id);
 
     tasks.push_back(loopRegions->id); // Collapse sub region
   }
