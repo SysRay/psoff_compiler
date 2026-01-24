@@ -2,20 +2,23 @@
 
 namespace compiler::ir::dialect::arith {
 
-static inline OutputOperand& createOp(InstructionManager& ir, OutputOperand& lhs, OpDst const& rhs, OperandType type) {
-  lhs.kind  = rhs.kind;
-  lhs.flags = rhs.flags;
-  lhs.type  = type;
-  return lhs;
+static inline OutputOperand& createOp(InstructionManager& ir, OutputOperandId_t id, OpDst const& rhs, OperandType type) {
+  auto& op = ir.getOperand(id);
+
+  op.kind  = rhs.kind;
+  op.flags = rhs.flags;
+  op.type  = type;
+  return op;
 }
 
-static inline InputOperand& createOp(InstructionManager& ir, InputOperand& lhs, OpSrc const& rhs, OperandType type) {
-  lhs.kind  = rhs.kind;
-  lhs.flags = rhs.flags;
-  lhs.type  = type;
-  lhs.ssaId = rhs.ssa;
-  if (lhs.ssaId.isValid()) ir.connect(lhs.id, lhs.ssaId);
-  return lhs;
+static inline InputOperand& createOp(InstructionManager& ir, InputOperandId_t id, OpSrc const& rhs, OperandType type) {
+  auto& op = ir.getOperand(id);
+
+  op.kind  = rhs.kind;
+  op.flags = rhs.flags;
+  op.type  = type;
+  if (op.ssaId.isValid()) ir.connect(id, rhs.ssa);
+  return op;
 }
 
 IRResult BitReverseOp::create(InstructionManager& ir, OpDst dst, OpSrc src, OperandType type) {

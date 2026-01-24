@@ -12,21 +12,19 @@
 namespace compiler::ir {
 
 struct InputOperand {
-  InputOperandId_t id    = {};
-  OperandKind_t    kind  = 0;
-  OperandFlags_t   flags = 0;
+  OperandKind_t  kind  = -1;
+  OperandFlags_t flags = 0;
 
   SsaId_t ssaId = {};
 
-  OperandType type = OperandType::i32(); // todo define in instruction?
+  OperandType type = OperandType::i32();
 
   bool isSSA() const { return ssaId.isValid(); }
 };
 
 struct OutputOperand {
-  OutputOperandId_t id {};
-  OperandKind_t     kind  = 0;
-  OperandFlags_t    flags = 0;
+  OperandKind_t  kind  = -1;
+  OperandFlags_t flags = 0;
 
   struct {
     SsaId_t  ssaValue    = {};
@@ -34,11 +32,13 @@ struct OutputOperand {
   } ssa = {};
 
   OperandType type = OperandType::i32();
+
+  inline bool hasKind() const { return kind >= 0; }
 };
 
 struct alignas(16) InstCore {
   InstructionKind_t kind    = -1;
-  eDialect          dialect = eDialect::kUnknown;
+  eDialect          dialect = eDialect::kCore;
 
   util::Flags<ir::eInstructionFlags> flags;
 
@@ -55,13 +55,17 @@ struct alignas(16) InstCore {
     ConstantId_t constantId;
   };
 
-  inline bool isValid() const { return dialect != eDialect::kUnknown; }
+  inline bool isValid() const { return kind != -1; }
 
   inline bool isConstant() const { return flags.is_set(eInstructionFlags::kConstant); }
 
   inline auto getSrcStart() const { return srcStartId; }
 
-  inline auto getConstant() const { return constantId; }
+  inline auto getConstantId() const { return constantId; }
+
+  inline auto getOutputId(uint8_t n) const { return OutputOperandId_t(dstStartId + n); }
+
+  inline auto getInputId(uint8_t n) const { return InputOperandId_t(srcStartId + n); }
 };
 
 static_assert(sizeof(InstCore) <= 16); ///< cache lines
@@ -117,48 +121,46 @@ class InstructionManager {
   }
 
   InstructionId_t createInstruction(InstCore const& instr, bool isVirtual = false);
+  SsaId_t         createSSA(OutputOperandId_t def);
+
+  InputOperandId_t  createInput(ir::OperandType type);
+  OutputOperandId_t createOutput(ir::OperandType type);
 
   inline InstCore& accessInstr(InstructionId_t id) { return _instructions[id]; }
 
   inline const InstCore& getInstr(InstructionId_t id) const { return _instructions[id]; }
 
-  inline OutputOperand& getDst(InstructionId_t id, uint32_t index) {
+  inline OutputOperandId_t getDst(InstructionId_t id, uint32_t index) const {
     const InstCore& inst = _instructions[id];
-    return _outputs[inst.dstStartId + index];
+    return OutputOperandId_t(inst.dstStartId + index);
   }
 
-  inline const OutputOperand& getDst(InstructionId_t id, uint32_t index) const {
+  inline InputOperandId_t getSrc(InstructionId_t id, uint32_t index) const {
     const InstCore& inst = _instructions[id];
-    return _outputs[inst.dstStartId + index];
-  }
-
-  inline InputOperand& getSrc(InstructionId_t id, uint32_t index) {
-    const InstCore& inst = _instructions[id];
-    return _inputs[inst.srcStartId + index];
-  }
-
-  inline const InputOperand& getSrc(InstructionId_t id, uint32_t index) const {
-    const InstCore& inst = _instructions[id];
-    return _inputs[inst.srcStartId + index];
+    return InputOperandId_t(inst.srcStartId + index);
   }
 
   inline SsaId_t getDef(OutputOperandId_t id) const { return getOperand(id).ssa.ssaValue; }
 
-  inline SsaId_t getDef(InstructionId_t id, uint32_t index) const { return getDst(id, index).ssa.ssaValue; }
+  inline SsaId_t getDef(InstructionId_t id, uint32_t index) const { return getOperand(getDst(id, index)).ssa.ssaValue; }
 
   // void setDstValueId(InstructionId_t id, uint32_t idx, ValueId_t v) { getDst(id, idx).valueId = v; }
 
   // void setSrcValueId(InstructionId_t id, uint32_t idx, ValueId_t v) { getSrc(id, idx).valueId = v; }
 
-  inline void setDstOperand(InstructionId_t id, uint32_t idx, const OutputOperand& op) { getDst(id, idx) = op; }
+  inline void setDstOperand(InstructionId_t id, uint32_t idx, const OutputOperand& op) { getOperand(getDst(id, idx)) = op; }
 
-  inline void setSrcOperand(InstructionId_t id, uint32_t idx, const InputOperand& op) { getSrc(id, idx) = op; }
+  inline void setSrcOperand(InstructionId_t id, uint32_t idx, const InputOperand& op) { getOperand(getSrc(id, idx)) = op; }
 
   inline OutputOperand& getOperand(OutputOperandId_t id) { return _outputs[id]; }
+
+  inline OutputOperand& getOperand(SsaId_t id) { return _outputs[_ssa[id].def]; }
 
   inline InputOperand& getOperand(InputOperandId_t id) { return _inputs[id]; }
 
   inline OutputOperand const& getOperand(OutputOperandId_t id) const { return _outputs[id]; }
+
+  inline OutputOperand const& getOperand(SsaId_t id) const { return _outputs[_ssa[id].def]; }
 
   inline InputOperand const& getOperand(InputOperandId_t id) const { return _inputs[id]; }
 
@@ -174,17 +176,23 @@ class InstructionManager {
     return ConstantId_t(_constants.size() - 1);
   }
 
+  inline auto const& getConstant(ConstantId_t id) const { return _constants[id]; }
+
   auto& access() { return _instructions; };
 
   auto& get() const { return _instructions; };
 
-  void connect(InputOperandId_t sink, SsaId_t source) { _ssa[source].uses.push_back(sink); }
+  void connect(InputOperandId_t sink, SsaId_t source) {
+    auto& op = getOperand(sink);
+    op.ssaId = source;
+
+    _ssa[source].uses.push_back(sink);
+  }
 
   private:
   struct SsaValueInfo {
-    OutputOperandId_t                  def;  ///< which output defines this value
-    std::pmr::vector<InputOperandId_t> uses; ///< all input operands that use it
-    // OperandType                        type;
+    OutputOperandId_t                  def {};  ///< which output defines this value
+    std::pmr::vector<InputOperandId_t> uses {}; ///< all input operands that use it
   };
 
   std::pmr::deque<InstCore>      _instructions; // todo boost::stable_vector?

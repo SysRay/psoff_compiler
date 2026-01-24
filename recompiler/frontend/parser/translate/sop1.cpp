@@ -139,7 +139,7 @@ InstructionKind_t handleSop1(parser::Context& ctx, parser::pc_t pc, parser::code
 
       auto const& shaderInput = ctx.builder.getShaderInput();
       if (shaderInput.getLogicalStage() == ShaderLogicalStage::Vertex) {
-        assert(src0.kind.isSGPR());
+        assert(eOperandKind(src0.kind).isSGPR());
 
         auto const srcId = eOperandKind(src0.kind).getSGPR();
         if (srcId >= shaderInput.userSGPRSize) {

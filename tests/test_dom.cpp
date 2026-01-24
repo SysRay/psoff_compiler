@@ -81,20 +81,47 @@ TYPED_TEST(DominatorTreeTest, DiamondGraph) {
   //   0
   //  / \
   // 1   2
+  // |   |
+  // 3   |
   //  \ /
-  //   3
+  //   4
+  //   |
+  //   5
 
-  TestGraph g(4);
+  TestGraph g(6);
   g.addEdge(0, 1);
   g.addEdge(0, 2);
   g.addEdge(1, 3);
-  g.addEdge(2, 3);
+  g.addEdge(3, 4);
+  g.addEdge(2, 4);
+  g.addEdge(4, 5);
 
   auto dom = this->createDomTree(g, 0);
 
   EXPECT_EQ(dom.get_idom(0), std::nullopt);
   EXPECT_EQ(dom.get_idom(1), 0u);
   EXPECT_EQ(dom.get_idom(2), 0u);
+  EXPECT_EQ(dom.get_idom(3), 1u);
+  EXPECT_EQ(dom.get_idom(4), 0u); // both 1 and 2 dominated by 0
+  EXPECT_EQ(dom.get_idom(5), 4u);
+}
+
+TYPED_TEST(DominatorTreeTest, BranchGraph) {
+  //   0
+  //  / \
+  // 1   3
+  //  \
+  //   3
+
+  TestGraph g(4);
+  g.addEdge(0, 1);
+  g.addEdge(0, 3);
+  g.addEdge(1, 3);
+
+  auto dom = this->createDomTree(g, 0);
+
+  EXPECT_EQ(dom.get_idom(0), std::nullopt);
+  EXPECT_EQ(dom.get_idom(1), 0u);
   EXPECT_EQ(dom.get_idom(3), 0u); // both 1 and 2 dominated by 0
 }
 

@@ -4,6 +4,7 @@
 #include "include/checkpoint_resource.h"
 #include "include/common.h"
 #include "ir/debug_strings.h"
+#include "ir/dialects/core/builder.h"
 #include "logging.h"
 #include "transform.h"
 
@@ -45,6 +46,7 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, cfg::
   GraphAdapter adapter(cfg);
   auto const   sccs = compiler::analysis::SCCBuilder<GraphAdapter>(&checkpoint_resource, adapter).calculate(region->nodes.front());
 
+  auto im = cfg.accessInstructions();
   for (auto const& scc: sccs.get()) {
     auto checkpoint = checkpoint_resource.checkpoint();
 
@@ -67,7 +69,9 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, cfg::
     if (sccEdges.entryEdges.size() > 1) {
       // First value passed to Theta Node is the branch selector value (q-value)
       // redirect all edges to loop and set the branch value
-      for (auto const& edge: sccEdges.entryEdges) {
+
+      for (uint32_t n = 0; n < sccEdges.entryEdges.size(); ++n) {
+        auto const& edge = sccEdges.entryEdges[n];
         cfg.redirectEdge(cfg::rvsdg::nodeid_t(edge.first), cfg::rvsdg::nodeid_t(edge.second), loopId);
         // todo branch value
       }
@@ -85,7 +89,7 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, cfg::
 
     // // Restructure exits to one exit
 
-    // Special case:       // already tail based loop -> use node as latch
+    // Special case: already tail based loop -> use node as latch
     if (sccEdges.exitEdges.size() == 1 && sccEdges.exitEdges[0].first == sccEdges.backEdges[0].first) {
       cfg::rvsdg::nodeid_t exitLatchId = cfg::rvsdg::nodeid_t(sccEdges.exitEdges[0].first);
 
@@ -111,17 +115,35 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, cfg::
     // (Optional) Second value is for entry selection (q-value)
     // redirect everything to exit latch (Must be one output node)
     cfg::rvsdg::nodeid_t exitLatchId = cfg.createSimpleNode();
+
+    if (sccEdges.backEdges.size() > 0) {
+      for (auto const& [from, to]: sccEdges.backEdges) {
+        cfg.redirectEdge(cfg::rvsdg::nodeid_t(from), cfg::rvsdg::nodeid_t(to), exitLatchId);
+
+        auto predBase = cfg.nodes()->accessNodeBase(cfg::rvsdg::nodeid_t(from));
+        assert(predBase->type == cfg::rvsdg::eNodeType::SimpleNode);
+
+        auto predValue = cfg.create<ir::dialect::core::ConstantOp>(ir::dialect::OpDst(), ir::ConstantValue {.value_u64 = 1}, ir::OperandType::i1());
+        ((cfg::rvsdg::SimpleNode*)predBase)->instructions.push_back(predValue);
+
+        auto inId = im->createInput(ir::OperandType::i1());
+        predBase->outputs.push_back(inId);
+        cfg.accessInstructions()->connect(inId, predValue);
+      }
+    }
+
     for (auto const& [from, to]: sccEdges.exitEdges) {
       cfg.redirectEdge(cfg::rvsdg::nodeid_t(from), cfg::rvsdg::nodeid_t(to), exitLatchId);
       cfg.addEdge(loopId, cfg::rvsdg::nodeid_t(to));
-      // todo branch condition value
-    }
 
-    if (sccEdges.backEdges.size() > 0) {
-      for (auto const& edge: sccEdges.backEdges) {
-        cfg.redirectEdge(cfg::rvsdg::nodeid_t(edge.first), cfg::rvsdg::nodeid_t(edge.second), exitLatchId);
-        // todo branch value
-      }
+      auto predBase = cfg.nodes()->accessNodeBase(cfg::rvsdg::nodeid_t(from));
+
+      auto predValue = cfg.create<ir::dialect::core::ConstantOp>(ir::dialect::OpDst(), ir::ConstantValue {.value_u64 = 0}, ir::OperandType::i1());
+      ((cfg::rvsdg::SimpleNode*)predBase)->instructions.push_back(predValue);
+
+      auto inId = im->createInput(ir::OperandType::i1());
+      predBase->outputs.push_back(inId);
+      cfg.accessInstructions()->connect(inId, predValue);
     }
 
     // todo demux for exits
@@ -161,7 +183,6 @@ static void collapseBranches(util::checkpoint_resource& checkpoint_resource, cfg
       // todo merge
       continue;
     }
-    assert(succs.size() == 2); // todo handle demux?
 
     auto const condId = cfg.createGammaNode();
     auto       cond   = cfg.nodes()->accessNode<cfg::rvsdg::GammaNode>(condId);
@@ -169,24 +190,37 @@ static void collapseBranches(util::checkpoint_resource& checkpoint_resource, cfg
     cfg.nodes()->insertNodeToRegion(condId, cfg::rvsdg::nodeid_t(succs[0]));
 
     // // Find branches
-    dom.calculate(GraphAdapter(cfg), region->nodes.back().value); // build once on demand
+    dom.calculate(GraphAdapter(cfg), headerId); // build once on demand
 
-    std::pmr::vector<cfg::rvsdg::nodeid_t> continuationPoints(&checkpoint_resource);
-    std::pmr::vector<cfg::rvsdg::nodeid_t> work(&checkpoint_resource);
+    std::pmr::vector<std::pair<cfg::rvsdg::nodeid_t, std::pmr::vector<cfg::rvsdg::nodeid_t>>> continuationPoints(&checkpoint_resource);
+    std::pmr::vector<cfg::rvsdg::nodeid_t>                                                    work(&checkpoint_resource);
     work.reserve(64);
     for (uint8_t arc = 0; arc < succs.size(); ++arc) {
-      work.push_back(succs[arc]);
-      std::pmr::vector<std::pair<cfg::rvsdg::nodeid_t, cfg::rvsdg::nodeid_t>> exits(&checkpoint_resource);
-
       auto regionId = cond->branches.emplace_back(cfg.nodes()->createRegion());
-      tasks.push_back(regionId); // Collapse sub region
+      tasks.push_back(regionId);
 
+      auto arcStartNode = succs[arc];
+
+      if (cfg.getPredecessors(arcStartNode).size() > 1) {
+        // Check if empty arc -> insert dummy node
+        // each arc must have min 1 node!
+        auto dummyId = cfg.createSimpleNode();
+        cfg.nodes()->moveNodeToRegion(dummyId, regionId);
+        cfg.redirectEdge(headerId, arcStartNode, dummyId);
+        cfg.addEdge(dummyId, arcStartNode);
+
+        arcStartNode = dummyId;
+      }
+
+      work.push_back(arcStartNode);
+
+      std::pmr::vector<std::pair<cfg::rvsdg::nodeid_t, cfg::rvsdg::nodeid_t>> exits(&checkpoint_resource);
       while (!work.empty()) {
         auto const v = work.back();
         work.pop_back();
 
         auto const& items = cfg.getSuccessors(v);
-        cfg.nodes()->moveNodeToRegion(v, regionId);
+        if (items.size() > 0) cfg.nodes()->moveNodeToRegion(v, regionId);
 
         for (auto to: items) {
           auto idom = dom.get_idom(to);
@@ -195,15 +229,19 @@ static void collapseBranches(util::checkpoint_resource& checkpoint_resource, cfg
           } else {
             // auto const cp =std::distance(continuationPoints.begin(), addUnique(continuationPoints, to));
             exits.emplace_back(v, to);
-            addUnique(continuationPoints, to);
+            auto it = std::find_if(continuationPoints.begin(), continuationPoints.end(), [to](auto const& rhs) { return rhs.first == to; });
+            if (it == continuationPoints.end()) {
+              auto& cp     = continuationPoints.emplace_back(to, 1);
+              cp.second[0] = v;
+            } else {
+              it->second.push_back(v);
+            }
           }
         }
       }
 
       // handle exits
       if (exits.size() == 1) {
-        auto const [from, to] = exits.front();
-        cfg.removeEdge(from, to);
       } else if (exits.size() > 1) {
         // Multiple: create dummy node as new exit
         auto dummyId = cfg.createSimpleNode();
@@ -219,9 +257,16 @@ static void collapseBranches(util::checkpoint_resource& checkpoint_resource, cfg
 
     cfg::rvsdg::nodeid_t tailId = {};
     if (continuationPoints.size() == 1) { // Special case:  One cp -> use as tail
-      tailId = continuationPoints.front();
+      tailId = continuationPoints.front().first;
     } else {
-      throw std::runtime_error("todo multiple cp");
+      // todo branches
+      tailId = cfg.createSimpleNode();
+    }
+
+    for (auto cp: continuationPoints) {
+      for (auto pred: cp.second) {
+        cfg.redirectEdge(pred, cp.first, tailId);
+      }
     }
 
     cfg.accessSuccessors(headerId).clear();

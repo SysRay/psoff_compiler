@@ -6,7 +6,6 @@
 #include "include/checkpoint_resource.h"
 #include "include/common.h"
 #include "ir/debug_strings.h"
-#include "ir/instructions.h"
 
 #include <algorithm>
 #include <iostream>
@@ -168,35 +167,38 @@ bool createRegions(std::pmr::polymorphic_allocator<> allocator, ir::InstructionM
     auto const& inst = manager.get()[n];
     if (inst.flags.is_set(eInstructionFlags::kTerminator)) continue;
 
-    switch (conv(inst.kind)) {
-      case eInstKind::ReturnOp: {
-        regions.addReturn(n);
-      } break;
+    // todo
+    // switch (conv(inst.kind)) {
+    //   case eInstKind::ReturnOp: {
+    //     regions.addReturn(n);
+    //   } break;
 
-      case eInstKind::DiscardOp: {
-        // todo needed?
-      } break;
+    //   case eInstKind::DiscardOp: {
+    //     // todo needed?
+    //   } break;
 
-      case eInstKind::JumpAbsOp: {
-        // todo
-        // auto const targetPc = evaluate(allocator, instructions, regions, n, inst.srcOperands[0]);
-        // if (!targetPc) return false;
+    //   case eInstKind::JumpAbsOp: {
+    //     // todo
+    //     // auto const targetPc = evaluate(allocator, instructions, regions, n, inst.srcOperands[0]);
+    //     // if (!targetPc) return false;
 
-        // auto const targetIt = std::lower_bound(mapping.begin(), mapping.end(), targetPc->value_u64, [](auto const& b, uint64_t val) { return b.first < val;
-        // }); regions.addJump(n, targetIt->second);
-      } break;
+    //     // auto const targetIt = std::lower_bound(mapping.begin(), mapping.end(), targetPc->value_u64, [](auto const& b, uint64_t val) { return b.first <
+    //     val;
+    //     // }); regions.addJump(n, targetIt->second);
+    //   } break;
 
-      case eInstKind::CondJumpAbsOp: {
-        // todo
-        // auto const targetPc = evaluate(allocator, instructions, regions, n, inst.srcOperands[1]);
-        // if (!targetPc) return false;
+    //   case eInstKind::CondJumpAbsOp: {
+    //     // todo
+    //     // auto const targetPc = evaluate(allocator, instructions, regions, n, inst.srcOperands[1]);
+    //     // if (!targetPc) return false;
 
-        // auto const targetIt = std::lower_bound(mapping.begin(), mapping.end(), targetPc->value_u64, [](auto const& b, uint64_t val) { return b.first < val;
-        // }); regions.addCondJump(n, targetIt->second);
-      } break;
+    //     // auto const targetIt = std::lower_bound(mapping.begin(), mapping.end(), targetPc->value_u64, [](auto const& b, uint64_t val) { return b.first <
+    //     val;
+    //     // }); regions.addCondJump(n, targetIt->second);
+    //   } break;
 
-      default: break;
-    }
+    //   default: break;
+    // }
   }
 
   // 2: Build regions in single pass

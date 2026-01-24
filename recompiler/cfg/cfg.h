@@ -55,6 +55,8 @@ class ControlFlow {
 
   auto* accessInstructions() { return &_instructions; }
 
+  auto* getInstructions() const { return &_instructions; }
+
   void swap(ir::InstructionManager&& inst) { std::swap(_instructions, inst); }
 
   // ------------------------------------------------------------
@@ -65,6 +67,12 @@ class ControlFlow {
   void removeEdge(rvsdg::nodeid_t from, rvsdg::nodeid_t to);
   void redirectEdge(rvsdg::nodeid_t from, rvsdg::nodeid_t oldSucc, rvsdg::nodeid_t newSucc);
   void redirectEdgeReversed(rvsdg::nodeid_t oldPred, rvsdg::nodeid_t to, rvsdg::nodeid_t newPred);
+
+  // Operations
+  template <typename Op, typename... Args>
+  inline auto create(Args&&... args) {
+    return Op::create(_instructions, std::forward<Args>(args)...);
+  }
 
   private:
   std::pmr::vector<std::pmr::vector<rvsdg::nodeid_t>> _successors;

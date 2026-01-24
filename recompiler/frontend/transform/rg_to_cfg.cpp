@@ -3,7 +3,8 @@
 #include "transform.h"
 
 namespace compiler::frontend::transform {
-cfg::ControlFlow transformRg2Cfg(std::pmr::polymorphic_allocator<> allocator, analysis::RegionBuilder const& rb, std::span<ir::InstCore> instructions) {
+cfg::ControlFlow transformRg2Cfg(std::pmr::polymorphic_allocator<> allocator, analysis::RegionBuilder const& rb,
+                                 std::span<compiler::InstructionId_t> instructions) {
   uint32_t const   expectedBlocks = 1 + 1.5 * rb.getNumRegions();
   cfg::ControlFlow cfg(allocator, expectedBlocks); // Leave some place for extra branch nodes
 

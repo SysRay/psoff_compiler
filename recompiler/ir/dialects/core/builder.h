@@ -15,7 +15,7 @@ struct SelectOp {
 };
 
 struct YieldOp {
-  static IRResult create(InstructionManager& ir, std::span<InputOperand> inputs);
+  static IRResult create(InstructionManager& ir, std::span<SsaId_t> inputs);
 };
 
 struct ReturnOp {

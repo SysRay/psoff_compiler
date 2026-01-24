@@ -78,14 +78,14 @@ struct Base {
   eNodeType  type;
   regionid_t parentRegion = {};
 
-  std::pmr::vector<uint32_t> inputs  = {}; ///< inputs for this region
-  std::pmr::vector<uint32_t> outputs = {}; ///< outputs indices for this region
+  std::pmr::vector<OutputOperandId_t> inputs  = {}; ///< inputs for this region
+  std::pmr::vector<InputOperandId_t>  outputs = {}; ///< outputs indices for this region
 
   Base(eNodeType t): type(t) {}
 };
 
 struct SimpleNode: Base {
-  std::pmr::vector<ir::InstCore> instructions = {};
+  std::pmr::vector<InstructionId_t> instructions = {};
 
   SimpleNode(std::pmr::polymorphic_allocator<> allocator): Base(eNodeType::SimpleNode) {}
 };

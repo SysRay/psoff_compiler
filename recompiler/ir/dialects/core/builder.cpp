@@ -2,26 +2,29 @@
 
 namespace compiler::ir::dialect::core {
 
-static inline OutputOperand& createOp(OutputOperand& lhs, OpDst const& rhs, OperandType type) {
-  lhs.kind  = rhs.kind;
-  lhs.flags = rhs.flags;
-  lhs.type  = type;
-  return lhs;
+static inline OutputOperand& createOp(InstructionManager& ir, OutputOperandId_t id, OpDst const& rhs, OperandType type) {
+  auto& op = ir.getOperand(id);
+
+  op.kind  = rhs.kind;
+  op.flags = rhs.flags;
+  op.type  = type;
+  return op;
 }
 
-static inline InputOperand& createOp(InstructionManager& ir, InputOperand& lhs, OpSrc const& rhs, OperandType type) {
-  lhs.kind  = rhs.kind;
-  lhs.flags = rhs.flags;
-  lhs.type  = type;
-  lhs.ssaId = rhs.ssa;
-  if (lhs.ssaId.isValid()) ir.connect(lhs.id, lhs.ssaId);
-  return lhs;
+static inline InputOperand& createOp(InstructionManager& ir, InputOperandId_t id, OpSrc const& rhs, OperandType type) {
+  auto& op = ir.getOperand(id);
+
+  op.kind  = rhs.kind;
+  op.flags = rhs.flags;
+  op.type  = type;
+  if (op.ssaId.isValid()) ir.connect(id, rhs.ssa);
+  return op;
 }
 
 IRResult MoveOp::create(InstructionManager& ir, OpDst const& dst, OpSrc const& src, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::MoveOp));
   createOp(ir, ir.getSrc(id, 0), src, type);
-  createOp(ir.getDst(id, 0), dst, type);
+  createOp(ir, ir.getDst(id, 0), dst, type);
   return IRResult(ir, id);
 }
 
@@ -30,17 +33,22 @@ IRResult SelectOp::create(InstructionManager& ir, OpDst const& dst, OpSrc predic
   createOp(ir, ir.getSrc(id, 0), predicate, OperandType::i1());
   createOp(ir, ir.getSrc(id, 1), srcTrue, type);
   createOp(ir, ir.getSrc(id, 2), srcFalse, type);
-  createOp(ir.getDst(id, 0), dst, type);
+  createOp(ir, ir.getDst(id, 0), dst, type);
   return IRResult(ir, id);
 }
 
-IRResult YieldOp::create(InstructionManager& ir, std::span<InputOperand> inputs) {
+IRResult YieldOp::create(InstructionManager& ir, std::span<SsaId_t> inputs) {
   auto info   = getInfo(eInstKind::YieldOp);
   info.numSrc = inputs.size();
   auto id     = ir.createInstruction(info);
 
-  for (size_t n = 0; n < inputs.size(); ++n)
-    ir.getSrc(id, n) = inputs[n];
+  for (size_t n = 0; n < inputs.size(); ++n) {
+    auto  srcId = ir.getSrc(id, n);
+    auto& op    = ir.getOperand(srcId);
+
+    op.ssaId = inputs[n];
+    ir.connect(srcId, inputs[n]);
+  }
 
   return IRResult(ir, id);
 }
@@ -74,7 +82,7 @@ IRResult CjumpAbsOp::create(InstructionManager& ir, OpSrc const& predicate, OpSr
 
 IRResult ConstantOp::create(InstructionManager& ir, OpDst const& dst, ir::ConstantValue value, ir::OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::ConstantOp));
-  createOp(ir.getDst(id, 0), dst, type);
+  createOp(ir, ir.getDst(id, 0), dst, type);
 
   ir.accessInstr(id).constantId = ir.createConstant(value);
   return IRResult(ir, id);

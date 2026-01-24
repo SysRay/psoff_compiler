@@ -56,8 +56,8 @@ static std::vector<region_t> collectPreds(RegionBuilder const& builder, region_t
 constexpr uint32_t offsetId = 2; // funcId + stopId
 
 TEST_F(RegionBuilderTest, InitialRegionCreation) {
-  RegionBuilder                       builder(100, allocator);
-  std::vector<compiler::ir::InstCore> instructions(100, compiler::ir::InstCore {});
+  RegionBuilder                          builder(100, allocator);
+  std::vector<compiler::InstructionId_t> instructions(100);
   builder.finalize();
 
   EXPECT_EQ(builder.getNumRegions(), 1);
@@ -77,8 +77,8 @@ TEST_F(RegionBuilderTest, InitialRegionCreation) {
 }
 
 TEST_F(RegionBuilderTest, SimpleJumpSplitsRegions) {
-  RegionBuilder                       builder(100, allocator);
-  std::vector<compiler::ir::InstCore> instructions(100, compiler::ir::InstCore {});
+  RegionBuilder                          builder(100, allocator);
+  std::vector<compiler::InstructionId_t> instructions(100);
   builder.addJump(9, 50);
 
   builder.finalize();
@@ -113,8 +113,8 @@ TEST_F(RegionBuilderTest, SimpleJumpSplitsRegions) {
 }
 
 TEST_F(RegionBuilderTest, ConditionalJumpCreatesMultipleSuccessors) {
-  RegionBuilder                       builder(100, allocator);
-  std::vector<compiler::ir::InstCore> instructions(100, compiler::ir::InstCore {});
+  RegionBuilder                          builder(100, allocator);
+  std::vector<compiler::InstructionId_t> instructions(100);
 
   builder.addCondJump(9, 50);
   // Regions: regions: [0,10), [10,50), [50,100)

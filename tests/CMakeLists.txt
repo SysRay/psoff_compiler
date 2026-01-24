@@ -11,7 +11,7 @@ FetchContent_MakeAvailable(googletest)
 include_directories(${googletest_install_SOURCE_DIR}/googletest/include)
 include_directories(${googletest_install_SOURCE_DIR}/googlemock/include)
 
-add_executable(test_analysis
+add_executable(analysis_test
   test_scc.cpp
   test_regions.cpp
   test_dom.cpp
@@ -19,8 +19,8 @@ add_executable(test_analysis
   test_alloc.cpp
 )
 
-target_link_libraries(test_analysis
+target_link_libraries(analysis_test
   PRIVATE gtest gtest_main psOff_recompiler
 )
 
-add_dependencies(test_analysis psOff_recompiler)
+add_dependencies(analysis_test psOff_recompiler)

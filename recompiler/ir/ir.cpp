@@ -14,9 +14,11 @@ InstructionId_t InstructionManager::createInstruction(InstCore const& instr, boo
     _ssa.resize(_ssa.size() + instr.numDst);
 
     for (uint32_t n = 0; n < instr.numDst; ++n) {
-      auto& out              = getDst(instrId, n);
+      auto&      out = _outputs[item.dstStartId + n];
+      auto const id  = OutputOperandId_t(item.dstStartId + n);
+
       out.ssa.ssaValue       = SsaId_t(ssaStart + n);
-      _ssa[ssaStart + n].def = out.id;
+      _ssa[ssaStart + n].def = id;
     }
   }
 
@@ -26,4 +28,27 @@ InstructionId_t InstructionManager::createInstruction(InstCore const& instr, boo
   return instrId;
 }
 
+InputOperandId_t InstructionManager::createInput(ir::OperandType type) {
+  auto  id   = InputOperandId_t(_inputs.size());
+  auto& item = _inputs.emplace_back();
+  item.type  = type;
+  return id;
+}
+
+OutputOperandId_t InstructionManager::createOutput(ir::OperandType type) {
+  auto  id   = OutputOperandId_t(_outputs.size());
+  auto& item = _outputs.emplace_back();
+  item.type  = type;
+
+  item.ssa.ssaValue = createSSA(id);
+  return id;
+}
+
+SsaId_t InstructionManager::createSSA(OutputOperandId_t def) {
+  auto const id   = SsaId_t(_ssa.size());
+  auto       item = _ssa.emplace_back();
+
+  item.def = def;
+  return id;
+}
 } // namespace compiler::ir

@@ -28,10 +28,10 @@ class DominatorTreeDense {
 
   explicit DominatorTreeDense(alloc_t alloc = {}): alloc_(alloc) {}
 
-  inline void calculate(const Graph& g, node_t exit) {
+  inline void calculate(const Graph& g, node_t entry) {
     if (build_) return;
     build_ = true;
-    build(g, exit);
+    build(g, entry);
   }
 
   std::optional<node_t> get_idom(node_t n) const {

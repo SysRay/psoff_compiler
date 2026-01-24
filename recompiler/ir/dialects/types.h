@@ -60,7 +60,7 @@ constexpr auto makeInstDef(eDialect dialect, InstructionKind_t kind, util::Flags
 } // namespace internal
 
 struct OpSrc {
-  OperandKind_t  kind {0};
+  OperandKind_t  kind {-1};
   OperandFlags_t flags {0};
   SsaId_t        ssa = {};
 
@@ -74,7 +74,7 @@ struct OpSrc {
 };
 
 struct OpDst {
-  OperandKind_t  kind {0};
+  OperandKind_t  kind {-1};
   OperandFlags_t flags {0};
 
   constexpr explicit OpDst() {}

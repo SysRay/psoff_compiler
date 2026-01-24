@@ -71,14 +71,44 @@ TEST(ControlflowTransform, SimpleIfElse) {
   //   1
   //  / \
   // 2   3
+  // |   |
+  // 4   |
   //  \ /
+  //   5
+  //   |
+  //   6
+
+  std::pmr::monotonic_buffer_resource resource;
+  std::pmr::polymorphic_allocator<>   allocator {&resource};
+
+  ControlFlow cfg(allocator);
+  createCFG(cfg, 7, 0, 5, {{0, 1}, {1, 2}, {1, 3}, {2, 4}, {4, 5}, {3, 5}, {5, 6}});
+  // createCFG(cfg, 5, 0, 4, {{0, 1}, {1, 2}, {1, 4}, {2, 4}});
+  dumpCFG(std::cout, cfg);
+
+  std::array<uint8_t, 10000>          buffer;
+  compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
+  compiler::transform::restructureCfg(tempResource, cfg);
+  dumpCFG(std::cout, cfg);
+  EXPECT_FALSE(true); // todo
+}
+
+TEST(ControlflowTransform, CompactIfElse) {
+  //   0
+  //   |
+  //   1
+  //  / \
+  // 2   |
+  //  \ /
+  //   3
+  //   |
   //   4
 
   std::pmr::monotonic_buffer_resource resource;
   std::pmr::polymorphic_allocator<>   allocator {&resource};
 
   ControlFlow cfg(allocator);
-  createCFG(cfg, 5, 0, 4, {{0, 1}, {1, 2}, {1, 3}, {2, 4}, {3, 4}});
+  createCFG(cfg, 5, 0, 4, {{0, 1}, {1, 2}, {1, 3}, {2, 3}, {3, 4}});
   dumpCFG(std::cout, cfg);
 
   std::array<uint8_t, 10000>          buffer;
@@ -116,9 +146,9 @@ TEST(ControlflowTransform, SimpleDoLoop) {
   //   |
   //   1
   //   |
-  //   2
-  //  / \
-  // 3   1
+  //   2 -> 1
+  //  /
+  // 3
 
   std::pmr::monotonic_buffer_resource resource;
   std::pmr::polymorphic_allocator<>   allocator {&resource};
@@ -160,6 +190,7 @@ TEST(ControlflowTransform, NestedDoLoop) {
   dumpCFG(std::cout, cfg);
   EXPECT_FALSE(true); // todo
 }
+
 TEST(ControlflowTransform, NestedDoLoopSelfs) {
   //   0
   //   |
@@ -189,23 +220,28 @@ TEST(ControlflowTransform, NestedDoLoopSelfs) {
 
 // fig. 4
 TEST(ControlflowTransform, BranchWithMultipleExitsIntoTail) {
-  //      0 (branch)
-  //     / \
-  //    1   5
-  //    |   |
-  //    2   6
-  //   / \
-  //  3   4
-  //  |   |
-  //  6   5
+  //      0
   //      |
-  //      6
+  //      1 (branch)
+  //     / \
+  //    2   6
+  //    |
+  //    3
+  //   / \
+  //  4   5
+  //  |   |
+  //  7   6
+  //      |
+  //      7
+  //      |
+  //      8
 
   std::pmr::monotonic_buffer_resource resource;
   std::pmr::polymorphic_allocator<>   allocator {&resource};
 
   ControlFlow cfg(allocator);
-  createCFG(cfg, 4, 0, 6, {{0, 1}, {0, 5}, {1, 2}, {5, 6}, {2, 3}, {2, 4}, {3, 6}, {4, 5}, {5, 6}});
+  createCFG(cfg, 9, 0, 8, {{0, 1}, {1, 2}, {1, 6}, {2, 3}, {6, 7}, {3, 4}, {3, 5}, {4, 7}, {5, 6}, {6, 7}, {7, 8}});
+  // createCFG(cfg, 8, 0, 7, {{0, 1}, {0, 6}, {1, 2}, {2, 6}, {2, 4}, {4, 5}, {5, 6}});
   dumpCFG(std::cout, cfg);
 
   std::array<uint8_t, 10000>          buffer;
