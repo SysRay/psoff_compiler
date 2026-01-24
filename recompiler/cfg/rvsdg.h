@@ -91,6 +91,7 @@ struct SimpleNode: Base {
 };
 
 struct GammaNode: Base {
+  InputOperandId_t             predicate {};
   std::pmr::vector<regionid_t> branches = {}; ///< subregions
 
   GammaNode(std::pmr::polymorphic_allocator<> alloc): Base(eNodeType::GammaNode), branches(alloc) {}

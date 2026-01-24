@@ -60,7 +60,9 @@ void dumpNode(std::ostream& os, const ControlFlow& cfg, rvsdg::nodeid_t bid, con
     } break;
     case rvsdg::eNodeType::GammaNode: {
       auto node = cfg.nodes()->getNode<rvsdg::GammaNode>(B->id);
-      os << " Gamma {\n";
+      os << " Gamma ";
+
+      os << "{\n";
       for (uint32_t n = 0; n < node->branches.size(); ++n) {
         dumpRegion(os, cfg, node->branches[n], indent + "  ");
       }

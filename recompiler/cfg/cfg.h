@@ -68,6 +68,8 @@ class ControlFlow {
   void redirectEdge(rvsdg::nodeid_t from, rvsdg::nodeid_t oldSucc, rvsdg::nodeid_t newSucc);
   void redirectEdgeReversed(rvsdg::nodeid_t oldPred, rvsdg::nodeid_t to, rvsdg::nodeid_t newPred);
 
+  OutputOperandId_t createArgument(cfg::rvsdg::Base* node, ir::OperandType type);
+
   // Operations
   template <typename Op, typename... Args>
   inline auto create(Args&&... args) {

@@ -185,7 +185,7 @@ static void collapseBranches(util::checkpoint_resource& checkpoint_resource, cfg
     if (succs.size() == 0) break;
     if (succs.size() == 1) {
       headerId = succs[0];
-      // todo merge
+      // todo merge nodes
       continue;
     }
 
@@ -194,11 +194,14 @@ static void collapseBranches(util::checkpoint_resource& checkpoint_resource, cfg
     cond->branches.reserve(succs.size());
     cfg.nodes()->insertNodeToRegion(condId, cfg::rvsdg::nodeid_t(succs[0]));
 
+    // cond->predicate = ; todo change edges, use terminator
+
     // // Find branches
     dom.calculate(GraphAdapter(cfg), headerId); // build once on demand
 
     std::pmr::vector<std::pair<cfg::rvsdg::nodeid_t, std::pmr::vector<cfg::rvsdg::nodeid_t>>> continuationPoints(&checkpoint_resource);
-    std::pmr::vector<cfg::rvsdg::nodeid_t>                                                    work(&checkpoint_resource);
+
+    std::pmr::vector<cfg::rvsdg::nodeid_t> work(&checkpoint_resource);
     work.reserve(64);
     for (uint8_t arc = 0; arc < succs.size(); ++arc) {
       auto regionId = cond->branches.emplace_back(cfg.nodes()->createRegion());

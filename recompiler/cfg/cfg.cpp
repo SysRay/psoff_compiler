@@ -55,4 +55,8 @@ void ControlFlow::redirectEdgeReversed(rvsdg::nodeid_t oldPred, rvsdg::nodeid_t 
   // 3. Add 'to' to successors of newPred
   _successors[newPred.value].push_back(to);
 }
+
+OutputOperandId_t ControlFlow::createArgument(cfg::rvsdg::Base* node, ir::OperandType type) {
+  return node->inputs.emplace_back(_instructions.createOutput(type));
+}
 } // namespace compiler::cfg
