@@ -29,12 +29,12 @@ ir::rvsdg::IRBlocks transformRg2Cfg(std::pmr::polymorphic_allocator<> allocator,
   // for (analysis::regionid_t i {0}; i.value < rb.getNumRegions(); ++i.value) {
   //   auto const blockId = cfg.createSimpleNode();
   //   nodes->moveNodeToRegion(blockId, rootRegion->id);
-  //   assert(blockId == cfg::rvsdg::nodeid_t(offset + i.value));
+  //   assert(blockId == cfg::rvsdg::blockid_t(offset + i.value));
   // }
 
   // // 2. create edges
   // for (analysis::regionid_t i {0}; i.value < rb.getNumRegions(); ++i.value) {
-  //   auto const blockId = cfg::rvsdg::nodeid_t(offset + i.value);
+  //   auto const blockId = cfg::rvsdg::blockid_t(offset + i.value);
   //   auto       block   = nodes->accessNode<cfg::rvsdg::SimpleNode>(blockId);
 
   //   auto const [start, end] = rb.getRegion(i);
@@ -46,17 +46,17 @@ ir::rvsdg::IRBlocks transformRg2Cfg(std::pmr::polymorphic_allocator<> allocator,
   //   } else {
   //     if (successors.size() == 1) {
   //       // Normal jmp
-  //       cfg.addEdge(blockId, cfg::rvsdg::nodeid_t(offset + successors[0].value));
+  //       cfg.addEdge(blockId, cfg::rvsdg::blockid_t(offset + successors[0].value));
   //     } else {
   //       // Conditional
   //       // Note: analysis needs min 1 node in each branch. create a dummy block for true branch
-  //       cfg.addEdge(blockId, cfg::rvsdg::nodeid_t(offset + successors[0].value));
+  //       cfg.addEdge(blockId, cfg::rvsdg::blockid_t(offset + successors[0].value));
 
   //       auto const branchId = cfg.createSimpleNode();
   //       nodes->moveNodeToRegion(branchId, rootRegion->id);
 
   //       cfg.addEdge(blockId, branchId);
-  //       cfg.addEdge(branchId, cfg::rvsdg::nodeid_t(offset + successors[1].value));
+  //       cfg.addEdge(branchId, cfg::rvsdg::blockid_t(offset + successors[1].value));
   //     }
   //   }
   // }

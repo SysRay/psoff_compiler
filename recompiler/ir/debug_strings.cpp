@@ -117,8 +117,8 @@ void getDebug(std::ostream& os, IROperations const& im, InstCore const& op) {
   }
 }
 
-void dumpBlock(std::ostream& os, const rvsdg::IRBlocks& builder, nodeid_t bid, const std::string& indent) {
-  const auto* B = builder.getNodeBase(bid);
+void dumpBlock(std::ostream& os, const rvsdg::IRBlocks& builder, blockid_t bid, const std::string& indent) {
+  const auto* B = builder.getBase(bid);
 
   // Block header: ^bbX:
   os << indent << "^bb" << B->id.value << ":\n";
@@ -133,7 +133,7 @@ void dumpBlock(std::ostream& os, const rvsdg::IRBlocks& builder, nodeid_t bid, c
   }
 }
 
-static void dumpNode(std::ostream& os, const rvsdg::IRBlocks& builder, nodeid_t bid, const std::string& indent);
+static void dumpNode(std::ostream& os, const rvsdg::IRBlocks& builder, blockid_t bid, const std::string& indent);
 
 void dumpRegion(std::ostream& os, const rvsdg::IRBlocks& builder, regionid_t rid, const std::string& indent) {
   auto R = builder.getRegion(rid);
@@ -153,8 +153,8 @@ void dumpRegion(std::ostream& os, const rvsdg::IRBlocks& builder, regionid_t rid
   os << indent << "}\n";
 }
 
-void dumpNode(std::ostream& os, const rvsdg::IRBlocks& builder, nodeid_t bid, const std::string& indent) {
-  const auto* B = builder.getNodeBase(bid);
+void dumpNode(std::ostream& os, const rvsdg::IRBlocks& builder, blockid_t bid, const std::string& indent) {
+  const auto* B = builder.getBase(bid);
 
   os << indent << "^bb" << B->id;
 

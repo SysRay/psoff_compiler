@@ -17,20 +17,20 @@ class RegionBuilderTest: public ::testing::Test {
 using namespace compiler::frontend::analysis;
 using namespace compiler::ir;
 
-static bool hasSucc(const ControlFlow& cfg, nodeid_t::underlying_t from, nodeid_t::underlying_t to) {
-  for (auto s: cfg.getSuccessors(nodeid_t(from)))
+static bool hasSucc(const ControlFlow& cfg, blockid_t::underlying_t from, blockid_t::underlying_t to) {
+  for (auto s: cfg.getSuccessors(blockid_t(from)))
     if (s == to) return true;
   return false;
 }
 
-static bool hasPred(const ControlFlow& cfg, nodeid_t::underlying_t to, nodeid_t::underlying_t from) {
-  for (auto p: cfg.getPredecessors(nodeid_t(to)))
+static bool hasPred(const ControlFlow& cfg, blockid_t::underlying_t to, blockid_t::underlying_t from) {
+  for (auto p: cfg.getPredecessors(blockid_t(to)))
     if (p == from) return true;
   return false;
 }
 
-static bool succEquals(const ControlFlow& cfg, nodeid_t::underlying_t id, std::initializer_list<uint32_t> expected) {
-  auto succs = cfg.getSuccessors(nodeid_t(id));
+static bool succEquals(const ControlFlow& cfg, blockid_t::underlying_t id, std::initializer_list<uint32_t> expected) {
+  auto succs = cfg.getSuccessors(blockid_t(id));
   if (succs.size() != expected.size()) return false;
 
   size_t i = 0;

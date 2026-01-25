@@ -52,17 +52,17 @@ static void createCFG(rvsdg::IRBlocks& builder, uint32_t numBlocks, uint32_t sta
   R->nodes.reserve(numBlocks);
 
   auto const offset = 1 + funcId;
-  builder.moveNodeToRegion(nodeid_t(offset + start), R->id);
+  builder.move(blockid_t(offset + start), R->id);
 
   for (uint32_t n = 0; n < numBlocks; ++n) {
     if (n == start || n == end) continue;
-    builder.moveNodeToRegion(nodeid_t(offset + n), R->id);
+    builder.move(blockid_t(offset + n), R->id);
   }
 
-  builder.moveNodeToRegion(nodeid_t(offset + end), R->id);
+  builder.move(blockid_t(offset + end), R->id);
 
   for (auto const edge: edges)
-    builder.getCfg().addEdge(nodeid_t(offset + edge.from.value), nodeid_t(offset + edge.to.value));
+    builder.getCfg().addEdge(blockid_t(offset + edge.from.value), blockid_t(offset + edge.to.value));
 }
 
 TEST(ControlflowTransform, SimpleIfElse) {

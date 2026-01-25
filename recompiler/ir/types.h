@@ -147,35 +147,35 @@ struct OperandTypeHash {
   auto operator()(const OperandType& t) const noexcept { return std::hash<OperandType_t> {}(t.packed()); }
 };
 
-struct nodeid_t {
+struct blockid_t {
   using underlying_t = uint32_t;
 
-  static inline constexpr nodeid_t NO_VALUE() { return nodeid_t(std::numeric_limits<underlying_t>::max()); };
+  static inline constexpr blockid_t NO_VALUE() { return blockid_t(std::numeric_limits<underlying_t>::max()); };
 
   underlying_t value = NO_VALUE().value;
 
-  constexpr nodeid_t() = default;
+  constexpr blockid_t() = default;
 
-  constexpr explicit nodeid_t(underlying_t v): value(v) {}
+  constexpr explicit blockid_t(underlying_t v): value(v) {}
 
   constexpr operator underlying_t() const { return value; }
 
-  constexpr bool operator==(nodeid_t const&) const = default;
+  constexpr bool operator==(blockid_t const&) const = default;
 
   constexpr bool isValid() const { return value != NO_VALUE().value; }
 };
 
 struct edge_t {
-  nodeid_t from;
-  nodeid_t to;
+  blockid_t from;
+  blockid_t to;
 
-  constexpr operator std::pair<nodeid_t, nodeid_t>() const { return {from, to}; }
+  constexpr operator std::pair<blockid_t, blockid_t>() const { return {from, to}; }
 
   constexpr bool operator==(const edge_t&) const = default;
 
-  edge_t(nodeid_t from, nodeid_t to): from(from), to(to) {}
+  edge_t(blockid_t from, blockid_t to): from(from), to(to) {}
 
-  edge_t(nodeid_t::underlying_t from, nodeid_t::underlying_t to): from(nodeid_t(from)), to(nodeid_t(to)) {}
+  edge_t(blockid_t::underlying_t from, blockid_t::underlying_t to): from(blockid_t(from)), to(blockid_t(to)) {}
 };
 
 struct regionid_t {

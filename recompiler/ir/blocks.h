@@ -20,7 +20,7 @@ struct Region {
   std::pmr::vector<uint32_t> arguments = {}; ///< arguments for this region
   std::pmr::vector<uint32_t> results   = {}; ///< results for this region
 
-  std::pmr::vector<nodeid_t> nodes = {}; ///< nodes belonging to this region
+  std::pmr::vector<blockid_t> nodes = {}; ///< nodes belonging to this region
 
   Region(std::pmr::polymorphic_allocator<> alloc): arguments(alloc), results(alloc), nodes(alloc) {}
 };
@@ -33,7 +33,7 @@ enum class eBlockType {
 };
 
 struct Base {
-  nodeid_t   id {};
+  blockid_t   id {};
   eBlockType  type;
   regionid_t parentRegion = {};
 
@@ -78,7 +78,7 @@ class IRBlocks {
   template <typename T, typename... Args>
   requires NodeConcept<T>
   T* __createNode(Args&&... args) {
-    auto const id = nodeid_t((uint32_t)_blocks.size());
+    auto const id = blockid_t((uint32_t)_blocks.size());
 
     Base* block = _blocks.emplace_back(_blocks.get_allocator().new_object<T>(_blocks.get_allocator(), std::forward<Args>(args)...));
     block->id   = id;
@@ -111,12 +111,12 @@ class IRBlocks {
     return rid;
   }
 
-  nodeid_t inline createSimpleNode() {
+  blockid_t inline createSimpleNode() {
     _cfg.addNode();
     return __createNode<SimpleBlock>()->id;
   }
 
-  nodeid_t inline createGammaNode(uint8_t numBranches = 2) {
+  blockid_t inline createGammaNode(uint8_t numBranches = 2) {
     _cfg.addNode();
     auto node = __createNode<GammaBlock>(numBranches);
 
@@ -125,12 +125,12 @@ class IRBlocks {
     return node->id;
   }
 
-  nodeid_t inline createThetaNode() {
+  blockid_t inline createThetaNode() {
     _cfg.addNode();
     return __createNode<ThetaBlock>(createRegion())->id;
   }
 
-  nodeid_t inline createLambdaNode() {
+  blockid_t inline createLambdaNode() {
     _cfg.addNode();
     return __createNode<LambdaNode>(createRegion())->id;
   }
@@ -138,13 +138,13 @@ class IRBlocks {
   // ------------------------------------------------------------
   // Main function
   // ------------------------------------------------------------
-  nodeid_t getMainFunctionId() const { return _mainFunc; }
+  blockid_t getMainFunctionId() const { return _mainFunc; }
 
   LambdaNode const* getMainFunction() const { return getNode<LambdaNode>(_mainFunc); }
 
   LambdaNode* accessMainFunction() { return accessNode<LambdaNode>(_mainFunc); }
 
-  void setMainFunction(nodeid_t id) { _mainFunc = id; }
+  void setMainFunction(blockid_t id) { _mainFunc = id; }
 
   // ------------------------------------------------------------
   // Region
@@ -153,20 +153,20 @@ class IRBlocks {
 
   const Region* getRegion(regionid_t id) const { return &_regions[id.value]; }
 
-  const Base* getNodeBase(nodeid_t id) const { return _blocks[id.value]; }
+  const Base* getBase(blockid_t id) const { return _blocks[id.value]; }
 
-  Base* accessNodeBase(nodeid_t id) { return _blocks[id.value]; }
+  Base* accessBase(blockid_t id) { return _blocks[id.value]; }
 
   template <typename T>
-  T const* getNode(nodeid_t id) const {
+  T const* getNode(blockid_t id) const {
     // todo check types
-    return (T const*)getNodeBase(id);
+    return (T const*)getBase(id);
   }
 
   template <typename T>
-  T* accessNode(nodeid_t id) {
+  T* accessNode(blockid_t id) {
     // todo check types
-    return (T*)accessNodeBase(id);
+    return (T*)accessBase(id);
   }
 
   template <typename Op, typename... Args>
@@ -178,8 +178,8 @@ class IRBlocks {
   // Region membership manipulation
   // ------------------------------------------------------------
 
-  bool regionContains(regionid_t rid, nodeid_t bid) const;
-  void moveNodeToRegion(nodeid_t bid, regionid_t dest);
+  bool contains(regionid_t rid, blockid_t bid) const;
+  void move(blockid_t bid, regionid_t dest);
 
   /**
    * @brief Insert Node src at pos of dst (becomes regionless)
@@ -187,14 +187,14 @@ class IRBlocks {
    * @param src
    * @param dst
    */
-  bool insertNodeToRegion(nodeid_t src, nodeid_t dst);
+  bool insertToRegion(blockid_t src, blockid_t dst);
 
   //------------------------------------------------------------
   //  Block replacement / removal
   // ------------------------------------------------------------
 
-  void replaceBlockInRegion(regionid_t rid, nodeid_t oldB, nodeid_t newB);
-  void removeBlockFromRegion(regionid_t rid, nodeid_t bid);
+  void replaceBlockInRegion(regionid_t rid, blockid_t oldB, blockid_t newB);
+  void removeBlockFromRegion(regionid_t rid, blockid_t bid);
 
   private:
   std::pmr::vector<Base*>  _blocks;
@@ -203,6 +203,6 @@ class IRBlocks {
   ir::IROperations _im;
   ControlFlow            _cfg;
 
-  nodeid_t _mainFunc {};
+  blockid_t _mainFunc {};
 };
 } // namespace compiler::ir::rvsdg

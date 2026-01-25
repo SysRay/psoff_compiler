@@ -20,11 +20,11 @@ struct GraphAdapter {
   ir::ControlFlow& g;
 
   auto getSuccessors(uint32_t idx) const {
-    return g.getSuccessors(ir::nodeid_t {idx}) | std::views::transform([](auto id) { return id.value; });
+    return g.getSuccessors(ir::blockid_t {idx}) | std::views::transform([](auto id) { return id.value; });
   }
 
   auto getPredecessors(uint32_t idx) const {
-    return g.getPredecessors(ir::nodeid_t {idx}) | std::views::transform([](auto id) { return id.value; });
+    return g.getPredecessors(ir::blockid_t {idx}) | std::views::transform([](auto id) { return id.value; });
   }
 
   size_t size() const { return g.size(); }
@@ -65,44 +65,44 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, ir::r
     // Body region contains single entry and single exit
 
     // // Restructure entries to one entry
-    ir::nodeid_t headerId = {};
+    ir::blockid_t headerId = {};
     if (sccEdges.entryEdges.size() > 1) {
       // First value passed to Theta Node is the branch selector value (q-value)
       // redirect all edges to loop and set the branch value
 
       for (uint32_t n = 0; n < sccEdges.entryEdges.size(); ++n) {
         auto const& edge = sccEdges.entryEdges[n];
-        builder.getCfg().redirectEdge(ir::nodeid_t(edge.first), ir::nodeid_t(edge.second), loopId);
+        builder.getCfg().redirectEdge(ir::blockid_t(edge.first), ir::blockid_t(edge.second), loopId);
         // todo branch value
       }
 
       // todo create demux
-      headerId = ir::nodeid_t(sccEdges.entryEdges[0].second);
-      builder.insertNodeToRegion(loopId, headerId);
+      headerId = ir::blockid_t(sccEdges.entryEdges[0].second);
+      builder.insertToRegion(loopId, headerId);
     } else {
-      headerId = ir::nodeid_t(sccEdges.entryEdges[0].second);
-      builder.getCfg().redirectEdge(ir::nodeid_t(sccEdges.entryEdges[0].first), headerId, loopId);
-      builder.insertNodeToRegion(loopId, headerId);
+      headerId = ir::blockid_t(sccEdges.entryEdges[0].second);
+      builder.getCfg().redirectEdge(ir::blockid_t(sccEdges.entryEdges[0].first), headerId, loopId);
+      builder.insertToRegion(loopId, headerId);
     }
 
-    builder.moveNodeToRegion(headerId, loopRegions->id);
+    builder.move(headerId, loopRegions->id);
 
     // // Restructure exits to one exit
 
     // // Special case: already tail based loop -> use node as latch
     // if (sccEdges.exitEdges.size() == 1 && sccEdges.exitEdges[0].first == sccEdges.backEdges[0].first) {
-    //   ir::nodeid_t exitLatchId = ir::nodeid_t(sccEdges.exitEdges[0].first);
+    //   ir::blockid_t exitLatchId = ir::blockid_t(sccEdges.exitEdges[0].first);
 
-    //   builder.removeEdge(exitLatchId, ir::nodeid_t(sccEdges.exitEdges[0].second));
-    //   builder.removeEdge(exitLatchId, ir::nodeid_t(sccEdges.backEdges[0].second));
+    //   builder.removeEdge(exitLatchId, ir::blockid_t(sccEdges.exitEdges[0].second));
+    //   builder.removeEdge(exitLatchId, ir::blockid_t(sccEdges.backEdges[0].second));
     //   // todo branch value
 
-    //   builder.addEdge(loopId, ir::nodeid_t(sccEdges.exitEdges[0].second));
+    //   builder.addEdge(loopId, ir::blockid_t(sccEdges.exitEdges[0].second));
 
     //   // Add nodes to region
     //   for (auto id: std::ranges::reverse_view(scc)) {
     //     if (id == headerId || id == exitLatchId) continue;
-    //     builder.moveNodeToRegion(ir::nodeid_t(id), loopRegions->id);
+    //     builder.moveNodeToRegion(ir::blockid_t(id), loopRegions->id);
     //   }
 
     //   builder.moveNodeToRegion(exitLatchId, loopRegions->id);
@@ -114,13 +114,13 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, ir::r
     // First value returned from theta-node is loop predicate (r-value)
     // (Optional) Second value is for entry selection (q-value)
     // redirect everything to exit latch (Must be one output node)
-    ir::nodeid_t exitLatchId = builder.createSimpleNode();
-    ir::nodeid_t backLatchId = builder.createSimpleNode();
+    ir::blockid_t exitLatchId = builder.createSimpleNode();
+    ir::blockid_t backLatchId = builder.createSimpleNode();
 
     if (sccEdges.backEdges.size() > 0) {
       for (auto const& [from, to]: sccEdges.backEdges) {
-        builder.getCfg().redirectEdge(ir::nodeid_t(from), ir::nodeid_t(to), backLatchId);
-        auto node = builder.accessNode<ir::rvsdg::SimpleBlock>(ir::nodeid_t(backLatchId));
+        builder.getCfg().redirectEdge(ir::blockid_t(from), ir::blockid_t(to), backLatchId);
+        auto node = builder.accessNode<ir::rvsdg::SimpleBlock>(ir::blockid_t(backLatchId));
 
         auto predValue = builder.create<ir::dialect::core::ConstantOp>(ir::dialect::OpDst(), ir::ConstantValue {.value_u64 = 1}, ir::OperandType::i1());
         node->instructions.push_back(predValue);
@@ -132,10 +132,10 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, ir::r
     }
 
     for (auto const& [from, to]: sccEdges.exitEdges) {
-      builder.getCfg().redirectEdge(ir::nodeid_t(from), ir::nodeid_t(to), exitLatchId);
-      builder.getCfg().addEdge(loopId, ir::nodeid_t(to));
+      builder.getCfg().redirectEdge(ir::blockid_t(from), ir::blockid_t(to), exitLatchId);
+      builder.getCfg().addEdge(loopId, ir::blockid_t(to));
 
-      auto node = builder.accessNode<ir::rvsdg::SimpleBlock>(ir::nodeid_t(exitLatchId));
+      auto node = builder.accessNode<ir::rvsdg::SimpleBlock>(ir::blockid_t(exitLatchId));
 
       auto predValue = builder.create<ir::dialect::core::ConstantOp>(ir::dialect::OpDst(), ir::ConstantValue {.value_u64 = 0}, ir::OperandType::i1());
       node->instructions.push_back(predValue);
@@ -151,16 +151,16 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, ir::r
     // Note scc lists reversed nodes -> reverse to get previous order
     for (auto id: std::ranges::reverse_view(scc)) {
       if (id == headerId.value) continue;
-      builder.moveNodeToRegion(ir::nodeid_t(id), loopRegions->id);
+      builder.move(ir::blockid_t(id), loopRegions->id);
     }
 
-    ir::nodeid_t latchId = builder.createSimpleNode(); // one exit node
+    ir::blockid_t latchId = builder.createSimpleNode(); // one exit node
     builder.getCfg().addEdge(backLatchId, latchId);
     builder.getCfg().addEdge(exitLatchId, latchId);
 
-    builder.moveNodeToRegion(backLatchId, loopRegions->id);
-    builder.moveNodeToRegion(exitLatchId, loopRegions->id);
-    builder.moveNodeToRegion(latchId, loopRegions->id);
+    builder.move(backLatchId, loopRegions->id);
+    builder.move(exitLatchId, loopRegions->id);
+    builder.move(latchId, loopRegions->id);
 
     tasks.push_back(loopRegions->id); // Collapse sub region
   }
@@ -192,16 +192,16 @@ static void collapseBranches(util::checkpoint_resource& checkpoint_resource, ir:
     auto const condId = builder.createGammaNode();
     auto       cond   = builder.accessNode<ir::rvsdg::GammaBlock>(condId);
     cond->branches.reserve(succs.size());
-    builder.insertNodeToRegion(condId, ir::nodeid_t(succs[0]));
+    builder.insertToRegion(condId, ir::blockid_t(succs[0]));
 
     // cond->predicate = ; todo change edges, use terminator
 
     // // Find branches
     dom.calculate(GraphAdapter(builder.getCfg()), headerId); // build once on demand
 
-    std::pmr::vector<std::pair<ir::nodeid_t, std::pmr::vector<ir::nodeid_t>>> continuationPoints(&checkpoint_resource);
+    std::pmr::vector<std::pair<ir::blockid_t, std::pmr::vector<ir::blockid_t>>> continuationPoints(&checkpoint_resource);
 
-    std::pmr::vector<ir::nodeid_t> work(&checkpoint_resource);
+    std::pmr::vector<ir::blockid_t> work(&checkpoint_resource);
     work.reserve(64);
     for (uint8_t arc = 0; arc < succs.size(); ++arc) {
       auto regionId = cond->branches.emplace_back(builder.createRegion());
@@ -213,7 +213,7 @@ static void collapseBranches(util::checkpoint_resource& checkpoint_resource, ir:
         // Check if empty arc -> insert dummy node
         // each arc must have min 1 node!
         auto dummyId = builder.createSimpleNode();
-        builder.moveNodeToRegion(dummyId, regionId);
+        builder.move(dummyId, regionId);
         builder.getCfg().redirectEdge(headerId, arcStartNode, dummyId);
         builder.getCfg().addEdge(dummyId, arcStartNode);
 
@@ -222,13 +222,13 @@ static void collapseBranches(util::checkpoint_resource& checkpoint_resource, ir:
 
       work.push_back(arcStartNode);
 
-      std::pmr::vector<std::pair<ir::nodeid_t, ir::nodeid_t>> exits(&checkpoint_resource);
+      std::pmr::vector<std::pair<ir::blockid_t, ir::blockid_t>> exits(&checkpoint_resource);
       while (!work.empty()) {
         auto const v = work.back();
         work.pop_back();
 
         auto const& items = builder.getCfg().getSuccessors(v);
-        if (items.size() > 0) builder.moveNodeToRegion(v, regionId);
+        if (items.size() > 0) builder.move(v, regionId);
 
         for (auto to: items) {
           auto idom = dom.get_idom(to);
@@ -253,7 +253,7 @@ static void collapseBranches(util::checkpoint_resource& checkpoint_resource, ir:
       } else if (exits.size() > 1) {
         // Multiple: create dummy node as new exit
         auto dummyId = builder.createSimpleNode();
-        builder.moveNodeToRegion(dummyId, regionId);
+        builder.move(dummyId, regionId);
 
         for (auto const [from, to]: exits) {
           builder.getCfg().redirectEdge(from, to, dummyId);
@@ -263,7 +263,7 @@ static void collapseBranches(util::checkpoint_resource& checkpoint_resource, ir:
 
     // // Find tail
 
-    ir::nodeid_t tailId = {};
+    ir::blockid_t tailId = {};
     if (continuationPoints.size() == 1) { // Special case:  One cp -> use as tail
       tailId = continuationPoints.front().first;
     } else {

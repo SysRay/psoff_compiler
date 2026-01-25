@@ -19,13 +19,13 @@ class ControlFlow {
     _predecessors.reserve(expectedBlocks);
   }
 
-  auto& accessSuccessors(nodeid_t id) { return _successors[id.value]; }
+  auto& accessSuccessors(blockid_t id) { return _successors[id.value]; }
 
-  auto& accessPredecessors(nodeid_t id) { return _predecessors[id.value]; }
+  auto& accessPredecessors(blockid_t id) { return _predecessors[id.value]; }
 
-  std::span<const nodeid_t> getSuccessors(nodeid_t id) const { return _successors[id.value]; }
+  std::span<const blockid_t> getSuccessors(blockid_t id) const { return _successors[id.value]; }
 
-  std::span<const nodeid_t> getPredecessors(nodeid_t id) const { return _predecessors[id.value]; }
+  std::span<const blockid_t> getPredecessors(blockid_t id) const { return _predecessors[id.value]; }
 
   void addNode() {
     _successors.emplace_back();
@@ -38,14 +38,14 @@ class ControlFlow {
   // Block edge manipulation
   // ------------------------------------------------------------
 
-  void addEdge(nodeid_t from, nodeid_t to);
-  void removeEdge(nodeid_t from, nodeid_t to);
-  void redirectEdge(nodeid_t from, nodeid_t oldSucc, nodeid_t newSucc);
-  void redirectEdgeReversed(nodeid_t oldPred, nodeid_t to, nodeid_t newPred);
+  void addEdge(blockid_t from, blockid_t to);
+  void removeEdge(blockid_t from, blockid_t to);
+  void redirectEdge(blockid_t from, blockid_t oldSucc, blockid_t newSucc);
+  void redirectEdgeReversed(blockid_t oldPred, blockid_t to, blockid_t newPred);
 
   private:
-  std::pmr::vector<std::pmr::vector<nodeid_t>> _successors;
-  std::pmr::vector<std::pmr::vector<nodeid_t>> _predecessors;
+  std::pmr::vector<std::pmr::vector<blockid_t>> _successors;
+  std::pmr::vector<std::pmr::vector<blockid_t>> _predecessors;
 };
 
 } // namespace compiler::ir
