@@ -8,9 +8,8 @@ add_library(psOff_recompiler STATIC
   ir/dialects/core/builder.cpp
   ir/dialects/arith/builder.cpp
 
-  cfg/cfg.cpp
-  cfg/rvsdg.cpp
-  cfg/debug_strings.cpp
+  ir/cfg.cpp
+  ir/rvsdg.cpp
   analysis/debug_string.cpp
   transform/restructure.cpp
 

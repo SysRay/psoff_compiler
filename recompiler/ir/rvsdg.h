@@ -1,59 +1,17 @@
 #pragma once
 
+#include "cfg.h"
 #include "ir/ir.h"
+#include "types.h"
 
 #include <assert.h>
 #include <limits>
 #include <memory_resource>
+#include <span>
 #include <variant>
 #include <vector>
 
-namespace compiler::cfg::rvsdg {
-
-struct nodeid_t {
-  using underlying_t = uint32_t;
-
-  static inline constexpr nodeid_t NO_VALUE() { return nodeid_t(std::numeric_limits<underlying_t>::max()); };
-
-  underlying_t value = NO_VALUE().value;
-
-  constexpr nodeid_t() = default;
-
-  constexpr explicit nodeid_t(underlying_t v): value(v) {}
-
-  constexpr operator underlying_t() const { return value; }
-
-  constexpr bool operator==(nodeid_t const&) const = default;
-
-  constexpr bool isValid() const { return value != NO_VALUE().value; }
-};
-
-struct edge_t {
-  nodeid_t from;
-  nodeid_t to;
-
-  constexpr operator std::pair<nodeid_t, nodeid_t>() const { return {from, to}; }
-
-  constexpr bool operator==(const edge_t&) const = default;
-
-  edge_t(nodeid_t from, nodeid_t to): from(from), to(to) {}
-
-  edge_t(nodeid_t::underlying_t from, nodeid_t::underlying_t to): from(nodeid_t(from)), to(nodeid_t(to)) {}
-};
-
-struct regionid_t {
-  using underlying_t = uint32_t;
-
-  underlying_t value = std::numeric_limits<underlying_t>::max();
-
-  constexpr regionid_t() = default;
-
-  constexpr explicit regionid_t(underlying_t v): value(v) {}
-
-  constexpr operator underlying_t() const { return value; }
-
-  bool isValid() const { return value != std::numeric_limits<underlying_t>::max(); }
-};
+namespace compiler::ir::rvsdg {
 
 struct Region {
   regionid_t id {};
@@ -94,7 +52,7 @@ struct GammaNode: Base {
   InputOperandId_t             predicate {};
   std::pmr::vector<regionid_t> branches = {}; ///< subregions
 
-  GammaNode(std::pmr::polymorphic_allocator<> alloc): Base(eNodeType::GammaNode), branches(alloc) {}
+  GammaNode(std::pmr::polymorphic_allocator<> alloc, uint8_t numBranches): Base(eNodeType::GammaNode), branches(numBranches, alloc) {}
 };
 
 struct ThetaNode: Base {
@@ -113,8 +71,22 @@ template <typename T>
 concept NodeConcept = std::derived_from<T, Base>;
 
 class Builder {
+  CLASS_NO_COPY(Builder);
+  CLASS_NO_MOVE(Builder);
+
+  template <typename T, typename... Args>
+  requires NodeConcept<T>
+  T* __createNode(Args&&... args) {
+    auto const id = nodeid_t((uint32_t)_blocks.size());
+
+    Base* block = _blocks.emplace_back(_blocks.get_allocator().new_object<T>(_blocks.get_allocator(), std::forward<Args>(args)...));
+    block->id   = id;
+
+    return (T*)block;
+  }
+
   public:
-  Builder(std::pmr::polymorphic_allocator<> allocator, size_t expectedBlocks) {
+  Builder(std::pmr::polymorphic_allocator<> allocator, size_t expectedBlocks): _im(allocator), _cfg(allocator) {
     _blocks.reserve(expectedBlocks);
     _regions.reserve(64);
   }
@@ -123,6 +95,14 @@ class Builder {
 
   inline size_t regionCount() const { return _regions.size(); }
 
+  inline auto& getInstructions() { return _im; }
+
+  inline auto const& getInstructions() const { return _im; }
+
+  inline auto& getCfg() { return _cfg; }
+
+  inline auto const& getCfg() const { return _cfg; }
+
   regionid_t createRegion() {
     auto rid = regionid_t((uint32_t)_regions.size());
     _regions.emplace_back(_regions.get_allocator());
@@ -130,15 +110,28 @@ class Builder {
     return rid;
   }
 
-  template <typename T, typename... Args>
-  requires NodeConcept<T>
-  nodeid_t __createNode(Args&&... args) {
-    auto const id = nodeid_t((uint32_t)_blocks.size());
+  nodeid_t inline createSimpleNode() {
+    _cfg.addNode();
+    return __createNode<SimpleNode>()->id;
+  }
 
-    Base* block = _blocks.emplace_back(_blocks.get_allocator().new_object<T>(_blocks.get_allocator(), std::forward<Args>(args)...));
-    block->id   = id;
+  nodeid_t inline createGammaNode(uint8_t numBranches = 2) {
+    _cfg.addNode();
+    auto node = __createNode<GammaNode>(numBranches);
 
-    return id;
+    for (auto& branch: node->branches)
+      branch = createRegion();
+    return node->id;
+  }
+
+  nodeid_t inline createThetaNode() {
+    _cfg.addNode();
+    return __createNode<ThetaNode>(createRegion())->id;
+  }
+
+  nodeid_t inline createLambdaNode() {
+    _cfg.addNode();
+    return __createNode<LambdaNode>(createRegion())->id;
   }
 
   // ------------------------------------------------------------
@@ -175,6 +168,11 @@ class Builder {
     return (T*)accessNodeBase(id);
   }
 
+  template <typename Op, typename... Args>
+  inline auto create(Args&&... args) {
+    return Op::create(_im, std::forward<Args>(args)...);
+  }
+
   // ------------------------------------------------------------
   // Region membership manipulation
   // ------------------------------------------------------------
@@ -201,6 +199,9 @@ class Builder {
   std::pmr::vector<Base*>  _blocks;
   std::pmr::vector<Region> _regions;
 
+  ir::InstructionManager _im;
+  ControlFlow            _cfg;
+
   nodeid_t _mainFunc {};
 };
-} // namespace compiler::cfg::rvsdg
+} // namespace compiler::ir::rvsdg

@@ -1,6 +1,6 @@
-#include "cfg/cfg.h"
 #include "frontend/analysis/regions.h"
 #include "frontend/transform/transform.h"
+#include "ir/rvsdg.h"
 
 #include <gtest/gtest.h>
 
@@ -15,22 +15,22 @@ class RegionBuilderTest: public ::testing::Test {
 };
 
 using namespace compiler::frontend::analysis;
-using namespace compiler::cfg;
+using namespace compiler::ir;
 
-static bool hasSucc(const ControlFlow& cfg, rvsdg::nodeid_t::underlying_t from, rvsdg::nodeid_t::underlying_t to) {
-  for (auto s: cfg.getSuccessors(rvsdg::nodeid_t(from)))
+static bool hasSucc(const ControlFlow& cfg, nodeid_t::underlying_t from, nodeid_t::underlying_t to) {
+  for (auto s: cfg.getSuccessors(nodeid_t(from)))
     if (s == to) return true;
   return false;
 }
 
-static bool hasPred(const ControlFlow& cfg, rvsdg::nodeid_t::underlying_t to, rvsdg::nodeid_t::underlying_t from) {
-  for (auto p: cfg.getPredecessors(rvsdg::nodeid_t(to)))
+static bool hasPred(const ControlFlow& cfg, nodeid_t::underlying_t to, nodeid_t::underlying_t from) {
+  for (auto p: cfg.getPredecessors(nodeid_t(to)))
     if (p == from) return true;
   return false;
 }
 
-static bool succEquals(const ControlFlow& cfg, rvsdg::nodeid_t::underlying_t id, std::initializer_list<uint32_t> expected) {
-  auto succs = cfg.getSuccessors(rvsdg::nodeid_t(id));
+static bool succEquals(const ControlFlow& cfg, nodeid_t::underlying_t id, std::initializer_list<uint32_t> expected) {
+  auto succs = cfg.getSuccessors(nodeid_t(id));
   if (succs.size() != expected.size()) return false;
 
   size_t i = 0;
@@ -62,18 +62,18 @@ TEST_F(RegionBuilderTest, InitialRegionCreation) {
 
   EXPECT_EQ(builder.getNumRegions(), 1);
 
-  auto [start, end] = builder.getRegion(regionid_t(0));
+  auto [start, end] = builder.getRegion(compiler::frontend::analysis::regionid_t(0));
   EXPECT_EQ(start, 0);
   EXPECT_EQ(end, 100);
 
   // Test CFG creation
   auto cfg = compiler::frontend::transform::transformRg2Cfg(allocator, builder, instructions);
 
-  ASSERT_EQ(cfg.nodes()->regionCount(), 1);
-  auto rootRegion = cfg.nodes()->getRegion(cfg.nodes()->getNode<rvsdg::LambdaNode>(cfg.nodes()->getMainFunctionId())->body);
+  ASSERT_EQ(cfg.getCfg().size(), 1);
+  auto rootRegion = cfg.getRegion(cfg.getNode<rvsdg::LambdaNode>(cfg.getMainFunctionId())->body);
   ASSERT_EQ(rootRegion->nodes.size(), 2); // code regions + stop
 
-  EXPECT_TRUE(succEquals(cfg, rootRegion->nodes.begin()->value, {rootRegion->nodes.back().value}));
+  EXPECT_TRUE(succEquals(cfg.getCfg(), rootRegion->nodes.begin()->value, {rootRegion->nodes.back().value}));
 }
 
 TEST_F(RegionBuilderTest, SimpleJumpSplitsRegions) {
@@ -96,20 +96,20 @@ TEST_F(RegionBuilderTest, SimpleJumpSplitsRegions) {
   EXPECT_EQ(regions[2].start, 50);
   EXPECT_EQ(regions[2].end, 100);
 
-  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(0)), {2}));
-  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(1)), {2}));
-  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(2)), {}));
+  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(compiler::frontend::analysis::regionid_t(0)), {2}));
+  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(compiler::frontend::analysis::regionid_t(1)), {2}));
+  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(compiler::frontend::analysis::regionid_t(2)), {}));
 
   // Test CFG creation
   auto cfg = compiler::frontend::transform::transformRg2Cfg(allocator, builder, instructions);
 
-  ASSERT_EQ(cfg.nodes()->regionCount(), 1);
-  auto rootRegion = cfg.nodes()->getRegion(cfg.nodes()->getNode<rvsdg::LambdaNode>(cfg.nodes()->getMainFunctionId())->body);
+  ASSERT_EQ(cfg.regionCount(), 1);
+  auto rootRegion = cfg.getRegion(cfg.getNode<rvsdg::LambdaNode>(cfg.getMainFunctionId())->body);
   ASSERT_EQ(rootRegion->nodes.size(), 1 + 3);
 
-  EXPECT_TRUE(succEquals(cfg, rootRegion->nodes.front().value, {offsetId + 2}));
-  EXPECT_TRUE(succEquals(cfg, offsetId + 1, {offsetId + 2})); // Falltrough
-  EXPECT_TRUE(succEquals(cfg, offsetId + 2, {rootRegion->nodes.back().value}));
+  EXPECT_TRUE(succEquals(cfg.getCfg(), rootRegion->nodes.front().value, {offsetId + 2}));
+  EXPECT_TRUE(succEquals(cfg.getCfg(), offsetId + 1, {offsetId + 2})); // Falltrough
+  EXPECT_TRUE(succEquals(cfg.getCfg(), offsetId + 2, {rootRegion->nodes.back().value}));
 }
 
 TEST_F(RegionBuilderTest, ConditionalJumpCreatesMultipleSuccessors) {
@@ -135,25 +135,25 @@ TEST_F(RegionBuilderTest, ConditionalJumpCreatesMultipleSuccessors) {
   EXPECT_EQ(regions[2].end, 100);
 
   // Conditional jump: should have both successors
-  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(0)), {1, 2}));
-  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(1)), {2}));
-  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(2)), {}));
+  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(compiler::frontend::analysis::regionid_t(0)), {1, 2}));
+  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(compiler::frontend::analysis::regionid_t(1)), {2}));
+  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(compiler::frontend::analysis::regionid_t(2)), {}));
 
   // Test CFG creation
   auto cfg = compiler::frontend::transform::transformRg2Cfg(allocator, builder, instructions);
 
-  ASSERT_EQ(cfg.nodes()->regionCount(), 1);
-  auto rootRegion = cfg.nodes()->getRegion(cfg.nodes()->getNode<rvsdg::LambdaNode>(cfg.nodes()->getMainFunctionId())->body);
+  ASSERT_EQ(cfg.regionCount(), 1);
+  auto rootRegion = cfg.getRegion(cfg.getNode<rvsdg::LambdaNode>(cfg.getMainFunctionId())->body);
   ASSERT_EQ(rootRegion->nodes.size(), 1 + 4);
 
-  EXPECT_EQ(cfg.getSuccessors(rootRegion->nodes.front()).size(), 2);
-  EXPECT_TRUE(hasSucc(cfg, rootRegion->nodes.front(), offsetId + 1));
-  EXPECT_FALSE(hasSucc(cfg, rootRegion->nodes.front(), offsetId + 2)); // needs dummy!
-  EXPECT_TRUE(hasSucc(cfg, rootRegion->nodes.front(), offsetId + 3));
-  EXPECT_TRUE(succEquals(cfg, offsetId + 3, {offsetId + 2}));
+  EXPECT_EQ(cfg.getCfg().getSuccessors(rootRegion->nodes.front()).size(), 2);
+  EXPECT_TRUE(hasSucc(cfg.getCfg(), rootRegion->nodes.front(), offsetId + 1));
+  EXPECT_FALSE(hasSucc(cfg.getCfg(), rootRegion->nodes.front(), offsetId + 2)); // needs dummy!
+  EXPECT_TRUE(hasSucc(cfg.getCfg(), rootRegion->nodes.front(), offsetId + 3));
+  EXPECT_TRUE(succEquals(cfg.getCfg(), offsetId + 3, {offsetId + 2}));
 
-  EXPECT_TRUE(succEquals(cfg, offsetId + 1, {offsetId + 2})); // Falltrough
-  EXPECT_TRUE(succEquals(cfg, offsetId + 2, {rootRegion->nodes.back().value}));
+  EXPECT_TRUE(succEquals(cfg.getCfg(), offsetId + 1, {offsetId + 2})); // Falltrough
+  EXPECT_TRUE(succEquals(cfg.getCfg(), offsetId + 2, {rootRegion->nodes.back().value}));
 }
 
 TEST_F(RegionBuilderTest, ReturnStopsFlow) {
@@ -173,8 +173,8 @@ TEST_F(RegionBuilderTest, ReturnStopsFlow) {
   EXPECT_EQ(regions[1].end, 100);
 
   // Return means no successors
-  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(0)), {}));
-  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(1)), {}));
+  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(compiler::frontend::analysis::regionid_t(0)), {}));
+  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(compiler::frontend::analysis::regionid_t(1)), {}));
 }
 
 TEST_F(RegionBuilderTest, MultipleJumps) {
@@ -201,10 +201,10 @@ TEST_F(RegionBuilderTest, MultipleJumps) {
   EXPECT_EQ(regions[3].start, 70);
   EXPECT_EQ(regions[3].end, 100);
 
-  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(0)), {2}));
-  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(1)), {3}));
-  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(2)), {3}));
-  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(3)), {}));
+  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(compiler::frontend::analysis::regionid_t(0)), {2}));
+  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(compiler::frontend::analysis::regionid_t(1)), {3}));
+  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(compiler::frontend::analysis::regionid_t(2)), {3}));
+  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(compiler::frontend::analysis::regionid_t(3)), {}));
 
   // using region_id
   EXPECT_TRUE(isEqual(collectPreds(builder, 0), {}));
@@ -233,9 +233,9 @@ TEST_F(RegionBuilderTest, BackwardJumpCreatesLoop) {
   EXPECT_EQ(regions[2].start, 50);
   EXPECT_EQ(regions[2].end, 100);
 
-  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(0)), {1}));
-  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(1)), {1})); // Loop to self
-  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(regionid_t(2)), {1}));
+  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(compiler::frontend::analysis::regionid_t(0)), {1}));
+  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(compiler::frontend::analysis::regionid_t(1)), {1})); // Loop to self
+  EXPECT_TRUE(isEqual(builder.getSuccessorsIdx(compiler::frontend::analysis::regionid_t(2)), {1}));
 }
 
 TEST_F(RegionBuilderTest, ComplexControlFlow) {

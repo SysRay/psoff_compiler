@@ -147,4 +147,49 @@ struct OperandTypeHash {
   auto operator()(const OperandType& t) const noexcept { return std::hash<OperandType_t> {}(t.packed()); }
 };
 
+struct nodeid_t {
+  using underlying_t = uint32_t;
+
+  static inline constexpr nodeid_t NO_VALUE() { return nodeid_t(std::numeric_limits<underlying_t>::max()); };
+
+  underlying_t value = NO_VALUE().value;
+
+  constexpr nodeid_t() = default;
+
+  constexpr explicit nodeid_t(underlying_t v): value(v) {}
+
+  constexpr operator underlying_t() const { return value; }
+
+  constexpr bool operator==(nodeid_t const&) const = default;
+
+  constexpr bool isValid() const { return value != NO_VALUE().value; }
+};
+
+struct edge_t {
+  nodeid_t from;
+  nodeid_t to;
+
+  constexpr operator std::pair<nodeid_t, nodeid_t>() const { return {from, to}; }
+
+  constexpr bool operator==(const edge_t&) const = default;
+
+  edge_t(nodeid_t from, nodeid_t to): from(from), to(to) {}
+
+  edge_t(nodeid_t::underlying_t from, nodeid_t::underlying_t to): from(nodeid_t(from)), to(nodeid_t(to)) {}
+};
+
+struct regionid_t {
+  using underlying_t = uint32_t;
+
+  underlying_t value = std::numeric_limits<underlying_t>::max();
+
+  constexpr regionid_t() = default;
+
+  constexpr explicit regionid_t(underlying_t v): value(v) {}
+
+  constexpr operator underlying_t() const { return value; }
+
+  bool isValid() const { return value != std::numeric_limits<underlying_t>::max(); }
+};
+
 } // namespace compiler::ir

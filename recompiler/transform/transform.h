@@ -2,10 +2,10 @@
 
 #include "include/checkpoint_resource_fwd.h"
 
-namespace compiler::cfg {
-class ControlFlow;
+namespace compiler::ir::rvsdg {
+class Builder;
 }
 
 namespace compiler::transform {
-void restructureCfg(util::checkpoint_resource& checkpoint_resource, cfg::ControlFlow& cfg);
+void restructureCfg(util::checkpoint_resource& checkpoint_resource, ir::rvsdg::Builder& builder);
 } // namespace compiler::transform

@@ -2,15 +2,15 @@
 
 #include <assert.h>
 
-namespace compiler::cfg::rvsdg {
-bool Builder::regionContains(rvsdg::regionid_t rid, rvsdg::nodeid_t bid) const {
+namespace compiler::ir::rvsdg {
+bool Builder::regionContains(regionid_t rid, nodeid_t bid) const {
   const auto& R = _regions[rid.value];
   for (auto b: R.nodes)
     if (b == bid) return true;
   return false;
 }
 
-void Builder::moveNodeToRegion(rvsdg::nodeid_t bid, rvsdg::regionid_t dst) {
+void Builder::moveNodeToRegion(nodeid_t bid, regionid_t dst) {
   assert(bid.isValid() && dst.isValid());
   auto base = accessNodeBase(bid);
   if (base->parentRegion == dst) return;
@@ -47,7 +47,7 @@ bool Builder::insertNodeToRegion(nodeid_t src, nodeid_t dst) {
   return true;
 }
 
-void Builder::replaceBlockInRegion(rvsdg::regionid_t rid, rvsdg::nodeid_t oldB, rvsdg::nodeid_t newB) {
+void Builder::replaceBlockInRegion(regionid_t rid, nodeid_t oldB, nodeid_t newB) {
   auto& list = _regions[rid.value].nodes;
   for (auto& b: list)
     if (b == oldB) {
@@ -56,8 +56,8 @@ void Builder::replaceBlockInRegion(rvsdg::regionid_t rid, rvsdg::nodeid_t oldB, 
     }
 }
 
-void Builder::removeBlockFromRegion(rvsdg::regionid_t rid, rvsdg::nodeid_t bid) {
+void Builder::removeBlockFromRegion(regionid_t rid, nodeid_t bid) {
   auto& list = _regions[rid.value].nodes;
   list.erase(std::remove(list.begin(), list.end(), bid), list.end());
 }
-} // namespace compiler::cfg::rvsdg
+} // namespace compiler::ir::rvsdg

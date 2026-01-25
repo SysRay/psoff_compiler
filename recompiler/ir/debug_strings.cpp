@@ -1,8 +1,8 @@
 #include "debug_strings.h"
 
-#include "cfg/cfg.h"
 #include "dialects/dialects.h"
 #include "frontend/debug_strings.h"
+#include "rvsdg.h"
 
 #include <assert.h>
 #include <bit>
@@ -115,5 +115,121 @@ void getDebug(std::ostream& os, InstructionManager const& im, InstCore const& op
 
     default: return getDebug_generic(os, im, op);
   }
+}
+
+void dumpBlock(std::ostream& os, const rvsdg::Builder& builder, nodeid_t bid, const std::string& indent) {
+  const auto* B = builder.getNodeBase(bid);
+
+  // Block header: ^bbX:
+  os << indent << "^bb" << B->id.value << ":\n";
+
+  // Print successors
+  auto succs = builder.getCfg().getSuccessors(bid);
+  if (!succs.empty()) {
+    os << indent << "  successors:";
+    for (auto s: succs)
+      os << " ^bb" << s.value;
+    os << "\n";
+  }
+}
+
+static void dumpNode(std::ostream& os, const rvsdg::Builder& builder, nodeid_t bid, const std::string& indent);
+
+void dumpRegion(std::ostream& os, const rvsdg::Builder& builder, regionid_t rid, const std::string& indent) {
+  auto R = builder.getRegion(rid);
+
+  os << indent << "region @" << R->id.value << ":\n";
+
+  // // Entry block comment
+  // if (R->entry.isValid()) os << indent << "  // entry: ^bb" << R->entry.value << "\n";
+
+  // Dump blocks in region order
+  for (auto bid: R->nodes)
+    dumpNode(os, builder, bid, indent + "  ");
+
+  // // Exit block comment
+  // if (R->exit.isValid()) os << indent << "  // exit: ^bb" << R->exit.value << "\n";
+
+  os << indent << "}\n";
+}
+
+void dumpNode(std::ostream& os, const rvsdg::Builder& builder, nodeid_t bid, const std::string& indent) {
+  const auto* B = builder.getNodeBase(bid);
+
+  os << indent << "^bb" << B->id;
+
+  using namespace rvsdg;
+  switch (B->type) {
+    case eNodeType::SimpleNode: {
+      auto node = builder.getNode<SimpleNode>(B->id);
+      os << " Simple {\n";
+
+      auto& im = builder.getInstructions();
+      for (auto id: node->instructions) {
+        os << indent << "  ";
+        ir::debug::getDebug(os, im, im.getInstr(id));
+      }
+    } break;
+    case eNodeType::GammaNode: {
+      auto node = builder.getNode<GammaNode>(B->id);
+      os << " Gamma ";
+
+      os << "{\n";
+      for (uint32_t n = 0; n < node->branches.size(); ++n) {
+        dumpRegion(os, builder, node->branches[n], indent + "  ");
+      }
+    } break;
+    case eNodeType::ThetaNode: {
+      auto node = builder.getNode<ThetaNode>(B->id);
+      os << " Theta {\n";
+      dumpRegion(os, builder, node->body, indent + "  ");
+    } break;
+    case eNodeType::LambdaNode: {
+      auto node = builder.getNode<LambdaNode>(B->id);
+      os << " Lambda {\n";
+      dumpRegion(os, builder, node->body, indent + "  ");
+    } break;
+  }
+
+  if (!B->outputs.empty()) {
+    os << indent << "  Outputs: ";
+    for (uint8_t n = 0; n < B->outputs.size(); ++n) {
+      auto const& item = builder.getInstructions().getOperand(B->outputs[n]);
+      if (item.isSSA()) {
+        os << "%" << item.ssaId;
+      } else {
+        os << "unset";
+      }
+      if (n < B->outputs.size() - 1) os << ", ";
+    }
+
+    os << "   (";
+    for (uint8_t n = 0; n < B->outputs.size(); ++n) {
+      auto const& item = builder.getInstructions().getOperand(B->outputs[n]);
+      frontend::debug::printType(os, item.type);
+      if (n < B->outputs.size() - 1) os << ", ";
+    }
+    os << ")";
+  }
+  os << std::endl;
+
+  auto succs = builder.getCfg().getSuccessors(bid);
+  if (!succs.empty()) {
+    os << indent << "  successors:";
+    for (auto s: succs)
+      os << " ^bb" << s.value;
+    os << std::endl;
+  }
+  os << indent << "}\n";
+}
+
+void dumpCFG(std::ostream& os, const rvsdg::Builder& builder) {
+  os << "builder {\n";
+
+  if (builder.getMainFunctionId().isValid()) {
+    dumpNode(os, builder, builder.getMainFunctionId(), "  ");
+  }
+
+  os << "}\n";
 }
 } // namespace compiler::ir::debug

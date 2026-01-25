@@ -2,6 +2,7 @@
 
 #include "include/flags.h"
 #include "types.h"
+#include "utility/util.h"
 
 #include <array>
 #include <deque>
@@ -114,6 +115,9 @@ struct ConstantValue {
 };
 
 class InstructionManager {
+  CLASS_NO_COPY(InstructionManager);
+  CLASS_NO_MOVE(InstructionManager);
+
   public:
   InstructionManager(std::pmr::polymorphic_allocator<> allocator, size_t expectedInstructions = 256)
       : _instructions(allocator), _outputs(allocator), _inputs(allocator), _constants(allocator), _ssa(allocator) {
