@@ -4,7 +4,7 @@
 #include "include/common.h"
 #include "ir/debug_strings.h"
 #include "ir/dialects/core/builder.h"
-#include "ir/rvsdg.h"
+#include "ir/blocks.h"
 #include "logging.h"
 #include "transform.h"
 
@@ -32,7 +32,7 @@ struct GraphAdapter {
   GraphAdapter(ir::ControlFlow& g): g(g) {}
 };
 
-static void collapseCycles(util::checkpoint_resource& checkpoint_resource, ir::rvsdg::Builder& builder, std::pmr::vector<ir::regionid_t>& tasks,
+static void collapseCycles(util::checkpoint_resource& checkpoint_resource, ir::rvsdg::IRBlocks& builder, std::pmr::vector<ir::regionid_t>& tasks,
                            ir::regionid_t regionId) {
   // 1. Find SCCs
   // 2. find entries, exits and back edges
@@ -56,7 +56,7 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, ir::r
     }
 
     auto const loopId = builder.createThetaNode();
-    auto       loop   = builder.accessNode<ir::rvsdg::ThetaNode>(loopId);
+    auto       loop   = builder.accessNode<ir::rvsdg::ThetaBlock>(loopId);
 
     auto loopRegions = builder.accessRegion(loop->body);
     loopRegions->nodes.reserve(1 + scc.size()); //  exit + sccNodes
@@ -120,7 +120,7 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, ir::r
     if (sccEdges.backEdges.size() > 0) {
       for (auto const& [from, to]: sccEdges.backEdges) {
         builder.getCfg().redirectEdge(ir::nodeid_t(from), ir::nodeid_t(to), backLatchId);
-        auto node = builder.accessNode<ir::rvsdg::SimpleNode>(ir::nodeid_t(backLatchId));
+        auto node = builder.accessNode<ir::rvsdg::SimpleBlock>(ir::nodeid_t(backLatchId));
 
         auto predValue = builder.create<ir::dialect::core::ConstantOp>(ir::dialect::OpDst(), ir::ConstantValue {.value_u64 = 1}, ir::OperandType::i1());
         node->instructions.push_back(predValue);
@@ -135,7 +135,7 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, ir::r
       builder.getCfg().redirectEdge(ir::nodeid_t(from), ir::nodeid_t(to), exitLatchId);
       builder.getCfg().addEdge(loopId, ir::nodeid_t(to));
 
-      auto node = builder.accessNode<ir::rvsdg::SimpleNode>(ir::nodeid_t(exitLatchId));
+      auto node = builder.accessNode<ir::rvsdg::SimpleBlock>(ir::nodeid_t(exitLatchId));
 
       auto predValue = builder.create<ir::dialect::core::ConstantOp>(ir::dialect::OpDst(), ir::ConstantValue {.value_u64 = 0}, ir::OperandType::i1());
       node->instructions.push_back(predValue);
@@ -166,7 +166,7 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, ir::r
   }
 }
 
-static void collapseBranches(util::checkpoint_resource& checkpoint_resource, ir::rvsdg::Builder& builder, std::pmr::vector<ir::regionid_t>& tasks,
+static void collapseBranches(util::checkpoint_resource& checkpoint_resource, ir::rvsdg::IRBlocks& builder, std::pmr::vector<ir::regionid_t>& tasks,
                              ir::regionid_t regionId) {
   //  1. Find conditional branch
   //  2. Get merge point from post dominator
@@ -190,7 +190,7 @@ static void collapseBranches(util::checkpoint_resource& checkpoint_resource, ir:
     }
 
     auto const condId = builder.createGammaNode();
-    auto       cond   = builder.accessNode<ir::rvsdg::GammaNode>(condId);
+    auto       cond   = builder.accessNode<ir::rvsdg::GammaBlock>(condId);
     cond->branches.reserve(succs.size());
     builder.insertNodeToRegion(condId, ir::nodeid_t(succs[0]));
 
@@ -286,7 +286,7 @@ static void collapseBranches(util::checkpoint_resource& checkpoint_resource, ir:
   }
 }
 
-void restructureCfg(util::checkpoint_resource& checkpoint_resource, ir::rvsdg::Builder& builder) {
+void restructureCfg(util::checkpoint_resource& checkpoint_resource, ir::rvsdg::IRBlocks& builder) {
   auto checkpoint = checkpoint_resource.checkpoint();
 
   std::pmr::vector<ir::regionid_t> tasks;

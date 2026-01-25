@@ -2,7 +2,7 @@
 
 namespace compiler::ir::dialect::arith {
 
-static inline OutputOperand& createOp(InstructionManager& ir, OutputOperandId_t id, OpDst const& rhs, OperandType type) {
+static inline OutputOperand& createOp(IROperations& ir, OutputOperandId_t id, OpDst const& rhs, OperandType type) {
   auto& op = ir.getOperand(id);
 
   op.kind  = rhs.kind;
@@ -11,7 +11,7 @@ static inline OutputOperand& createOp(InstructionManager& ir, OutputOperandId_t 
   return op;
 }
 
-static inline InputOperand& createOp(InstructionManager& ir, InputOperandId_t id, OpSrc const& rhs, OperandType type) {
+static inline InputOperand& createOp(IROperations& ir, InputOperandId_t id, OpSrc const& rhs, OperandType type) {
   auto& op = ir.getOperand(id);
 
   op.kind  = rhs.kind;
@@ -21,21 +21,21 @@ static inline InputOperand& createOp(InstructionManager& ir, InputOperandId_t id
   return op;
 }
 
-IRResult BitReverseOp::create(InstructionManager& ir, OpDst dst, OpSrc src, OperandType type) {
+IRResult BitReverseOp::create(IROperations& ir, OpDst dst, OpSrc src, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::BitReverseOp));
   createOp(ir, ir.getSrc(id, 0), src, type);
   createOp(ir, ir.getDst(id, 0), dst, type);
   return IRResult(ir, id);
 }
 
-IRResult BitCountOp::create(InstructionManager& ir, OpDst dst, OpSrc src, OperandType type) {
+IRResult BitCountOp::create(IROperations& ir, OpDst dst, OpSrc src, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::BitCountOp));
   createOp(ir, ir.getSrc(id, 0), src, type);
   createOp(ir, ir.getDst(id, 0), dst, type);
   return IRResult(ir, id);
 }
 
-IRResult BitFieldMaskOp::create(InstructionManager& ir, OpDst dst, OpSrc size, OpSrc offset, OperandType type) {
+IRResult BitFieldMaskOp::create(IROperations& ir, OpDst dst, OpSrc size, OpSrc offset, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::BitFieldMaskOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), size, OperandType::i32());
@@ -43,7 +43,7 @@ IRResult BitFieldMaskOp::create(InstructionManager& ir, OpDst dst, OpSrc size, O
   return IRResult(ir, id);
 }
 
-IRResult BitAndOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
+IRResult BitAndOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::BitAndOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -51,7 +51,7 @@ IRResult BitAndOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc s
   return IRResult(ir, id);
 }
 
-IRResult BitOrOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
+IRResult BitOrOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::BitOrOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -59,7 +59,7 @@ IRResult BitOrOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc sr
   return IRResult(ir, id);
 }
 
-IRResult BitXorOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
+IRResult BitXorOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::BitXorOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -67,28 +67,28 @@ IRResult BitXorOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc s
   return IRResult(ir, id);
 }
 
-IRResult FindILsbOp::create(InstructionManager& ir, OpDst dst, OpSrc src, OperandType type) {
+IRResult FindILsbOp::create(IROperations& ir, OpDst dst, OpSrc src, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::FindILsbOp));
   createOp(ir, ir.getSrc(id, 0), src, type);
   createOp(ir, ir.getDst(id, 0), dst, OperandType::i32());
   return IRResult(ir, id);
 }
 
-IRResult FindUMsbOp::create(InstructionManager& ir, OpDst dst, OpSrc src, OperandType type) {
+IRResult FindUMsbOp::create(IROperations& ir, OpDst dst, OpSrc src, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::FindUMsbOp));
   createOp(ir, ir.getSrc(id, 0), src, type);
   createOp(ir, ir.getDst(id, 0), dst, OperandType::i32());
   return IRResult(ir, id);
 }
 
-IRResult FindSMsbOp::create(InstructionManager& ir, OpDst dst, OpSrc src, OperandType type) {
+IRResult FindSMsbOp::create(IROperations& ir, OpDst dst, OpSrc src, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::FindSMsbOp));
   createOp(ir, ir.getSrc(id, 0), src, type);
   createOp(ir, ir.getDst(id, 0), dst, OperandType::i32());
   return IRResult(ir, id);
 }
 
-IRResult SignExtendOp::create(InstructionManager& ir, OpDst dst, OpSrc src, OperandType type, OperandType dstType) {
+IRResult SignExtendOp::create(IROperations& ir, OpDst dst, OpSrc src, OperandType type, OperandType dstType) {
   auto id = ir.createInstruction(getInfo(eInstKind::SignExtendOp));
   createOp(ir, ir.getSrc(id, 0), src, type);
   createOp(ir, ir.getDst(id, 0), dst, dstType);
@@ -99,7 +99,7 @@ IRResult SignExtendOp::create(InstructionManager& ir, OpDst dst, OpSrc src, Oper
 // Bit field / extract
 // ------------------------------------------------------------
 
-IRResult BitsetOp::create(InstructionManager& ir, OpDst dst, OpSrc src, OpSrc offset, OpSrc value, OperandType type) {
+IRResult BitsetOp::create(IROperations& ir, OpDst dst, OpSrc src, OpSrc offset, OpSrc value, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::BitsetOp));
   createOp(ir, ir.getSrc(id, 0), src, type);
   createOp(ir, ir.getSrc(id, 1), offset, OperandType::i32());
@@ -108,7 +108,7 @@ IRResult BitsetOp::create(InstructionManager& ir, OpDst dst, OpSrc src, OpSrc of
   return IRResult(ir, id);
 }
 
-IRResult BitFieldInsertOp::create(InstructionManager& ir, OpDst dst, OpSrc value, OpSrc offset, OpSrc count, OperandType type) {
+IRResult BitFieldInsertOp::create(IROperations& ir, OpDst dst, OpSrc value, OpSrc offset, OpSrc count, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::BitFieldInsertOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), value, type);
@@ -117,7 +117,7 @@ IRResult BitFieldInsertOp::create(InstructionManager& ir, OpDst dst, OpSrc value
   return IRResult(ir, id);
 }
 
-IRResult BitUIExtractOp::create(InstructionManager& ir, OpDst dst, OpSrc base, OpSrc offset, OpSrc count, OperandType type) {
+IRResult BitUIExtractOp::create(IROperations& ir, OpDst dst, OpSrc base, OpSrc offset, OpSrc count, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::BitUIExtractOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), base, type);
@@ -126,7 +126,7 @@ IRResult BitUIExtractOp::create(InstructionManager& ir, OpDst dst, OpSrc base, O
   return IRResult(ir, id);
 }
 
-IRResult BitSIExtractOp::create(InstructionManager& ir, OpDst dst, OpSrc base, OpSrc offset, OpSrc count, OperandType type) {
+IRResult BitSIExtractOp::create(IROperations& ir, OpDst dst, OpSrc base, OpSrc offset, OpSrc count, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::BitSIExtractOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), base, type);
@@ -135,7 +135,7 @@ IRResult BitSIExtractOp::create(InstructionManager& ir, OpDst dst, OpSrc base, O
   return IRResult(ir, id);
 }
 
-IRResult BitUIExtractOp::create(InstructionManager& ir, OpDst dst, OpSrc base, OpSrc compact, OperandType type) {
+IRResult BitUIExtractOp::create(IROperations& ir, OpDst dst, OpSrc base, OpSrc compact, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::BitUIExtractCompactOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), base, type);
@@ -143,7 +143,7 @@ IRResult BitUIExtractOp::create(InstructionManager& ir, OpDst dst, OpSrc base, O
   return IRResult(ir, id);
 }
 
-IRResult BitSIExtractOp::create(InstructionManager& ir, OpDst dst, OpSrc base, OpSrc compact, OperandType type) {
+IRResult BitSIExtractOp::create(IROperations& ir, OpDst dst, OpSrc base, OpSrc compact, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::BitSIExtractCompactOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), base, type);
@@ -155,7 +155,7 @@ IRResult BitSIExtractOp::create(InstructionManager& ir, OpDst dst, OpSrc base, O
 // Comparisons
 // ------------------------------------------------------------
 
-IRResult BitCmpOp::create(InstructionManager& ir, OpDst dst, OpSrc base, OpSrc index, OperandType type) {
+IRResult BitCmpOp::create(IROperations& ir, OpDst dst, OpSrc base, OpSrc index, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::BitCmpOp));
   createOp(ir, ir.getDst(id, 0), dst, OperandType::i1());
   createOp(ir, ir.getSrc(id, 0), base, type);
@@ -163,7 +163,7 @@ IRResult BitCmpOp::create(InstructionManager& ir, OpDst dst, OpSrc base, OpSrc i
   return IRResult(ir, id);
 }
 
-IRResult CmpIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type, CmpIPredicate pred) {
+IRResult CmpIOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type, CmpIPredicate pred) {
   auto id = ir.createInstruction(getInfo(eInstKind::CmpIOp));
   createOp(ir, ir.getDst(id, 0), dst, OperandType::i1());
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -172,7 +172,7 @@ IRResult CmpIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src
   return IRResult(ir, id);
 }
 
-IRResult CmpFOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type, CmpFPredicate pred) {
+IRResult CmpFOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type, CmpFPredicate pred) {
   auto id = ir.createInstruction(getInfo(eInstKind::CmpFOp));
   createOp(ir, ir.getDst(id, 0), dst, OperandType::i1());
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -185,7 +185,7 @@ IRResult CmpFOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src
 // Arithmetic (int / float / misc)
 // ------------------------------------------------------------
 
-IRResult AddIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
+IRResult AddIOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::AddIOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -193,7 +193,7 @@ IRResult AddIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src
   return IRResult(ir, id);
 }
 
-IRResult SubIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
+IRResult SubIOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::SubIOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -201,7 +201,7 @@ IRResult SubIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src
   return IRResult(ir, id);
 }
 
-IRResult MulIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
+IRResult MulIOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::MulIOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -209,7 +209,7 @@ IRResult MulIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src
   return IRResult(ir, id);
 }
 
-IRResult MulIExtendedOp::create(InstructionManager& ir, OpDst low, OpDst high, OpSrc src0, OpSrc src1, OperandType type) {
+IRResult MulIExtendedOp::create(IROperations& ir, OpDst low, OpDst high, OpSrc src0, OpSrc src1, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::MulIExtendedOp));
   createOp(ir, ir.getDst(id, 0), low, type);
   createOp(ir, ir.getDst(id, 1), high, type);
@@ -218,7 +218,7 @@ IRResult MulIExtendedOp::create(InstructionManager& ir, OpDst low, OpDst high, O
   return IRResult(ir, id);
 }
 
-IRResult Max3UIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType type) {
+IRResult Max3UIOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::Max3UIOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -227,7 +227,7 @@ IRResult Max3UIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc s
   return IRResult(ir, id);
 }
 
-IRResult MaxUIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
+IRResult MaxUIOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::MaxUIOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -235,7 +235,7 @@ IRResult MaxUIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc sr
   return IRResult(ir, id);
 }
 
-IRResult Max3SIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType type) {
+IRResult Max3SIOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::Max3SIOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -244,7 +244,7 @@ IRResult Max3SIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc s
   return IRResult(ir, id);
 }
 
-IRResult MaxSIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
+IRResult MaxSIOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::MaxSIOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -252,7 +252,7 @@ IRResult MaxSIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc sr
   return IRResult(ir, id);
 }
 
-IRResult Max3FOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType type) {
+IRResult Max3FOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::Max3FOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -261,7 +261,7 @@ IRResult Max3FOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc sr
   return IRResult(ir, id);
 }
 
-IRResult MaxFOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
+IRResult MaxFOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::MaxFOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -269,7 +269,7 @@ IRResult MaxFOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src
   return IRResult(ir, id);
 }
 
-IRResult MaxNOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
+IRResult MaxNOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::MaxNOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -277,7 +277,7 @@ IRResult MaxNOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src
   return IRResult(ir, id);
 }
 
-IRResult Min3UIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType type) {
+IRResult Min3UIOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::Min3UIOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -286,7 +286,7 @@ IRResult Min3UIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc s
   return IRResult(ir, id);
 }
 
-IRResult MinUIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
+IRResult MinUIOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::MinUIOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -294,7 +294,7 @@ IRResult MinUIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc sr
   return IRResult(ir, id);
 }
 
-IRResult Min3SIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType type) {
+IRResult Min3SIOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::Min3SIOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -303,7 +303,7 @@ IRResult Min3SIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc s
   return IRResult(ir, id);
 }
 
-IRResult MinSIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
+IRResult MinSIOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::MinSIOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -311,7 +311,7 @@ IRResult MinSIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc sr
   return IRResult(ir, id);
 }
 
-IRResult Min3FOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType type) {
+IRResult Min3FOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::Min3FOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -320,7 +320,7 @@ IRResult Min3FOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc sr
   return IRResult(ir, id);
 }
 
-IRResult MinFOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
+IRResult MinFOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::MinFOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -328,7 +328,7 @@ IRResult MinFOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src
   return IRResult(ir, id);
 }
 
-IRResult MinNOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
+IRResult MinNOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::MinNOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -336,7 +336,7 @@ IRResult MinNOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src
   return IRResult(ir, id);
 }
 
-IRResult MedUIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType type) {
+IRResult MedUIOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::MedUIOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -345,7 +345,7 @@ IRResult MedUIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc sr
   return IRResult(ir, id);
 }
 
-IRResult MedSIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType type) {
+IRResult MedSIOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::MedSIOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -354,7 +354,7 @@ IRResult MedSIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc sr
   return IRResult(ir, id);
 }
 
-IRResult MedFOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType type) {
+IRResult MedFOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::MedFOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -367,7 +367,7 @@ IRResult MedFOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src
 // Integer / Float arithmetic
 // ------------------------------------------------------------
 
-IRResult AddFOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
+IRResult AddFOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::AddFOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -375,7 +375,7 @@ IRResult AddFOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src
   return IRResult(ir, id);
 }
 
-IRResult SubFOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
+IRResult SubFOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::SubFOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -383,7 +383,7 @@ IRResult SubFOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src
   return IRResult(ir, id);
 }
 
-IRResult MulFOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
+IRResult MulFOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::MulFOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -391,7 +391,7 @@ IRResult MulFOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src
   return IRResult(ir, id);
 }
 
-IRResult FmaFOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType type) {
+IRResult FmaFOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::FmaFOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -400,7 +400,7 @@ IRResult FmaFOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src
   return IRResult(ir, id);
 }
 
-IRResult FmaIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType type) {
+IRResult FmaIOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::FmaIOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -409,7 +409,7 @@ IRResult FmaIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src
   return IRResult(ir, id);
 }
 
-IRResult AddCarryIOp::create(InstructionManager& ir, OpDst dst, OpDst carryOut, OpSrc src0, OpSrc src1, OpSrc carryIn, OperandType type) {
+IRResult AddCarryIOp::create(IROperations& ir, OpDst dst, OpDst carryOut, OpSrc src0, OpSrc src1, OpSrc carryIn, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::AddCarryIOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getDst(id, 1), carryOut, OperandType::i1());
@@ -419,7 +419,7 @@ IRResult AddCarryIOp::create(InstructionManager& ir, OpDst dst, OpDst carryOut, 
   return IRResult(ir, id);
 }
 
-IRResult SubBurrowIOp::create(InstructionManager& ir, OpDst dst, OpDst carryOut, OpSrc src0, OpSrc src1, OpSrc carryIn, OperandType type) {
+IRResult SubBurrowIOp::create(IROperations& ir, OpDst dst, OpDst carryOut, OpSrc src0, OpSrc src1, OpSrc carryIn, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::SubBurrowIOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getDst(id, 1), carryOut, OperandType::i1());
@@ -429,21 +429,21 @@ IRResult SubBurrowIOp::create(InstructionManager& ir, OpDst dst, OpDst carryOut,
   return IRResult(ir, id);
 }
 
-IRResult TruncFOp::create(InstructionManager& ir, OpDst dst, OpSrc src0) {
+IRResult TruncFOp::create(IROperations& ir, OpDst dst, OpSrc src0) {
   auto id = ir.createInstruction(getInfo(eInstKind::TruncFOp));
   createOp(ir, ir.getDst(id, 0), dst, ir::OperandType::f32());
   createOp(ir, ir.getSrc(id, 0), src0, ir::OperandType::f32());
   return IRResult(ir, id);
 }
 
-IRResult ExtFOp::create(InstructionManager& ir, OpDst dst, OpSrc src0) {
+IRResult ExtFOp::create(IROperations& ir, OpDst dst, OpSrc src0) {
   auto id = ir.createInstruction(getInfo(eInstKind::ExtFOp));
   createOp(ir, ir.getDst(id, 0), dst, ir::OperandType::f64());
   createOp(ir, ir.getSrc(id, 0), src0, ir::OperandType::f32());
   return IRResult(ir, id);
 }
 
-IRResult LdexpOp::create(InstructionManager& ir, OpDst dst, OpSrc vsrc, OpSrc vexp, ir::OperandType type) {
+IRResult LdexpOp::create(IROperations& ir, OpDst dst, OpSrc vsrc, OpSrc vexp, ir::OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::LdexpOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), vsrc, type);
@@ -451,42 +451,42 @@ IRResult LdexpOp::create(InstructionManager& ir, OpDst dst, OpSrc vsrc, OpSrc ve
   return IRResult(ir, id);
 }
 
-IRResult ConvFPToSIOp::create(InstructionManager& ir, OpDst dst, ir::OperandType dstType, OpSrc src0, ir::OperandType srcType) {
+IRResult ConvFPToSIOp::create(IROperations& ir, OpDst dst, ir::OperandType dstType, OpSrc src0, ir::OperandType srcType) {
   auto id = ir.createInstruction(getInfo(eInstKind::FPToSIOp));
   createOp(ir, ir.getDst(id, 0), dst, dstType);
   createOp(ir, ir.getSrc(id, 0), src0, srcType);
   return IRResult(ir, id);
 }
 
-IRResult ConvSIToFPOp::create(InstructionManager& ir, OpDst dst, ir::OperandType dstType, OpSrc src0, ir::OperandType srcType) {
+IRResult ConvSIToFPOp::create(IROperations& ir, OpDst dst, ir::OperandType dstType, OpSrc src0, ir::OperandType srcType) {
   auto id = ir.createInstruction(getInfo(eInstKind::SIToFPOp));
   createOp(ir, ir.getDst(id, 0), dst, dstType);
   createOp(ir, ir.getSrc(id, 0), src0, srcType);
   return IRResult(ir, id);
 }
 
-IRResult ConvFPToUIOp::create(InstructionManager& ir, OpDst dst, ir::OperandType dstType, OpSrc src0, ir::OperandType srcType) {
+IRResult ConvFPToUIOp::create(IROperations& ir, OpDst dst, ir::OperandType dstType, OpSrc src0, ir::OperandType srcType) {
   auto id = ir.createInstruction(getInfo(eInstKind::FPToUIOp));
   createOp(ir, ir.getDst(id, 0), dst, dstType);
   createOp(ir, ir.getSrc(id, 0), src0, srcType);
   return IRResult(ir, id);
 }
 
-IRResult ConvUIToFPOp::create(InstructionManager& ir, OpDst dst, ir::OperandType dstType, OpSrc src0, ir::OperandType srcType) {
+IRResult ConvUIToFPOp::create(IROperations& ir, OpDst dst, ir::OperandType dstType, OpSrc src0, ir::OperandType srcType) {
   auto id = ir.createInstruction(getInfo(eInstKind::UIToFPOp));
   createOp(ir, ir.getDst(id, 0), dst, dstType);
   createOp(ir, ir.getSrc(id, 0), src0, srcType);
   return IRResult(ir, id);
 }
 
-IRResult ConvSI4ToFloat::create(InstructionManager& ir, OpDst dst, OpSrc src0) {
+IRResult ConvSI4ToFloat::create(IROperations& ir, OpDst dst, OpSrc src0) {
   auto id = ir.createInstruction(getInfo(eInstKind::SI4ToFloat));
   createOp(ir, ir.getDst(id, 0), dst, ir::OperandType::f32());
   createOp(ir, ir.getSrc(id, 0), src0, ir::OperandType::i32());
   return IRResult(ir, id);
 }
 
-IRResult PackHalf2x16Op::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1) {
+IRResult PackHalf2x16Op::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1) {
   auto id = ir.createInstruction(getInfo(eInstKind::PackHalf2x16Op));
   createOp(ir, ir.getDst(id, 0), dst, ir::OperandType::i32());
   createOp(ir, ir.getSrc(id, 0), src0, ir::OperandType::f32());
@@ -494,7 +494,7 @@ IRResult PackHalf2x16Op::create(InstructionManager& ir, OpDst dst, OpSrc src0, O
   return IRResult(ir, id);
 }
 
-IRResult UnpackHalf2x16::create(InstructionManager& ir, OpDst low, OpDst high, OpSrc src) {
+IRResult UnpackHalf2x16::create(IROperations& ir, OpDst low, OpDst high, OpSrc src) {
   auto id = ir.createInstruction(getInfo(eInstKind::UnpackHalf2x16));
   createOp(ir, ir.getDst(id, 0), low, ir::OperandType::f32());
   createOp(ir, ir.getDst(id, 1), high, ir::OperandType::f32());
@@ -502,7 +502,7 @@ IRResult UnpackHalf2x16::create(InstructionManager& ir, OpDst low, OpDst high, O
   return IRResult(ir, id);
 }
 
-IRResult PackSnorm2x16Op::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1) {
+IRResult PackSnorm2x16Op::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1) {
   auto id = ir.createInstruction(getInfo(eInstKind::PackSnorm2x16Op));
   createOp(ir, ir.getDst(id, 0), dst, ir::OperandType::i32());
   createOp(ir, ir.getSrc(id, 0), src0, ir::OperandType::f32());
@@ -510,7 +510,7 @@ IRResult PackSnorm2x16Op::create(InstructionManager& ir, OpDst dst, OpSrc src0, 
   return IRResult(ir, id);
 }
 
-IRResult PackUnorm2x16Op::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1) {
+IRResult PackUnorm2x16Op::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1) {
   auto id = ir.createInstruction(getInfo(eInstKind::PackUnorm2x16Op));
   createOp(ir, ir.getDst(id, 0), dst, ir::OperandType::i32());
   createOp(ir, ir.getSrc(id, 0), src0, ir::OperandType::f32());
@@ -522,7 +522,7 @@ IRResult PackUnorm2x16Op::create(InstructionManager& ir, OpDst dst, OpSrc src0, 
 // Shifts
 // ------------------------------------------------------------
 
-IRResult ShiftLUIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
+IRResult ShiftLUIOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::ShiftLUIOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -530,7 +530,7 @@ IRResult ShiftLUIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc
   return IRResult(ir, id);
 }
 
-IRResult ShiftRUIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
+IRResult ShiftRUIOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::ShiftRUIOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -538,7 +538,7 @@ IRResult ShiftRUIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc
   return IRResult(ir, id);
 }
 
-IRResult ShiftRSIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
+IRResult ShiftRSIOp::create(IROperations& ir, OpDst dst, OpSrc src0, OpSrc src1, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::ShiftRSIOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -550,56 +550,56 @@ IRResult ShiftRSIOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OpSrc
 // Floating point unary math
 // ------------------------------------------------------------
 
-IRResult TruncOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OperandType type) {
+IRResult TruncOp::create(IROperations& ir, OpDst dst, OpSrc src0, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::TruncOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
   return IRResult(ir, id);
 }
 
-IRResult CeilOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OperandType type) {
+IRResult CeilOp::create(IROperations& ir, OpDst dst, OpSrc src0, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::CeilOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
   return IRResult(ir, id);
 }
 
-IRResult RoundEvenOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OperandType type) {
+IRResult RoundEvenOp::create(IROperations& ir, OpDst dst, OpSrc src0, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::RoundEvenOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
   return IRResult(ir, id);
 }
 
-IRResult FractOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OperandType type) {
+IRResult FractOp::create(IROperations& ir, OpDst dst, OpSrc src0, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::FractOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
   return IRResult(ir, id);
 }
 
-IRResult FloorOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OperandType type) {
+IRResult FloorOp::create(IROperations& ir, OpDst dst, OpSrc src0, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::FloorOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
   return IRResult(ir, id);
 }
 
-IRResult RcpOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OperandType type) {
+IRResult RcpOp::create(IROperations& ir, OpDst dst, OpSrc src0, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::RcpOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
   return IRResult(ir, id);
 }
 
-IRResult RsqrtOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OperandType type) {
+IRResult RsqrtOp::create(IROperations& ir, OpDst dst, OpSrc src0, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::RsqrtOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
   return IRResult(ir, id);
 }
 
-IRResult SqrtOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OperandType type) {
+IRResult SqrtOp::create(IROperations& ir, OpDst dst, OpSrc src0, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::SqrtOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
@@ -610,28 +610,28 @@ IRResult SqrtOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OperandTy
 // Trig / exp / log
 // ------------------------------------------------------------
 
-IRResult Exp2Op::create(InstructionManager& ir, OpDst dst, OpSrc src0) {
+IRResult Exp2Op::create(IROperations& ir, OpDst dst, OpSrc src0) {
   auto id = ir.createInstruction(getInfo(eInstKind::Exp2Op));
   createOp(ir, ir.getDst(id, 0), dst, OperandType::f32());
   createOp(ir, ir.getSrc(id, 0), src0, OperandType::f32());
   return IRResult(ir, id);
 }
 
-IRResult Log2Op::create(InstructionManager& ir, OpDst dst, OpSrc src0) {
+IRResult Log2Op::create(IROperations& ir, OpDst dst, OpSrc src0) {
   auto id = ir.createInstruction(getInfo(eInstKind::Log2Op));
   createOp(ir, ir.getDst(id, 0), dst, OperandType::f32());
   createOp(ir, ir.getSrc(id, 0), src0, OperandType::f32());
   return IRResult(ir, id);
 }
 
-IRResult SinOp::create(InstructionManager& ir, OpDst dst, OpSrc src0) {
+IRResult SinOp::create(IROperations& ir, OpDst dst, OpSrc src0) {
   auto id = ir.createInstruction(getInfo(eInstKind::SinOp));
   createOp(ir, ir.getDst(id, 0), dst, OperandType::f32());
   createOp(ir, ir.getSrc(id, 0), src0, OperandType::f32());
   return IRResult(ir, id);
 }
 
-IRResult CosOp::create(InstructionManager& ir, OpDst dst, OpSrc src0) {
+IRResult CosOp::create(IROperations& ir, OpDst dst, OpSrc src0) {
   auto id = ir.createInstruction(getInfo(eInstKind::CosOp));
   createOp(ir, ir.getDst(id, 0), dst, OperandType::f32());
   createOp(ir, ir.getSrc(id, 0), src0, OperandType::f32());
@@ -642,21 +642,21 @@ IRResult CosOp::create(InstructionManager& ir, OpDst dst, OpSrc src0) {
 // Clamp / frexp
 // ------------------------------------------------------------
 
-IRResult ClampFMinMaxOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OperandType type) {
+IRResult ClampFMinMaxOp::create(IROperations& ir, OpDst dst, OpSrc src0, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::ClampFMinMaxOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
   return IRResult(ir, id);
 }
 
-IRResult ClampFZeroOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OperandType type) {
+IRResult ClampFZeroOp::create(IROperations& ir, OpDst dst, OpSrc src0, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::ClampFZeroOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
   return IRResult(ir, id);
 }
 
-IRResult FrexpOp::create(InstructionManager& ir, OpDst exp, OpDst mant, OpSrc src0, OperandType type) {
+IRResult FrexpOp::create(IROperations& ir, OpDst exp, OpDst mant, OpSrc src0, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::FrexpOp));
   createOp(ir, ir.getDst(id, 0), exp, OperandType::i32());
   createOp(ir, ir.getDst(id, 1), mant, type);
@@ -664,21 +664,21 @@ IRResult FrexpOp::create(InstructionManager& ir, OpDst exp, OpDst mant, OpSrc sr
   return IRResult(ir, id);
 }
 
-IRResult NotOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OperandType type) {
+IRResult NotOp::create(IROperations& ir, OpDst dst, OpSrc src0, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::NotOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
   return IRResult(ir, id);
 }
 
-IRResult NegateFOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OperandType type) {
+IRResult NegateFOp::create(IROperations& ir, OpDst dst, OpSrc src0, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::NegateFOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);
   return IRResult(ir, id);
 }
 
-IRResult AbsoluteOp::create(InstructionManager& ir, OpDst dst, OpSrc src0, OperandType type) {
+IRResult AbsoluteOp::create(IROperations& ir, OpDst dst, OpSrc src0, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::AbsoluteOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
   createOp(ir, ir.getSrc(id, 0), src0, type);

@@ -2,6 +2,7 @@
 
 #include "cfg.h"
 #include "ir/ir.h"
+#include "operations.h"
 #include "types.h"
 
 #include <assert.h>
@@ -24,55 +25,55 @@ struct Region {
   Region(std::pmr::polymorphic_allocator<> alloc): arguments(alloc), results(alloc), nodes(alloc) {}
 };
 
-enum class eNodeType {
-  SimpleNode, ///< Linear, for operations
-  GammaNode,  ///< Decision point
-  ThetaNode,  ///< Tail controlled Loop
-  LambdaNode, ///< Function
+enum class eBlockType {
+  Simple, ///< Linear, for operations
+  Gamma,  ///< Decision point
+  Theta,  ///< Tail controlled Loop
+  Lambda, ///< Function
 };
 
 struct Base {
   nodeid_t   id {};
-  eNodeType  type;
+  eBlockType  type;
   regionid_t parentRegion = {};
 
   std::pmr::vector<OutputOperandId_t> inputs  = {}; ///< inputs for this region
   std::pmr::vector<InputOperandId_t>  outputs = {}; ///< outputs indices for this region
 
-  Base(eNodeType t): type(t) {}
+  Base(eBlockType t): type(t) {}
 };
 
-struct SimpleNode: Base {
+struct SimpleBlock: Base {
   std::pmr::vector<InstructionId_t> instructions = {};
 
-  SimpleNode(std::pmr::polymorphic_allocator<> allocator): Base(eNodeType::SimpleNode) {}
+  SimpleBlock(std::pmr::polymorphic_allocator<> allocator): Base(eBlockType::Simple) {}
 };
 
-struct GammaNode: Base {
+struct GammaBlock: Base {
   InputOperandId_t             predicate {};
   std::pmr::vector<regionid_t> branches = {}; ///< subregions
 
-  GammaNode(std::pmr::polymorphic_allocator<> alloc, uint8_t numBranches): Base(eNodeType::GammaNode), branches(numBranches, alloc) {}
+  GammaBlock(std::pmr::polymorphic_allocator<> alloc, uint8_t numBranches): Base(eBlockType::Gamma), branches(numBranches, alloc) {}
 };
 
-struct ThetaNode: Base {
+struct ThetaBlock: Base {
   regionid_t body; ///< loop body, first result is loop continuation predicate
 
-  ThetaNode(std::pmr::polymorphic_allocator<> alloc, regionid_t body): Base(eNodeType::ThetaNode), body(body) {}
+  ThetaBlock(std::pmr::polymorphic_allocator<> alloc, regionid_t body): Base(eBlockType::Theta), body(body) {}
 };
 
 struct LambdaNode: Base {
   regionid_t body;
 
-  LambdaNode(std::pmr::polymorphic_allocator<> alloc, regionid_t body): Base(eNodeType::LambdaNode), body(body) {}
+  LambdaNode(std::pmr::polymorphic_allocator<> alloc, regionid_t body): Base(eBlockType::Lambda), body(body) {}
 };
 
 template <typename T>
 concept NodeConcept = std::derived_from<T, Base>;
 
-class Builder {
-  CLASS_NO_COPY(Builder);
-  CLASS_NO_MOVE(Builder);
+class IRBlocks {
+  CLASS_NO_COPY(IRBlocks);
+  CLASS_NO_MOVE(IRBlocks);
 
   template <typename T, typename... Args>
   requires NodeConcept<T>
@@ -86,7 +87,7 @@ class Builder {
   }
 
   public:
-  Builder(std::pmr::polymorphic_allocator<> allocator, size_t expectedBlocks): _im(allocator), _cfg(allocator) {
+  IRBlocks(std::pmr::polymorphic_allocator<> allocator, size_t expectedBlocks): _im(allocator), _cfg(allocator) {
     _blocks.reserve(expectedBlocks);
     _regions.reserve(64);
   }
@@ -112,12 +113,12 @@ class Builder {
 
   nodeid_t inline createSimpleNode() {
     _cfg.addNode();
-    return __createNode<SimpleNode>()->id;
+    return __createNode<SimpleBlock>()->id;
   }
 
   nodeid_t inline createGammaNode(uint8_t numBranches = 2) {
     _cfg.addNode();
-    auto node = __createNode<GammaNode>(numBranches);
+    auto node = __createNode<GammaBlock>(numBranches);
 
     for (auto& branch: node->branches)
       branch = createRegion();
@@ -126,7 +127,7 @@ class Builder {
 
   nodeid_t inline createThetaNode() {
     _cfg.addNode();
-    return __createNode<ThetaNode>(createRegion())->id;
+    return __createNode<ThetaBlock>(createRegion())->id;
   }
 
   nodeid_t inline createLambdaNode() {
@@ -199,7 +200,7 @@ class Builder {
   std::pmr::vector<Base*>  _blocks;
   std::pmr::vector<Region> _regions;
 
-  ir::InstructionManager _im;
+  ir::IROperations _im;
   ControlFlow            _cfg;
 
   nodeid_t _mainFunc {};

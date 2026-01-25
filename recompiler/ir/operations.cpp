@@ -1,7 +1,7 @@
-#include "ir.h"
+#include "operations.h"
 
 namespace compiler::ir {
-InstructionId_t InstructionManager::createInstruction(InstCore const& instr, bool isVirtual) {
+InstructionId_t IROperations::createInstruction(InstCore const& instr, bool isVirtual) {
   auto const instrId = static_cast<InstructionId_t>(_instructions.size());
   auto&      item    = _instructions.emplace_back(instr);
   if (isVirtual) item.flags |= ir::eInstructionFlags::kVirtual;
@@ -28,14 +28,14 @@ InstructionId_t InstructionManager::createInstruction(InstCore const& instr, boo
   return instrId;
 }
 
-InputOperandId_t InstructionManager::createInput(ir::OperandType type) {
+InputOperandId_t IROperations::createInput(ir::OperandType type) {
   auto  id   = InputOperandId_t(_inputs.size());
   auto& item = _inputs.emplace_back();
   item.type  = type;
   return id;
 }
 
-OutputOperandId_t InstructionManager::createOutput(ir::OperandType type) {
+OutputOperandId_t IROperations::createOutput(ir::OperandType type) {
   auto  id   = OutputOperandId_t(_outputs.size());
   auto& item = _outputs.emplace_back();
   item.type  = type;
@@ -44,7 +44,7 @@ OutputOperandId_t InstructionManager::createOutput(ir::OperandType type) {
   return id;
 }
 
-SsaId_t InstructionManager::createSSA(OutputOperandId_t def) {
+SsaId_t IROperations::createSSA(OutputOperandId_t def) {
   auto const id   = SsaId_t(_ssa.size());
   auto       item = _ssa.emplace_back();
 

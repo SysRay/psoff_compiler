@@ -186,7 +186,7 @@ bool Builder::processBinary() {
   auto const      size    = _hostMapping[0].size_dw;
   if (pCode == nullptr) return false;
 
-  auto instr = ir::InstructionManager(getBuffer(), size);
+  auto instr = ir::IROperations(getBuffer(), size);
   {
     auto checkpoint = getTempBuffer()->checkpoint();
 

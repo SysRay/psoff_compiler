@@ -159,7 +159,7 @@ void RegionBuilder::dump(std::ostream& os, void* region) const {
 
 using namespace compiler::ir;
 
-bool createRegions(std::pmr::polymorphic_allocator<> allocator, ir::InstructionManager const& manager, pcmapping_t const& mapping) {
+bool createRegions(std::pmr::polymorphic_allocator<> allocator, ir::IROperations const& manager, pcmapping_t const& mapping) {
   RegionBuilder regions(manager.instructionCount(), allocator);
 
   // 1: Collect all jumps (no region splitting yet)

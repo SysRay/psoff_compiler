@@ -4,12 +4,12 @@ option(ENABLE_DEFAULT_LOGGING "printf logs" OFF)
 add_library(psOff_recompiler STATIC
   builder.cpp
   ir/debug_strings.cpp
-  ir/ir.cpp
+  ir/operations.cpp
   ir/dialects/core/builder.cpp
   ir/dialects/arith/builder.cpp
 
   ir/cfg.cpp
-  ir/rvsdg.cpp
+  ir/blocks.cpp
   analysis/debug_string.cpp
   transform/restructure.cpp
 

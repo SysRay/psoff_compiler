@@ -2,7 +2,7 @@
 
 namespace compiler::ir::dialect::core {
 
-static inline OutputOperand& createOp(InstructionManager& ir, OutputOperandId_t id, OpDst const& rhs, OperandType type) {
+static inline OutputOperand& createOp(IROperations& ir, OutputOperandId_t id, OpDst const& rhs, OperandType type) {
   auto& op = ir.getOperand(id);
 
   op.kind  = rhs.kind;
@@ -11,7 +11,7 @@ static inline OutputOperand& createOp(InstructionManager& ir, OutputOperandId_t 
   return op;
 }
 
-static inline InputOperand& createOp(InstructionManager& ir, InputOperandId_t id, OpSrc const& rhs, OperandType type) {
+static inline InputOperand& createOp(IROperations& ir, InputOperandId_t id, OpSrc const& rhs, OperandType type) {
   auto& op = ir.getOperand(id);
 
   op.kind  = rhs.kind;
@@ -21,14 +21,14 @@ static inline InputOperand& createOp(InstructionManager& ir, InputOperandId_t id
   return op;
 }
 
-IRResult MoveOp::create(InstructionManager& ir, OpDst const& dst, OpSrc const& src, OperandType type) {
+IRResult MoveOp::create(IROperations& ir, OpDst const& dst, OpSrc const& src, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::MoveOp));
   createOp(ir, ir.getSrc(id, 0), src, type);
   createOp(ir, ir.getDst(id, 0), dst, type);
   return IRResult(ir, id);
 }
 
-IRResult SelectOp::create(InstructionManager& ir, OpDst const& dst, OpSrc predicate, OpSrc srcTrue, OpSrc srcFalse, OperandType type) {
+IRResult SelectOp::create(IROperations& ir, OpDst const& dst, OpSrc predicate, OpSrc srcTrue, OpSrc srcFalse, OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::SelectOp));
   createOp(ir, ir.getSrc(id, 0), predicate, OperandType::i1());
   createOp(ir, ir.getSrc(id, 1), srcTrue, type);
@@ -37,7 +37,7 @@ IRResult SelectOp::create(InstructionManager& ir, OpDst const& dst, OpSrc predic
   return IRResult(ir, id);
 }
 
-IRResult YieldOp::create(InstructionManager& ir, std::span<SsaId_t> inputs) {
+IRResult YieldOp::create(IROperations& ir, std::span<SsaId_t> inputs) {
   auto info   = getInfo(eInstKind::YieldOp);
   info.numSrc = inputs.size();
   auto id     = ir.createInstruction(info);
@@ -53,34 +53,34 @@ IRResult YieldOp::create(InstructionManager& ir, std::span<SsaId_t> inputs) {
   return IRResult(ir, id);
 }
 
-IRResult ReturnOp::create(InstructionManager& ir) {
+IRResult ReturnOp::create(IROperations& ir) {
   return IRResult(ir, ir.createInstruction(getInfo(eInstKind::ReturnOp)));
 }
 
-IRResult DiscardOp::create(InstructionManager& ir, OpSrc const& predicate) {
+IRResult DiscardOp::create(IROperations& ir, OpSrc const& predicate) {
   auto id = ir.createInstruction(getInfo(eInstKind::DiscardOp));
   createOp(ir, ir.getSrc(id, 0), predicate, OperandType::i1());
   return IRResult(ir, id);
 }
 
-IRResult BarrierOp::create(InstructionManager& ir) {
+IRResult BarrierOp::create(IROperations& ir) {
   return IRResult(ir, ir.createInstruction(getInfo(eInstKind::BarrierOp)));
 }
 
-IRResult JumpAbsOp::create(InstructionManager& ir, OpSrc const& addr) {
+IRResult JumpAbsOp::create(IROperations& ir, OpSrc const& addr) {
   auto id = ir.createInstruction(getInfo(eInstKind::JumpAbsOp));
   createOp(ir, ir.getSrc(id, 0), addr, OperandType::i64());
   return IRResult(ir, id);
 }
 
-IRResult CjumpAbsOp::create(InstructionManager& ir, OpSrc const& predicate, OpSrc const& addr) {
+IRResult CjumpAbsOp::create(IROperations& ir, OpSrc const& predicate, OpSrc const& addr) {
   auto id = ir.createInstruction(getInfo(eInstKind::CondJumpAbsOp));
   createOp(ir, ir.getSrc(id, 0), predicate, OperandType::i1());
   createOp(ir, ir.getSrc(id, 1), addr, OperandType::i64());
   return IRResult(ir, id);
 }
 
-IRResult ConstantOp::create(InstructionManager& ir, OpDst const& dst, ir::ConstantValue value, ir::OperandType type) {
+IRResult ConstantOp::create(IROperations& ir, OpDst const& dst, ir::ConstantValue value, ir::OperandType type) {
   auto id = ir.createInstruction(getInfo(eInstKind::ConstantOp));
   createOp(ir, ir.getDst(id, 0), dst, type);
 

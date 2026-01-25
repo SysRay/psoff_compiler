@@ -1,6 +1,6 @@
 #include "frontend/analysis/regions.h"
 #include "frontend/transform/transform.h"
-#include "ir/rvsdg.h"
+#include "ir/blocks.h"
 
 #include <gtest/gtest.h>
 

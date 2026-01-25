@@ -7,7 +7,7 @@ namespace compiler {
 class Builder;
 
 namespace ir {
-class InstructionManager;
+class IROperations;
 }
 } // namespace compiler
 
@@ -20,9 +20,9 @@ using codeE_p_t = codeE_t const*;
 
 struct Context {
   Builder&                builder;
-  ir::InstructionManager& instructions;
+  ir::IROperations& instructions;
 
-  Context(Builder& builder, ir::InstructionManager& instructions): builder(builder), instructions(instructions) {}
+  Context(Builder& builder, ir::IROperations& instructions): builder(builder), instructions(instructions) {}
 
   template <typename Op, typename... Args>
   inline auto create(Args&&... args) {

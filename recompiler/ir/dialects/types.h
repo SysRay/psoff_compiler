@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ir/operations.h"
 #include "ir/ir.h"
 
 #include <string_view>
@@ -86,7 +87,7 @@ struct OpDst {
 
 class IRResult {
   public:
-  IRResult(ir::InstructionManager& ir, InstructionId_t id): _id(id), _ir(ir) {}
+  IRResult(ir::IROperations& ir, InstructionId_t id): _id(id), _ir(ir) {}
 
   operator SsaId_t() const { return _ir.getDef(_id, 0); }
 
@@ -95,7 +96,7 @@ class IRResult {
   operator OpSrc() const { return OpSrc(_ir.getDef(_id, 0)); }
 
   private:
-  ir::InstructionManager& _ir;
+  ir::IROperations& _ir;
   InstructionId_t         _id;
 };
 } // namespace compiler::ir::dialect

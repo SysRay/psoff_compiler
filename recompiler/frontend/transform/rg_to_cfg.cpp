@@ -1,9 +1,9 @@
 #include "../analysis/regions.h"
-#include "ir/rvsdg.h"
+#include "ir/blocks.h"
 #include "transform.h"
 
 namespace compiler::frontend::transform {
-ir::rvsdg::Builder transformRg2Cfg(std::pmr::polymorphic_allocator<> allocator, analysis::RegionBuilder const& rb,
+ir::rvsdg::IRBlocks transformRg2Cfg(std::pmr::polymorphic_allocator<> allocator, analysis::RegionBuilder const& rb,
                                    std::span<compiler::InstructionId_t> instructions) {
   // todo
   // uint32_t const   expectedBlocks = 1 + 1.5 * rb.getNumRegions();
@@ -63,6 +63,6 @@ ir::rvsdg::Builder transformRg2Cfg(std::pmr::polymorphic_allocator<> allocator, 
 
   // nodes->moveNodeToRegion(stopId, rootRegion->id); // exit at end
   // return cfg;
-  return ir::rvsdg::Builder(allocator, 10);
+  return ir::rvsdg::IRBlocks(allocator, 10);
 }
 } // namespace compiler::frontend::transform
