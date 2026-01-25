@@ -5,7 +5,7 @@
 namespace compiler::ir::rvsdg {
 bool IRBlocks::contains(regionid_t rid, blockid_t bid) const {
   const auto& R = _regions[rid.value];
-  for (auto b: R.nodes)
+  for (auto b: R.blocks)
     if (b == bid) return true;
   return false;
 }
@@ -19,15 +19,15 @@ void IRBlocks::move(blockid_t bid, regionid_t dst) {
   auto srcRegionId = base->parentRegion;
   if (srcRegionId.isValid()) {
     auto region = accessRegion(srcRegionId);
-    auto it     = std::find(region->nodes.begin(), region->nodes.end(), bid);
+    auto it     = std::find(region->blocks.begin(), region->blocks.end(), bid);
 
-    if (it != region->nodes.end()) {
-      region->nodes.erase(it);
+    if (it != region->blocks.end()) {
+      region->blocks.erase(it);
     }
   }
 
   // Insert into new region
-  _regions[dst.value].nodes.push_back(bid);
+  _regions[dst.value].blocks.push_back(bid);
   base->parentRegion = dst;
 }
 
@@ -38,8 +38,8 @@ bool IRBlocks::insertToRegion(blockid_t src, blockid_t dst) {
   if (!baseB->parentRegion.isValid()) return false;
 
   auto region = accessRegion(baseB->parentRegion);
-  auto it     = std::find(region->nodes.begin(), region->nodes.end(), dst);
-  if (it == region->nodes.end()) return false;
+  auto it     = std::find(region->blocks.begin(), region->blocks.end(), dst);
+  if (it == region->blocks.end()) return false;
   *it = src;
 
   accessBase(src)->parentRegion = region->id;
@@ -48,7 +48,7 @@ bool IRBlocks::insertToRegion(blockid_t src, blockid_t dst) {
 }
 
 void IRBlocks::replaceBlockInRegion(regionid_t rid, blockid_t oldB, blockid_t newB) {
-  auto& list = _regions[rid.value].nodes;
+  auto& list = _regions[rid.value].blocks;
   for (auto& b: list)
     if (b == oldB) {
       b = newB;
@@ -57,7 +57,7 @@ void IRBlocks::replaceBlockInRegion(regionid_t rid, blockid_t oldB, blockid_t ne
 }
 
 void IRBlocks::removeBlockFromRegion(regionid_t rid, blockid_t bid) {
-  auto& list = _regions[rid.value].nodes;
+  auto& list = _regions[rid.value].blocks;
   list.erase(std::remove(list.begin(), list.end(), bid), list.end());
 }
 } // namespace compiler::ir::rvsdg

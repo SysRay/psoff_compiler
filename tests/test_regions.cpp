@@ -71,9 +71,9 @@ TEST_F(RegionBuilderTest, InitialRegionCreation) {
 
   ASSERT_EQ(cfg.getCfg().size(), 1);
   auto rootRegion = cfg.getRegion(cfg.getNode<rvsdg::LambdaNode>(cfg.getMainFunctionId())->body);
-  ASSERT_EQ(rootRegion->nodes.size(), 2); // code regions + stop
+  ASSERT_EQ(rootRegion->blocks.size(), 2); // code regions + stop
 
-  EXPECT_TRUE(succEquals(cfg.getCfg(), rootRegion->nodes.begin()->value, {rootRegion->nodes.back().value}));
+  EXPECT_TRUE(succEquals(cfg.getCfg(), rootRegion->blocks.begin()->value, {rootRegion->blocks.back().value}));
 }
 
 TEST_F(RegionBuilderTest, SimpleJumpSplitsRegions) {
@@ -105,11 +105,11 @@ TEST_F(RegionBuilderTest, SimpleJumpSplitsRegions) {
 
   ASSERT_EQ(cfg.regionCount(), 1);
   auto rootRegion = cfg.getRegion(cfg.getNode<rvsdg::LambdaNode>(cfg.getMainFunctionId())->body);
-  ASSERT_EQ(rootRegion->nodes.size(), 1 + 3);
+  ASSERT_EQ(rootRegion->blocks.size(), 1 + 3);
 
-  EXPECT_TRUE(succEquals(cfg.getCfg(), rootRegion->nodes.front().value, {offsetId + 2}));
+  EXPECT_TRUE(succEquals(cfg.getCfg(), rootRegion->blocks.front().value, {offsetId + 2}));
   EXPECT_TRUE(succEquals(cfg.getCfg(), offsetId + 1, {offsetId + 2})); // Falltrough
-  EXPECT_TRUE(succEquals(cfg.getCfg(), offsetId + 2, {rootRegion->nodes.back().value}));
+  EXPECT_TRUE(succEquals(cfg.getCfg(), offsetId + 2, {rootRegion->blocks.back().value}));
 }
 
 TEST_F(RegionBuilderTest, ConditionalJumpCreatesMultipleSuccessors) {
@@ -144,16 +144,16 @@ TEST_F(RegionBuilderTest, ConditionalJumpCreatesMultipleSuccessors) {
 
   ASSERT_EQ(cfg.regionCount(), 1);
   auto rootRegion = cfg.getRegion(cfg.getNode<rvsdg::LambdaNode>(cfg.getMainFunctionId())->body);
-  ASSERT_EQ(rootRegion->nodes.size(), 1 + 4);
+  ASSERT_EQ(rootRegion->blocks.size(), 1 + 4);
 
-  EXPECT_EQ(cfg.getCfg().getSuccessors(rootRegion->nodes.front()).size(), 2);
-  EXPECT_TRUE(hasSucc(cfg.getCfg(), rootRegion->nodes.front(), offsetId + 1));
-  EXPECT_FALSE(hasSucc(cfg.getCfg(), rootRegion->nodes.front(), offsetId + 2)); // needs dummy!
-  EXPECT_TRUE(hasSucc(cfg.getCfg(), rootRegion->nodes.front(), offsetId + 3));
+  EXPECT_EQ(cfg.getCfg().getSuccessors(rootRegion->blocks.front()).size(), 2);
+  EXPECT_TRUE(hasSucc(cfg.getCfg(), rootRegion->blocks.front(), offsetId + 1));
+  EXPECT_FALSE(hasSucc(cfg.getCfg(), rootRegion->blocks.front(), offsetId + 2)); // needs dummy!
+  EXPECT_TRUE(hasSucc(cfg.getCfg(), rootRegion->blocks.front(), offsetId + 3));
   EXPECT_TRUE(succEquals(cfg.getCfg(), offsetId + 3, {offsetId + 2}));
 
   EXPECT_TRUE(succEquals(cfg.getCfg(), offsetId + 1, {offsetId + 2})); // Falltrough
-  EXPECT_TRUE(succEquals(cfg.getCfg(), offsetId + 2, {rootRegion->nodes.back().value}));
+  EXPECT_TRUE(succEquals(cfg.getCfg(), offsetId + 2, {rootRegion->blocks.back().value}));
 }
 
 TEST_F(RegionBuilderTest, ReturnStopsFlow) {

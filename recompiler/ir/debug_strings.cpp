@@ -144,7 +144,7 @@ void dumpRegion(std::ostream& os, const rvsdg::IRBlocks& builder, regionid_t rid
   // if (R->entry.isValid()) os << indent << "  // entry: ^bb" << R->entry.value << "\n";
 
   // Dump blocks in region order
-  for (auto bid: R->nodes)
+  for (auto bid: R->blocks)
     dumpNode(os, builder, bid, indent + "  ");
 
   // // Exit block comment

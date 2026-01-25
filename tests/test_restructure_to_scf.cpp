@@ -49,7 +49,7 @@ static void createCFG(rvsdg::IRBlocks& builder, uint32_t numBlocks, uint32_t sta
     builder.createSimpleNode();
   }
 
-  R->nodes.reserve(numBlocks);
+  R->blocks.reserve(numBlocks);
 
   auto const offset = 1 + funcId;
   builder.move(blockid_t(offset + start), R->id);

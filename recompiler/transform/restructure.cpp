@@ -39,12 +39,12 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, ir::r
   // 3 .collaps into loop node
 
   auto region = builder.getRegion(regionId);
-  if (region->nodes.empty()) return;
+  if (region->blocks.empty()) return;
 
   auto checkpoint = checkpoint_resource.checkpoint();
 
   GraphAdapter adapter(builder.getCfg());
-  auto const   sccs = compiler::analysis::SCCBuilder<GraphAdapter>(&checkpoint_resource, adapter).calculate(region->nodes.front());
+  auto const   sccs = compiler::analysis::SCCBuilder<GraphAdapter>(&checkpoint_resource, adapter).calculate(region->blocks.front());
 
   auto& im = builder.getInstructions();
   for (auto const& scc: sccs.get()) {
@@ -59,7 +59,7 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, ir::r
     auto       loop   = builder.accessNode<ir::rvsdg::ThetaBlock>(loopId);
 
     auto loopRegions = builder.accessRegion(loop->body);
-    loopRegions->nodes.reserve(1 + scc.size()); //  exit + sccNodes
+    loopRegions->blocks.reserve(1 + scc.size()); //  exit + sccNodes
 
     // Theta node: First result is predicate for exit or continue (latch)
     // Body region contains single entry and single exit
@@ -173,13 +173,13 @@ static void collapseBranches(util::checkpoint_resource& checkpoint_resource, ir:
   //  3. todo (exits, tail resturcturing)
 
   auto region = builder.getRegion(regionId);
-  if (region->nodes.empty()) return;
+  if (region->blocks.empty()) return;
 
   auto checkpoint = checkpoint_resource.checkpoint();
 
   compiler::analysis::DominatorTreeDense<GraphAdapter> dom({&checkpoint_resource});
 
-  auto headerId = region->nodes.front();
+  auto headerId = region->blocks.front();
   while (true) {
     auto const& succs = builder.getCfg().getSuccessors(headerId);
     if (succs.size() == 0) break;

@@ -20,9 +20,9 @@ struct Region {
   std::pmr::vector<uint32_t> arguments = {}; ///< arguments for this region
   std::pmr::vector<uint32_t> results   = {}; ///< results for this region
 
-  std::pmr::vector<blockid_t> nodes = {}; ///< nodes belonging to this region
+  std::pmr::vector<blockid_t> blocks = {}; ///< nodes belonging to this region
 
-  Region(std::pmr::polymorphic_allocator<> alloc): arguments(alloc), results(alloc), nodes(alloc) {}
+  Region(std::pmr::polymorphic_allocator<> alloc): arguments(alloc), results(alloc), blocks(alloc) {}
 };
 
 enum class eBlockType {
