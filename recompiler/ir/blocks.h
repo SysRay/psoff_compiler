@@ -1,6 +1,5 @@
 #pragma once
 
-#include "cfg.h"
 #include "ir/ir.h"
 #include "operations.h"
 #include "types.h"
@@ -33,8 +32,8 @@ enum class eBlockType {
 };
 
 struct Base {
-  blockid_t   id {};
-  eBlockType  type;
+  blockid_t  id {};
+  eBlockType type;
   regionid_t parentRegion = {};
 
   std::pmr::vector<OutputOperandId_t> inputs  = {}; ///< inputs for this region
@@ -87,22 +86,18 @@ class IRBlocks {
   }
 
   public:
-  IRBlocks(std::pmr::polymorphic_allocator<> allocator, size_t expectedBlocks): _im(allocator), _cfg(allocator) {
+  IRBlocks(std::pmr::polymorphic_allocator<> allocator, size_t expectedBlocks = 128): _im(allocator) {
     _blocks.reserve(expectedBlocks);
     _regions.reserve(64);
   }
 
-  inline size_t blocksCount() const { return _blocks.size(); }
+  inline size_t numBlocks() const { return _blocks.size(); }
 
   inline size_t regionCount() const { return _regions.size(); }
 
   inline auto& getInstructions() { return _im; }
 
   inline auto const& getInstructions() const { return _im; }
-
-  inline auto& getCfg() { return _cfg; }
-
-  inline auto const& getCfg() const { return _cfg; }
 
   regionid_t createRegion() {
     auto rid = regionid_t((uint32_t)_regions.size());
@@ -111,13 +106,9 @@ class IRBlocks {
     return rid;
   }
 
-  blockid_t inline createSimpleNode() {
-    _cfg.addNode();
-    return __createNode<SimpleBlock>()->id;
-  }
+  blockid_t inline createSimpleNode() { return __createNode<SimpleBlock>()->id; }
 
   blockid_t inline createGammaNode(uint8_t numBranches = 2) {
-    _cfg.addNode();
     auto node = __createNode<GammaBlock>(numBranches);
 
     for (auto& branch: node->branches)
@@ -125,15 +116,9 @@ class IRBlocks {
     return node->id;
   }
 
-  blockid_t inline createThetaNode() {
-    _cfg.addNode();
-    return __createNode<ThetaBlock>(createRegion())->id;
-  }
+  blockid_t inline createThetaNode() { return __createNode<ThetaBlock>(createRegion())->id; }
 
-  blockid_t inline createLambdaNode() {
-    _cfg.addNode();
-    return __createNode<LambdaNode>(createRegion())->id;
-  }
+  blockid_t inline createLambdaNode() { return __createNode<LambdaNode>(createRegion())->id; }
 
   // ------------------------------------------------------------
   // Main function
@@ -201,7 +186,6 @@ class IRBlocks {
   std::pmr::vector<Region> _regions;
 
   ir::IROperations _im;
-  ControlFlow            _cfg;
 
   blockid_t _mainFunc {};
 };

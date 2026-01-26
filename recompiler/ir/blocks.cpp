@@ -43,7 +43,7 @@ bool IRBlocks::insertToRegion(blockid_t src, blockid_t dst) {
   *it = src;
 
   accessBase(src)->parentRegion = region->id;
-  baseB->parentRegion               = regionid_t(); // invalidate
+  baseB->parentRegion           = regionid_t(); // invalidate
   return true;
 }
 

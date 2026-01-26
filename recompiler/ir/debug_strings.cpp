@@ -1,6 +1,6 @@
 #include "debug_strings.h"
 
-#include "blocks.h"
+#include "cfg.h"
 #include "dialects/dialects.h"
 #include "frontend/debug_strings.h"
 
@@ -122,20 +122,11 @@ void dumpBlock(std::ostream& os, const rvsdg::IRBlocks& builder, blockid_t bid, 
 
   // Block header: ^bbX:
   os << indent << "^bb" << B->id.value << ":\n";
-
-  // Print successors
-  auto succs = builder.getCfg().getSuccessors(bid);
-  if (!succs.empty()) {
-    os << indent << "  successors:";
-    for (auto s: succs)
-      os << " ^bb" << s.value;
-    os << "\n";
-  }
 }
 
-static void dumpNode(std::ostream& os, const rvsdg::IRBlocks& builder, blockid_t bid, const std::string& indent);
+static void dumpNode(std::ostream& os, const rvsdg::IRBlocks& builder, const ControlFlow* cfg, blockid_t bid, const std::string& indent);
 
-void dumpRegion(std::ostream& os, const rvsdg::IRBlocks& builder, regionid_t rid, const std::string& indent) {
+static void dumpRegion(std::ostream& os, const rvsdg::IRBlocks& builder, const ControlFlow* cfg, regionid_t rid, const std::string& indent) {
   auto R = builder.getRegion(rid);
 
   os << indent << "region @" << R->id.value << ":\n";
@@ -145,7 +136,7 @@ void dumpRegion(std::ostream& os, const rvsdg::IRBlocks& builder, regionid_t rid
 
   // Dump blocks in region order
   for (auto bid: R->blocks)
-    dumpNode(os, builder, bid, indent + "  ");
+    dumpNode(os, builder, cfg, bid, indent + "  ");
 
   // // Exit block comment
   // if (R->exit.isValid()) os << indent << "  // exit: ^bb" << R->exit.value << "\n";
@@ -153,7 +144,7 @@ void dumpRegion(std::ostream& os, const rvsdg::IRBlocks& builder, regionid_t rid
   os << indent << "}\n";
 }
 
-void dumpNode(std::ostream& os, const rvsdg::IRBlocks& builder, blockid_t bid, const std::string& indent) {
+static void dumpNode(std::ostream& os, const rvsdg::IRBlocks& builder, const ControlFlow* cfg, blockid_t bid, const std::string& indent) {
   const auto* B = builder.getBase(bid);
 
   os << indent << "^bb" << B->id;
@@ -176,18 +167,18 @@ void dumpNode(std::ostream& os, const rvsdg::IRBlocks& builder, blockid_t bid, c
 
       os << "{\n";
       for (uint32_t n = 0; n < node->branches.size(); ++n) {
-        dumpRegion(os, builder, node->branches[n], indent + "  ");
+        dumpRegion(os, builder, cfg, node->branches[n], indent + "  ");
       }
     } break;
     case eBlockType::Theta: {
       auto node = builder.getNode<ThetaBlock>(B->id);
       os << " Theta {\n";
-      dumpRegion(os, builder, node->body, indent + "  ");
+      dumpRegion(os, builder, cfg, node->body, indent + "  ");
     } break;
     case eBlockType::Lambda: {
       auto node = builder.getNode<LambdaNode>(B->id);
       os << " Lambda {\n";
-      dumpRegion(os, builder, node->body, indent + "  ");
+      dumpRegion(os, builder, cfg, node->body, indent + "  ");
     } break;
   }
 
@@ -213,21 +204,34 @@ void dumpNode(std::ostream& os, const rvsdg::IRBlocks& builder, blockid_t bid, c
   }
   os << std::endl;
 
-  auto succs = builder.getCfg().getSuccessors(bid);
-  if (!succs.empty()) {
-    os << indent << "  successors:";
-    for (auto s: succs)
-      os << " ^bb" << s.value;
-    os << std::endl;
+  if (cfg) {
+    auto succs = cfg->getSuccessors(bid);
+    if (!succs.empty()) {
+      os << indent << "  successors:";
+      for (auto s: succs)
+        os << " ^bb" << s.value;
+      os << std::endl;
+    }
   }
   os << indent << "}\n";
 }
 
-void dumpCFG(std::ostream& os, const rvsdg::IRBlocks& builder) {
-  os << "builder {\n";
+void dump(std::ostream& os, const rvsdg::IRBlocks& builder) {
+  os << "RVSDG {\n";
 
   if (builder.getMainFunctionId().isValid()) {
-    dumpNode(os, builder, builder.getMainFunctionId(), "  ");
+    dumpNode(os, builder, nullptr, builder.getMainFunctionId(), "  ");
+  }
+
+  os << "}\n";
+}
+
+void dump(std::ostream& os, const ControlFlow& cfg) {
+  os << "CFG {\n";
+
+  auto& builder = cfg.getBlocks();
+  if (builder.getMainFunctionId().isValid()) {
+    dumpNode(os, builder, &cfg, builder.getMainFunctionId(), "  ");
   }
 
   os << "}\n";

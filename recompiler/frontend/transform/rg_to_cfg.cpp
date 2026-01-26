@@ -3,8 +3,8 @@
 #include "transform.h"
 
 namespace compiler::frontend::transform {
-ir::rvsdg::IRBlocks transformRg2Cfg(std::pmr::polymorphic_allocator<> allocator, analysis::RegionBuilder const& rb,
-                                   std::span<compiler::InstructionId_t> instructions) {
+bool transformRg2Cfg(std::pmr::polymorphic_allocator<> allocator, analysis::RegionBuilder const& rb, std::span<compiler::InstructionId_t> instructions,
+                     ir::ControlFlow& cfg) {
   // todo
   // uint32_t const   expectedBlocks = 1 + 1.5 * rb.getNumRegions();
   // cfg::ControlFlow cfg(allocator, expectedBlocks); // Leave some place for extra branch nodes
@@ -63,6 +63,6 @@ ir::rvsdg::IRBlocks transformRg2Cfg(std::pmr::polymorphic_allocator<> allocator,
 
   // nodes->moveNodeToRegion(stopId, rootRegion->id); // exit at end
   // return cfg;
-  return ir::rvsdg::IRBlocks(allocator, 10);
+  return true;
 }
 } // namespace compiler::frontend::transform

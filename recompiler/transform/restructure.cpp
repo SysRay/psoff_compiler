@@ -2,9 +2,10 @@
 #include "analysis/scc.h"
 #include "include/checkpoint_resource.h"
 #include "include/common.h"
+#include "ir/blocks.h"
+#include "ir/cfg.h"
 #include "ir/debug_strings.h"
 #include "ir/dialects/core/builder.h"
-#include "ir/blocks.h"
 #include "logging.h"
 #include "transform.h"
 
@@ -32,18 +33,20 @@ struct GraphAdapter {
   GraphAdapter(ir::ControlFlow& g): g(g) {}
 };
 
-static void collapseCycles(util::checkpoint_resource& checkpoint_resource, ir::rvsdg::IRBlocks& builder, std::pmr::vector<ir::regionid_t>& tasks,
+static void collapseCycles(util::checkpoint_resource& checkpoint_resource, ir::ControlFlow& cfg, std::pmr::vector<ir::regionid_t>& tasks,
                            ir::regionid_t regionId) {
   // 1. Find SCCs
   // 2. find entries, exits and back edges
   // 3 .collaps into loop node
+
+  auto& builder = cfg.getBlocks();
 
   auto region = builder.getRegion(regionId);
   if (region->blocks.empty()) return;
 
   auto checkpoint = checkpoint_resource.checkpoint();
 
-  GraphAdapter adapter(builder.getCfg());
+  GraphAdapter adapter(cfg);
   auto const   sccs = compiler::analysis::SCCBuilder<GraphAdapter>(&checkpoint_resource, adapter).calculate(region->blocks.front());
 
   auto& im = builder.getInstructions();
@@ -55,7 +58,7 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, ir::r
       throw std::runtime_error("scc with no entry");
     }
 
-    auto const loopId = builder.createThetaNode();
+    auto const loopId = cfg.createThetaNode();
     auto       loop   = builder.accessNode<ir::rvsdg::ThetaBlock>(loopId);
 
     auto loopRegions = builder.accessRegion(loop->body);
@@ -72,7 +75,7 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, ir::r
 
       for (uint32_t n = 0; n < sccEdges.entryEdges.size(); ++n) {
         auto const& edge = sccEdges.entryEdges[n];
-        builder.getCfg().redirectEdge(ir::blockid_t(edge.first), ir::blockid_t(edge.second), loopId);
+        cfg.redirectEdge(ir::blockid_t(edge.first), ir::blockid_t(edge.second), loopId);
         // todo branch value
       }
 
@@ -81,7 +84,7 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, ir::r
       builder.insertToRegion(loopId, headerId);
     } else {
       headerId = ir::blockid_t(sccEdges.entryEdges[0].second);
-      builder.getCfg().redirectEdge(ir::blockid_t(sccEdges.entryEdges[0].first), headerId, loopId);
+      cfg.redirectEdge(ir::blockid_t(sccEdges.entryEdges[0].first), headerId, loopId);
       builder.insertToRegion(loopId, headerId);
     }
 
@@ -114,12 +117,12 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, ir::r
     // First value returned from theta-node is loop predicate (r-value)
     // (Optional) Second value is for entry selection (q-value)
     // redirect everything to exit latch (Must be one output node)
-    ir::blockid_t exitLatchId = builder.createSimpleNode();
-    ir::blockid_t backLatchId = builder.createSimpleNode();
+    ir::blockid_t exitLatchId = cfg.createSimpleNode();
+    ir::blockid_t backLatchId = cfg.createSimpleNode();
 
     if (sccEdges.backEdges.size() > 0) {
       for (auto const& [from, to]: sccEdges.backEdges) {
-        builder.getCfg().redirectEdge(ir::blockid_t(from), ir::blockid_t(to), backLatchId);
+        cfg.redirectEdge(ir::blockid_t(from), ir::blockid_t(to), backLatchId);
         auto node = builder.accessNode<ir::rvsdg::SimpleBlock>(ir::blockid_t(backLatchId));
 
         auto predValue = builder.create<ir::dialect::core::ConstantOp>(ir::dialect::OpDst(), ir::ConstantValue {.value_u64 = 1}, ir::OperandType::i1());
@@ -132,8 +135,8 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, ir::r
     }
 
     for (auto const& [from, to]: sccEdges.exitEdges) {
-      builder.getCfg().redirectEdge(ir::blockid_t(from), ir::blockid_t(to), exitLatchId);
-      builder.getCfg().addEdge(loopId, ir::blockid_t(to));
+      cfg.redirectEdge(ir::blockid_t(from), ir::blockid_t(to), exitLatchId);
+      cfg.addEdge(loopId, ir::blockid_t(to));
 
       auto node = builder.accessNode<ir::rvsdg::SimpleBlock>(ir::blockid_t(exitLatchId));
 
@@ -154,9 +157,9 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, ir::r
       builder.move(ir::blockid_t(id), loopRegions->id);
     }
 
-    ir::blockid_t latchId = builder.createSimpleNode(); // one exit node
-    builder.getCfg().addEdge(backLatchId, latchId);
-    builder.getCfg().addEdge(exitLatchId, latchId);
+    ir::blockid_t latchId = cfg.createSimpleNode(); // one exit node
+    cfg.addEdge(backLatchId, latchId);
+    cfg.addEdge(exitLatchId, latchId);
 
     builder.move(backLatchId, loopRegions->id);
     builder.move(exitLatchId, loopRegions->id);
@@ -166,11 +169,12 @@ static void collapseCycles(util::checkpoint_resource& checkpoint_resource, ir::r
   }
 }
 
-static void collapseBranches(util::checkpoint_resource& checkpoint_resource, ir::rvsdg::IRBlocks& builder, std::pmr::vector<ir::regionid_t>& tasks,
+static void collapseBranches(util::checkpoint_resource& checkpoint_resource, ir::ControlFlow& cfg, std::pmr::vector<ir::regionid_t>& tasks,
                              ir::regionid_t regionId) {
   //  1. Find conditional branch
   //  2. Get merge point from post dominator
   //  3. todo (exits, tail resturcturing)
+  auto& builder = cfg.getBlocks();
 
   auto region = builder.getRegion(regionId);
   if (region->blocks.empty()) return;
@@ -181,7 +185,7 @@ static void collapseBranches(util::checkpoint_resource& checkpoint_resource, ir:
 
   auto headerId = region->blocks.front();
   while (true) {
-    auto const& succs = builder.getCfg().getSuccessors(headerId);
+    auto const& succs = cfg.getSuccessors(headerId);
     if (succs.size() == 0) break;
     if (succs.size() == 1) {
       headerId = succs[0];
@@ -189,33 +193,32 @@ static void collapseBranches(util::checkpoint_resource& checkpoint_resource, ir:
       continue;
     }
 
-    auto const condId = builder.createGammaNode();
+    auto const condId = cfg.createGammaNode(succs.size());
     auto       cond   = builder.accessNode<ir::rvsdg::GammaBlock>(condId);
-    cond->branches.reserve(succs.size());
     builder.insertToRegion(condId, ir::blockid_t(succs[0]));
 
     // cond->predicate = ; todo change edges, use terminator
 
     // // Find branches
-    dom.calculate(GraphAdapter(builder.getCfg()), headerId); // build once on demand
+    dom.calculate(GraphAdapter(cfg), headerId); // build once on demand
 
     std::pmr::vector<std::pair<ir::blockid_t, std::pmr::vector<ir::blockid_t>>> continuationPoints(&checkpoint_resource);
 
     std::pmr::vector<ir::blockid_t> work(&checkpoint_resource);
     work.reserve(64);
     for (uint8_t arc = 0; arc < succs.size(); ++arc) {
-      auto regionId = cond->branches.emplace_back(builder.createRegion());
+      auto regionId = cond->branches[arc];
       tasks.push_back(regionId);
 
       auto arcStartNode = succs[arc];
 
-      if (builder.getCfg().getPredecessors(arcStartNode).size() > 1) {
+      if (cfg.getPredecessors(arcStartNode).size() > 1) {
         // Check if empty arc -> insert dummy node
         // each arc must have min 1 node!
-        auto dummyId = builder.createSimpleNode();
+        auto dummyId = cfg.createSimpleNode();
         builder.move(dummyId, regionId);
-        builder.getCfg().redirectEdge(headerId, arcStartNode, dummyId);
-        builder.getCfg().addEdge(dummyId, arcStartNode);
+        cfg.redirectEdge(headerId, arcStartNode, dummyId);
+        cfg.addEdge(dummyId, arcStartNode);
 
         arcStartNode = dummyId;
       }
@@ -227,7 +230,7 @@ static void collapseBranches(util::checkpoint_resource& checkpoint_resource, ir:
         auto const v = work.back();
         work.pop_back();
 
-        auto const& items = builder.getCfg().getSuccessors(v);
+        auto const& items = cfg.getSuccessors(v);
         if (items.size() > 0) builder.move(v, regionId);
 
         for (auto to: items) {
@@ -252,11 +255,11 @@ static void collapseBranches(util::checkpoint_resource& checkpoint_resource, ir:
       if (exits.size() == 1) {
       } else if (exits.size() > 1) {
         // Multiple: create dummy node as new exit
-        auto dummyId = builder.createSimpleNode();
+        auto dummyId = cfg.createSimpleNode();
         builder.move(dummyId, regionId);
 
         for (auto const [from, to]: exits) {
-          builder.getCfg().redirectEdge(from, to, dummyId);
+          cfg.redirectEdge(from, to, dummyId);
         }
       }
     }
@@ -268,36 +271,36 @@ static void collapseBranches(util::checkpoint_resource& checkpoint_resource, ir:
       tailId = continuationPoints.front().first;
     } else {
       // todo branches
-      tailId = builder.createSimpleNode();
+      tailId = cfg.createSimpleNode();
     }
 
     for (auto cp: continuationPoints) {
       for (auto pred: cp.second) {
-        builder.getCfg().redirectEdge(pred, cp.first, tailId);
+        cfg.redirectEdge(pred, cp.first, tailId);
       }
     }
 
-    builder.getCfg().accessSuccessors(headerId).clear();
-    builder.getCfg().addEdge(headerId, condId);
+    cfg.accessSuccessors(headerId).clear();
+    cfg.addEdge(headerId, condId);
 
-    builder.getCfg().addEdge(condId, tailId);
+    cfg.addEdge(condId, tailId);
 
     headerId = tailId; // Continue;
   }
 }
 
-void restructureCfg(util::checkpoint_resource& checkpoint_resource, ir::rvsdg::IRBlocks& builder) {
+void createRVSDG(util::checkpoint_resource& checkpoint_resource, ir::ControlFlow& cfg) {
   auto checkpoint = checkpoint_resource.checkpoint();
 
   std::pmr::vector<ir::regionid_t> tasks;
-  tasks.push_back(builder.getMainFunction()->body);
+  tasks.push_back(cfg.getBlocks().getMainFunction()->body);
 
   while (!tasks.empty()) {
     auto const regionId = tasks.back();
     tasks.pop_back();
 
-    collapseCycles(checkpoint_resource, builder, tasks, regionId);
-    collapseBranches(checkpoint_resource, builder, tasks, regionId);
+    collapseCycles(checkpoint_resource, cfg, tasks, regionId);
+    collapseBranches(checkpoint_resource, cfg, tasks, regionId);
   }
 }
 } // namespace compiler::transform
