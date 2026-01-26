@@ -197,7 +197,35 @@ static void collapseBranches(util::checkpoint_resource& checkpoint_resource, ir:
     auto       cond   = builder.accessNode<ir::rvsdg::GammaBlock>(condId);
     builder.insertToRegion(condId, ir::blockid_t(succs[0]));
 
-    // cond->predicate = ; todo change edges, use terminator
+    auto headerBase = builder.accessBase(headerId);
+
+    { // // Get predicate
+      // Check if header is correct
+      if (headerBase->type != ir::rvsdg::eBlockType::Simple) {
+        throw std::runtime_error("wrong header type");
+        return;
+      }
+
+      auto header = (ir::rvsdg::SimpleBlock*)headerBase;
+
+      if (!header->instructions.empty()) {
+        auto terminatorOp = header->instructions.back();
+
+        if (terminatorOp.isValid()) {
+          auto const& op = builder.getInstructions().getInstr(terminatorOp);
+          if (op.isTerminator()) {
+            cond->predicate = op.getInputId(0);
+          }
+        }
+      }
+
+      if (!cond->predicate.isValid()) {
+        throw std::runtime_error("block has no terminator");
+        return;
+      }
+
+      header->instructions.pop_back(); // RVSDG doesn't need it
+    }
 
     // // Find branches
     dom.calculate(GraphAdapter(cfg), headerId); // build once on demand

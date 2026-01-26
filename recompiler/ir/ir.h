@@ -60,6 +60,8 @@ struct alignas(16) InstCore {
 
   inline bool isConstant() const { return flags.is_set(eInstructionFlags::kConstant); }
 
+  inline bool isTerminator() const { return flags.is_set(eInstructionFlags::kTerminator); }
+
   inline auto getSrcStart() const { return srcStartId; }
 
   inline auto getConstantId() const { return constantId; }

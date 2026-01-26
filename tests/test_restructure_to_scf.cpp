@@ -1,6 +1,8 @@
+#include "frontend/ir_types.h"
 #include "include/checkpoint_resource.h"
 #include "ir/cfg.h"
 #include "ir/debug_strings.h"
+#include "ir/dialects/core/builder.h"
 #include "transform/transform.h"
 
 #include <algorithm>
@@ -65,6 +67,18 @@ static void createCFG(ControlFlow& cfg, uint32_t numBlocks, uint32_t start, uint
 
   for (auto const edge: edges)
     cfg.addEdge(blockid_t(offset + edge.from.value), blockid_t(offset + edge.to.value));
+
+  // Check if predicate is needed
+  for (auto base: builder.getBlocks()) {
+    auto succs = cfg.accessSuccessors(base->id);
+    if (succs.size() < 2 || base->type != compiler::ir::rvsdg::eBlockType::Simple) continue;
+
+    auto node = (compiler::ir::rvsdg::SimpleBlock*)base;
+
+    node->instructions.push_back(
+        builder.create<compiler::ir::dialect::core::CjumpAbsOp>(compiler::ir::dialect::OpSrc(getOperandKind(compiler::frontend::eOperandKind::VCC()), 0),
+                                                                compiler::ir::dialect::OpSrc(getOperandKind(compiler::frontend::eOperandKind::createImm(0)))));
+  }
 }
 
 TEST(ControlflowTransform, SimpleIfElse) {
@@ -88,7 +102,7 @@ TEST(ControlflowTransform, SimpleIfElse) {
 
   createCFG(cfg, 7, 0, 6, {{0, 1}, {1, 2}, {1, 3}, {2, 4}, {4, 5}, {3, 5}, {5, 6}});
   // createCFG(cfg, 5, 0, 4, {{0, 1}, {1, 2}, {1, 4}, {2, 4}});
-  debug::dump(std::cout, blocks);
+  debug::dump(std::cout, cfg);
 
   std::array<uint8_t, 10000>          buffer;
   compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
@@ -115,7 +129,7 @@ TEST(ControlflowTransform, CompactIfElse) {
   ControlFlow     cfg(allocator, blocks);
 
   createCFG(cfg, 5, 0, 4, {{0, 1}, {1, 2}, {1, 3}, {2, 3}, {3, 4}});
-  debug::dump(std::cout, blocks);
+  debug::dump(std::cout, cfg);
 
   std::array<uint8_t, 10000>          buffer;
   compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
@@ -140,7 +154,7 @@ TEST(ControlflowTransform, SimpleWhileLoop) {
   ControlFlow     cfg(allocator, blocks);
 
   createCFG(cfg, 5, 0, 4, {{0, 1}, {1, 2}, {1, 3}, {3, 1}, {2, 4}});
-  debug::dump(std::cout, blocks);
+  debug::dump(std::cout, cfg);
 
   std::array<uint8_t, 10000>          buffer;
   compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
@@ -165,7 +179,7 @@ TEST(ControlflowTransform, SimpleDoLoop) {
   ControlFlow     cfg(allocator, blocks);
 
   createCFG(cfg, 4, 0, 3, {{0, 1}, {1, 2}, {2, 3}, {2, 1}});
-  debug::dump(std::cout, blocks);
+  debug::dump(std::cout, cfg);
 
   std::array<uint8_t, 10000>          buffer;
   compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
@@ -194,7 +208,7 @@ TEST(ControlflowTransform, NestedDoLoop) {
   ControlFlow     cfg(allocator, blocks);
 
   createCFG(cfg, 6, 0, 3, {{0, 1}, {1, 2}, {2, 3}, {2, 4}, {4, 5}, {5, 1}, {5, 4}});
-  debug::dump(std::cout, blocks);
+  debug::dump(std::cout, cfg);
 
   std::array<uint8_t, 10000>          buffer;
   compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
@@ -223,7 +237,7 @@ TEST(ControlflowTransform, NestedDoLoopSelfs) {
   ControlFlow     cfg(allocator, blocks);
 
   createCFG(cfg, 6, 0, 3, {{0, 1}, {1, 2}, {2, 3}, {2, 4}, {4, 5}, {5, 2}, {5, 5}});
-  debug::dump(std::cout, blocks);
+  debug::dump(std::cout, cfg);
 
   std::array<uint8_t, 10000>          buffer;
   compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
@@ -258,7 +272,7 @@ TEST(ControlflowTransform, BranchWithMultipleExitsIntoTail) {
 
   createCFG(cfg, 9, 0, 8, {{0, 1}, {1, 2}, {1, 6}, {2, 3}, {6, 7}, {3, 4}, {3, 5}, {4, 7}, {5, 6}, {6, 7}, {7, 8}});
   // createCFG(cfg, 8, 0, 7, {{0, 1}, {0, 6}, {1, 2}, {2, 6}, {2, 4}, {4, 5}, {5, 6}});
-  debug::dump(std::cout, blocks);
+  debug::dump(std::cout, cfg);
 
   std::array<uint8_t, 10000>          buffer;
   compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
@@ -301,7 +315,7 @@ TEST(ControlflowTransform, DeeplyNestedBranches) {
 
   createCFG(cfg, 15, 0, 14,
             {{0, 1}, {0, 2}, {1, 3}, {2, 13}, {3, 4}, {3, 5}, {4, 6}, {5, 11}, {6, 7}, {6, 8}, {11, 12}, {7, 9}, {8, 9}, {9, 10}, {10, 12}, {12, 14}});
-  debug::dump(std::cout, blocks);
+  debug::dump(std::cout, cfg);
 
   std::array<uint8_t, 10000>          buffer;
   compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());

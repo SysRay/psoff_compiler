@@ -65,10 +65,19 @@ static void getDst(std::ostream& os, IROperations const& im, InstCore const& op)
   }
 }
 
+static void getSrc(std::ostream& os, InputOperand const& operand) {
+  if (operand.isSSA()) {
+    os << " %" << operand.ssaId;
+    return;
+  }
+
+  os << " $";
+  frontend::debug::printOperandSrc(os, operand);
+}
+
 static void getSrc(std::ostream& os, IROperations const& im, InstCore const& op) {
   for (uint8_t n = 0; n < op.numSrc; ++n) {
-    os << " $";
-    frontend::debug::printOperandSrc(os, im.getOperand(op.getInputId(n)));
+    getSrc(os, im.getOperand(op.getInputId(n)));
   }
 }
 
@@ -149,6 +158,8 @@ static void dumpNode(std::ostream& os, const rvsdg::IRBlocks& builder, const Con
 
   os << indent << "^bb" << B->id;
 
+  auto& im = builder.getInstructions();
+
   using namespace rvsdg;
   switch (B->type) {
     case eBlockType::Simple: {
@@ -163,9 +174,10 @@ static void dumpNode(std::ostream& os, const rvsdg::IRBlocks& builder, const Con
     } break;
     case eBlockType::Gamma: {
       auto node = builder.getNode<GammaBlock>(B->id);
-      os << " Gamma ";
+      os << " Gamma";
+      getSrc(os, im.getOperand(node->predicate));
 
-      os << "{\n";
+      os << " {\n";
       for (uint32_t n = 0; n < node->branches.size(); ++n) {
         dumpRegion(os, builder, cfg, node->branches[n], indent + "  ");
       }

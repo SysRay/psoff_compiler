@@ -142,6 +142,8 @@ class IRBlocks {
 
   Base* accessBase(blockid_t id) { return _blocks[id.value]; }
 
+  std::span<Base* const> getBlocks() const { return _blocks; };
+
   template <typename T>
   T const* getNode(blockid_t id) const {
     // todo check types
