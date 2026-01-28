@@ -21,6 +21,7 @@ void ControlFlow::removeEdge(blockid_t from, blockid_t to) {
 }
 
 void ControlFlow::redirectEdge(blockid_t from, blockid_t oldSucc, blockid_t newSucc) {
+  if (oldSucc == newSucc) return;
   assert(from.isValid() && oldSucc.isValid() && newSucc.isValid());
 
   auto& succ = _successors[from.value];
@@ -31,7 +32,7 @@ void ControlFlow::redirectEdge(blockid_t from, blockid_t oldSucc, blockid_t newS
     }
 
   auto& predOld = _predecessors[oldSucc.value];
-  predOld.erase(std::remove(predOld.begin(), predOld.end(), from), predOld.end());
+  predOld.erase(std::find(predOld.begin(), predOld.end(), from));
 
   _predecessors[newSucc.value].push_back(from);
 }

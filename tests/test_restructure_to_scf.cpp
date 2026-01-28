@@ -138,6 +138,69 @@ TEST(ControlflowTransform, CompactIfElse) {
   EXPECT_FALSE(true); // todo
 }
 
+TEST(ControlflowTransform, GammaTwoCp) {
+  //      0
+  //      |
+  //      1
+  //     / \
+  //    2   7
+  //   / \  |
+  //  3   4 |
+  //  \    \|
+  //   \    5
+  //    \  /
+  //      6
+
+  std::pmr::monotonic_buffer_resource resource;
+  std::pmr::polymorphic_allocator<>   allocator {&resource};
+
+  rvsdg::IRBlocks blocks(allocator, 8);
+  ControlFlow     cfg(allocator, blocks);
+
+  createCFG(cfg, 8, 0, 6, {{0, 1}, {1, 2}, {1, 7}, {7, 5}, {2, 3}, {2, 4}, {4, 5}, {3, 6}, {5, 6}});
+  debug::dump(std::cout, cfg);
+
+  std::array<uint8_t, 10000>          buffer;
+  compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
+  compiler::transform::createRVSDG(tempResource, cfg);
+  debug::dump(std::cout, cfg);
+  EXPECT_FALSE(true); // todo
+}
+
+TEST(ControlflowTransform, GammaTwoCpCompact) {
+  //      0
+  //      |
+  //      1
+  //     / \
+  //    2   |
+  //   / \  |
+  //  |   \ |
+  //   \   3
+  //    \  /
+  //      4
+
+  std::pmr::monotonic_buffer_resource resource;
+  std::pmr::polymorphic_allocator<>   allocator {&resource};
+
+  rvsdg::IRBlocks blocks(allocator, 5);
+  ControlFlow     cfg(allocator, blocks);
+
+  createCFG(cfg, 5, 0, 4, {{0, 1}, {1, 2}, {1, 3}, {2, 4}, {2, 3}, {3, 4}});
+  debug::dump(std::cout, cfg);
+
+  std::array<uint8_t, 10000>          buffer;
+  compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
+  compiler::transform::createRVSDG(tempResource, cfg);
+  debug::dump(std::cout, cfg);
+  EXPECT_FALSE(true); // todo
+
+  // todo fix
+  /*
+  $78│ │             successors: ^bb8
+  missing node
+  */
+}
+
 TEST(ControlflowTransform, SimpleWhileLoop) {
   //   0
   //   |

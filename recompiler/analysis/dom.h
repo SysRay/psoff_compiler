@@ -28,6 +28,8 @@ class DominatorTreeDense {
 
   explicit DominatorTreeDense(alloc_t alloc = {}): alloc_(alloc) {}
 
+  void invalidate() { build_ = false; }
+
   inline void calculate(const Graph& g, node_t entry) {
     if (build_) return;
     build_ = true;

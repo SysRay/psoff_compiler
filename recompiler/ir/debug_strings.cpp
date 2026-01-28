@@ -225,7 +225,7 @@ static void dumpNode(std::ostream& os, const rvsdg::IRBlocks& builder, const Con
       os << std::endl;
     }
   }
-  os << indent << "}\n";
+  os << indent << "} //-" << "^bb" << B->id << "\n";
 }
 
 void dump(std::ostream& os, const rvsdg::IRBlocks& builder) {

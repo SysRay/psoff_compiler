@@ -31,7 +31,7 @@ void IRBlocks::move(blockid_t bid, regionid_t dst) {
   base->parentRegion = dst;
 }
 
-bool IRBlocks::insertToRegion(blockid_t src, blockid_t dst) {
+bool IRBlocks::regionReplace(blockid_t src, blockid_t dst) {
   assert(src.isValid() && dst.isValid());
 
   auto baseB = accessBase(dst);
@@ -44,6 +44,22 @@ bool IRBlocks::insertToRegion(blockid_t src, blockid_t dst) {
 
   accessBase(src)->parentRegion = region->id;
   baseB->parentRegion           = regionid_t(); // invalidate
+  return true;
+}
+
+bool IRBlocks::regionInsertAfter(blockid_t target, blockid_t item) {
+  assert(item.isValid() && target.isValid());
+
+  auto baseB = accessBase(target);
+  if (!baseB->parentRegion.isValid()) return false;
+
+  auto region = accessRegion(baseB->parentRegion);
+  auto it     = std::find(region->blocks.begin(), region->blocks.end(), target);
+  if (it == region->blocks.end()) return false;
+
+  region->blocks.insert(it + 1, item);
+
+  accessBase(item)->parentRegion = region->id;
   return true;
 }
 

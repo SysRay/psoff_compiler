@@ -174,7 +174,12 @@ class IRBlocks {
    * @param src
    * @param dst
    */
-  bool insertToRegion(blockid_t src, blockid_t dst);
+  bool regionReplace(blockid_t src, blockid_t dst);
+
+  /**
+   * @brief Insert Block item to region of target
+   */
+  bool regionInsertAfter(blockid_t target, blockid_t item);
 
   //------------------------------------------------------------
   //  Block replacement / removal
