@@ -193,12 +193,6 @@ TEST(ControlflowTransform, GammaTwoCpCompact) {
   compiler::transform::createRVSDG(tempResource, cfg);
   debug::dump(std::cout, cfg);
   EXPECT_FALSE(true); // todo
-
-  // todo fix
-  /*
-  $78│ │             successors: ^bb8
-  missing node
-  */
 }
 
 TEST(ControlflowTransform, SimpleWhileLoop) {
