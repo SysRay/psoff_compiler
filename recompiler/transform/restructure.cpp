@@ -196,7 +196,7 @@ static void collapseBranches(util::checkpoint_resource& checkpoint_resource, ir:
 
     auto const condId = cfg.createGammaNode(succs.size());
     auto       cond   = builder.accessNode<ir::rvsdg::GammaBlock>(condId);
-    builder.regionReplace(condId, ir::blockid_t(succs[0]));
+    builder.regionInsertAfter(headerId, condId);
 
     auto headerBase = builder.accessBase(headerId);
 
