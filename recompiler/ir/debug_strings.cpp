@@ -126,6 +126,20 @@ void getDebug(std::ostream& os, IROperations const& im, InstCore const& op) {
   }
 }
 
+void printInputs(std::ostream& os, const rvsdg::Base* B, ir::IROperations const& im) {
+  if (!B->inputs.empty()) {
+    os << "(";
+    for (uint8_t n = 0; n < B->inputs.size(); ++n) {
+      auto const& item = im.getOperand(B->inputs[n]);
+      os << "%" << item.ssa.ssaValue << ":";
+      frontend::debug::printType(os, item.type);
+      if (n < B->inputs.size() - 1) os << ", ";
+    }
+
+    os << ") ";
+  }
+}
+
 void dumpBlock(std::ostream& os, const rvsdg::IRBlocks& builder, blockid_t bid, const std::string& indent) {
   const auto* B = builder.getBase(bid);
 
@@ -164,7 +178,10 @@ static void dumpNode(std::ostream& os, const rvsdg::IRBlocks& builder, const Con
   switch (B->type) {
     case eBlockType::Simple: {
       auto node = builder.getNode<SimpleBlock>(B->id);
-      os << " Simple {\n";
+
+      os << " Simple ";
+      printInputs(os, B, im);
+      os << " {\n";
 
       auto& im = builder.getInstructions();
       for (auto id: node->instructions) {
@@ -176,7 +193,7 @@ static void dumpNode(std::ostream& os, const rvsdg::IRBlocks& builder, const Con
       auto node = builder.getNode<GammaBlock>(B->id);
       os << " Gamma";
       getSrc(os, im.getOperand(node->predicate));
-
+      printInputs(os, B, im);
       os << " {\n";
       for (uint32_t n = 0; n < node->branches.size(); ++n) {
         dumpRegion(os, builder, cfg, node->branches[n], indent + "  ");
@@ -184,12 +201,16 @@ static void dumpNode(std::ostream& os, const rvsdg::IRBlocks& builder, const Con
     } break;
     case eBlockType::Theta: {
       auto node = builder.getNode<ThetaBlock>(B->id);
-      os << " Theta {\n";
+      os << " Theta ";
+      printInputs(os, B, im);
+      os << " {\n";
       dumpRegion(os, builder, cfg, node->body, indent + "  ");
     } break;
     case eBlockType::Lambda: {
       auto node = builder.getNode<LambdaNode>(B->id);
-      os << " Lambda {\n";
+      os << " Lambda ";
+      printInputs(os, B, im);
+      os << " {\n";
       dumpRegion(os, builder, cfg, node->body, indent + "  ");
     } break;
   }

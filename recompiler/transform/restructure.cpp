@@ -176,6 +176,7 @@ static void collapseBranches(util::checkpoint_resource& checkpoint_resource, ir:
   //  2. Get merge point from post dominator
   //  3. todo (exits, tail resturcturing)
   auto& builder = cfg.getBlocks();
+  auto& im      = builder.getInstructions();
 
   auto region = builder.getRegion(regionId);
   if (region->blocks.empty()) return;
@@ -198,35 +199,15 @@ static void collapseBranches(util::checkpoint_resource& checkpoint_resource, ir:
     auto       cond   = builder.accessNode<ir::rvsdg::GammaBlock>(condId);
     builder.regionInsertAfter(headerId, condId);
 
-    auto headerBase = builder.accessBase(headerId);
-
-    { // // Get predicate
-      // Check if header is correct
-      if (headerBase->type != ir::rvsdg::eBlockType::Simple) {
-        throw std::runtime_error("wrong header type");
-        return;
-      }
-
-      auto header = (ir::rvsdg::SimpleBlock*)headerBase;
-
-      if (!header->instructions.empty()) {
-        auto terminatorOp = header->instructions.back();
-
-        if (terminatorOp.isValid()) {
-          auto const& op = builder.getInstructions().getInstr(terminatorOp);
-          if (op.isTerminator()) {
-            cond->predicate = op.getInputId(0);
-          }
-        }
-      }
-
-      if (!cond->predicate.isValid()) {
-        throw std::runtime_error("block has no terminator");
-        return;
-      }
-
-      header->instructions.pop_back(); // RVSDG doesn't need terminator ops
+    auto pPred = builder.getTerminator(headerId);
+    if (pPred == nullptr || !(cond->predicate = pPred->getInputId(0)).isValid()) {
+      throw std::runtime_error("block has no terminator");
     }
+
+    cond->predicate = pPred->getInputId(0);
+
+    // RVSDG doesn't need terminator ops, remove it
+    builder.accessNode<ir::rvsdg::SimpleBlock>(headerId)->instructions.pop_back();
 
     // // Find branches
     dom.calculate(GraphAdapter(cfg), headerId); // build once on demand
@@ -310,11 +291,33 @@ static void collapseBranches(util::checkpoint_resource& checkpoint_resource, ir:
         cfg.addEdge(tailId, cp);
       }
 
-      auto predValue = ir::dialect::OpSrc(SsaId_t {0}); // todo, add p constants and use the output
+      auto const predType = continuationPoints.size() == 2 ? ir::OperandType::i1() : ir::OperandType::i32();
+      for (auto const& exits: branchExits) {
+        for (auto [from, to]: exits) {
+          auto node = builder.accessNode<ir::rvsdg::SimpleBlock>(from);
+          if (node->type != ir::rvsdg::eBlockType::Simple) {
+            throw std::runtime_error("not a simple block");
+          }
+
+          uint32_t predValue = 0;
+          for (; predValue < continuationPoints.size(); ++predValue) {
+            if (continuationPoints[predValue] == to) break;
+          }
+
+          auto predConst = builder.create<ir::dialect::core::ConstantOp>(ir::dialect::OpDst(), ir::ConstantValue {.value_u64 = predValue}, predType);
+          node->instructions.push_back(predConst);
+
+          auto inId = im.createInput(predType);
+          node->outputs.push_back(inId);
+          im.connect(inId, predConst);
+        }
+      }
 
       auto node = builder.accessNode<ir::rvsdg::SimpleBlock>(tailId);
+
+      auto outId = node->inputs.emplace_back(im.createOutput(predType));
       node->instructions.push_back(builder.create<ir::dialect::core::CjumpAbsOp>(
-          predValue,
+          ir::dialect::OpSrc(im.getDef(outId)),
           ir::dialect::OpSrc(getOperandKind(frontend::eOperandKind::createImm(1))))); // Just a dummy to get predicate later
     }
 

@@ -131,6 +131,8 @@ class IRBlocks {
 
   void setMainFunction(blockid_t id) { _mainFunc = id; }
 
+  InstCore const* getTerminator(blockid_t id) const;
+
   // ------------------------------------------------------------
   // Region
   // ------------------------------------------------------------
@@ -146,13 +148,11 @@ class IRBlocks {
 
   template <typename T>
   T const* getNode(blockid_t id) const {
-    // todo check types
     return (T const*)getBase(id);
   }
 
   template <typename T>
   T* accessNode(blockid_t id) {
-    // todo check types
     return (T*)accessBase(id);
   }
 

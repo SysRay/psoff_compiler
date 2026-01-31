@@ -1,6 +1,7 @@
 #include "blocks.h"
 
 #include <assert.h>
+#include <stdexcept>
 
 namespace compiler::ir::rvsdg {
 bool IRBlocks::contains(regionid_t rid, blockid_t bid) const {
@@ -75,5 +76,27 @@ void IRBlocks::replaceBlockInRegion(regionid_t rid, blockid_t oldB, blockid_t ne
 void IRBlocks::removeBlockFromRegion(regionid_t rid, blockid_t bid) {
   auto& list = _regions[rid.value].blocks;
   list.erase(std::remove(list.begin(), list.end(), bid), list.end());
+}
+
+InstCore const* IRBlocks::getTerminator(blockid_t id) const {
+  auto header = getNode<ir::rvsdg::SimpleBlock>(id);
+
+  // Check if header is correct
+  if (header->type != ir::rvsdg::eBlockType::Simple) {
+    // throw std::runtime_error("wrong header type");
+    return nullptr;
+  }
+
+  if (!header->instructions.empty()) {
+    auto terminatorOp = header->instructions.back();
+
+    if (terminatorOp.isValid()) {
+      auto const& op = getInstructions().getInstr(terminatorOp);
+      if (op.isTerminator()) {
+        return &op;
+      }
+    }
+  }
+  return nullptr;
 }
 } // namespace compiler::ir::rvsdg

@@ -17,7 +17,7 @@ static inline InputOperand& createOp(IROperations& ir, InputOperandId_t id, OpSr
   op.kind  = rhs.kind;
   op.flags = rhs.flags;
   op.type  = type;
-  if (op.ssaId.isValid()) ir.connect(id, rhs.ssa);
+  if (rhs.ssa.isValid()) ir.connect(id, rhs.ssa);
   return op;
 }
 
