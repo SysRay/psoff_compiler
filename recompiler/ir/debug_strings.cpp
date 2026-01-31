@@ -11,6 +11,16 @@
 #include <unordered_set>
 
 namespace compiler::ir::debug {
+
+std::string_view getDebug(rvsdg::eBlockType type) {
+  switch (type) {
+    case rvsdg::eBlockType::Simple: return "";
+    case rvsdg::eBlockType::Gamma: return "if";
+    case rvsdg::eBlockType::Theta: return "loop";
+    case rvsdg::eBlockType::Lambda: return "func";
+  }
+}
+
 static std::string_view isVirtual(InstCore const& op) {
   if (op.flags.is_set(eInstructionFlags::kVirtual)) {
     return "v_";
@@ -126,7 +136,23 @@ void getDebug(std::ostream& os, IROperations const& im, InstCore const& op) {
   }
 }
 
-void printInputs(std::ostream& os, const rvsdg::Base* B, ir::IROperations const& im) {
+void printRegionOutValues(std::ostream& os, const rvsdg::Base* B, ir::IROperations const& im) {
+  if (!B->outputs.empty()) {
+    for (uint8_t n = 0; n < B->outputs.size(); ++n) {
+      auto const& item = im.getOperand(B->outputs[n]);
+      if (item.isSSA()) {
+        os << "%" << item.ssaId;
+      } else {
+        os << "unset";
+      }
+      if (n < B->outputs.size() - 1) os << ", ";
+    }
+
+    os << " = ";
+  }
+}
+
+void printRegionArgs(std::ostream& os, const rvsdg::Base* B, ir::IROperations const& im) {
   if (!B->inputs.empty()) {
     os << "(";
     for (uint8_t n = 0; n < B->inputs.size(); ++n) {
@@ -137,6 +163,15 @@ void printInputs(std::ostream& os, const rvsdg::Base* B, ir::IROperations const&
     }
 
     os << ") ";
+  }
+
+  if (!B->outputs.empty()) {
+    os << "-> ";
+    for (uint8_t n = 0; n < B->outputs.size(); ++n) {
+      auto const& item = im.getOperand(B->outputs[n]);
+      frontend::debug::printType(os, item.type);
+      if (n < B->outputs.size() - 1) os << ", ";
+    }
   }
 }
 
@@ -170,7 +205,7 @@ static void dumpRegion(std::ostream& os, const rvsdg::IRBlocks& builder, const C
 static void dumpNode(std::ostream& os, const rvsdg::IRBlocks& builder, const ControlFlow* cfg, blockid_t bid, const std::string& indent) {
   const auto* B = builder.getBase(bid);
 
-  os << indent << "^bb" << B->id;
+  // os << indent << "^bb" << B->id;
 
   auto& im = builder.getInstructions();
 
@@ -179,8 +214,8 @@ static void dumpNode(std::ostream& os, const rvsdg::IRBlocks& builder, const Con
     case eBlockType::Simple: {
       auto node = builder.getNode<SimpleBlock>(B->id);
 
-      os << " Simple ";
-      printInputs(os, B, im);
+      os << indent;
+      printRegionArgs(os, B, im);
       os << " {\n";
 
       auto& im = builder.getInstructions();
@@ -191,9 +226,13 @@ static void dumpNode(std::ostream& os, const rvsdg::IRBlocks& builder, const Con
     } break;
     case eBlockType::Gamma: {
       auto node = builder.getNode<GammaBlock>(B->id);
-      os << " Gamma";
+
+      os << indent;
+      printRegionOutValues(os, B, im);
+      os << getDebug(B->type);
+
       getSrc(os, im.getOperand(node->predicate));
-      printInputs(os, B, im);
+      printRegionArgs(os, B, im);
       os << " {\n";
       for (uint32_t n = 0; n < node->branches.size(); ++n) {
         dumpRegion(os, builder, cfg, node->branches[n], indent + "  ");
@@ -201,15 +240,15 @@ static void dumpNode(std::ostream& os, const rvsdg::IRBlocks& builder, const Con
     } break;
     case eBlockType::Theta: {
       auto node = builder.getNode<ThetaBlock>(B->id);
-      os << " Theta ";
-      printInputs(os, B, im);
+      os << indent << " loop ";
+      printRegionArgs(os, B, im);
       os << " {\n";
       dumpRegion(os, builder, cfg, node->body, indent + "  ");
     } break;
     case eBlockType::Lambda: {
       auto node = builder.getNode<LambdaNode>(B->id);
-      os << " Lambda ";
-      printInputs(os, B, im);
+      os << indent << " func ";
+      printRegionArgs(os, B, im);
       os << " {\n";
       dumpRegion(os, builder, cfg, node->body, indent + "  ");
     } break;
