@@ -16,6 +16,7 @@ unset(CMAKE_IMPORT_LIBRARY_SUFFIX)
 option(ENABLE_DEFAULT_LOGGING "printf logs" ON)
 
 add_subdirectory(recompiler)
+add_subdirectory(compiler)
 add_subdirectory(dump_reader)
 
 add_subdirectory(tests)
