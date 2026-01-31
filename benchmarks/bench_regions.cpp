@@ -60,13 +60,13 @@ static void inline test(std::pmr::memory_resource* pool, uint32_t N) {
 
   // 8. Random jumps for realistic patterns
   std::uniform_int_distribution<region_t> pos_dist(0, N - 10);
-  std::uniform_int_distribution<region_t> offset_dist(-50, 100);
+  std::uniform_int_distribution<int32_t>  offset_dist(-50, 100);
   std::uniform_int_distribution<region_t> type_dist(0, 2);
 
   region_t num_random = N / 50; // 2% random jumps
   for (region_t i = 0; i < num_random; ++i) {
     region_t from = pos_dist(rng);
-    region_t to   = std::clamp(from + offset_dist(rng), 0u, N - 1);
+    region_t to   = std::clamp(from + (region_t)offset_dist(rng), 0u, N - 1);
 
     region_t type = type_dist(rng);
     if (type == 0) {

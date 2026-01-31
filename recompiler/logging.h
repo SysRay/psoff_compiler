@@ -15,6 +15,10 @@ void __LOG_IMPL(eLOG_TYPE, std::string_view);
 
 template <typename... Args>
 void LOG(eLOG_TYPE type, std::string_view fmt, Args&&... args) {
-  __LOG_IMPL(type, std::vformat(fmt, std::make_format_args(std::forward<Args>(args)...)));
+  if constexpr (sizeof...(Args) == 0) {
+    __LOG_IMPL(type, fmt);
+  } else {
+    __LOG_IMPL(type, std::vformat(fmt, std::make_format_args(args...)));
+  }
 }
 } // namespace compiler

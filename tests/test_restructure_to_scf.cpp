@@ -1,6 +1,8 @@
-#include "cfg/cfg.h"
-#include "cfg/debug_strings.h"
+#include "frontend/ir_types.h"
 #include "include/checkpoint_resource.h"
+#include "ir/cfg.h"
+#include "ir/debug_strings.h"
+#include "ir/dialects/core/builder.h"
 #include "transform/transform.h"
 
 #include <algorithm>
@@ -38,31 +40,45 @@ namespace {
 // }
 } // namespace
 
-using namespace compiler::cfg;
+using namespace compiler::ir;
 
-static void createCFG(ControlFlow& cfg, uint32_t numBlocks, uint32_t start, uint32_t end, std::initializer_list<rvsdg::edge_t> edges) {
+static void createCFG(ControlFlow& cfg, uint32_t numBlocks, uint32_t start, uint32_t end, std::initializer_list<edge_t> edges) {
   auto funcId = cfg.createLambdaNode();
-  cfg.nodes()->setMainFunction(funcId);
 
-  auto R = cfg.nodes()->accessRegion(cfg.nodes()->getMainFunction()->body);
+  auto& builder = cfg.getBlocks();
+  builder.setMainFunction(funcId);
+
+  auto R = builder.accessRegion(builder.getMainFunction()->body);
   for (uint32_t n = 0; n < numBlocks; ++n) {
     cfg.createSimpleNode();
   }
 
-  R->nodes.reserve(numBlocks);
+  R->blocks.reserve(numBlocks);
 
   auto const offset = 1 + funcId;
-  cfg.nodes()->moveNodeToRegion(rvsdg::nodeid_t(offset + start), R->id);
+  builder.move(blockid_t(offset + start), R->id);
 
   for (uint32_t n = 0; n < numBlocks; ++n) {
     if (n == start || n == end) continue;
-    cfg.nodes()->moveNodeToRegion(rvsdg::nodeid_t(offset + n), R->id);
+    builder.move(blockid_t(offset + n), R->id);
   }
 
-  cfg.nodes()->moveNodeToRegion(rvsdg::nodeid_t(offset + end), R->id);
+  builder.move(blockid_t(offset + end), R->id);
 
   for (auto const edge: edges)
-    cfg.addEdge(rvsdg::nodeid_t(offset + edge.from.value), rvsdg::nodeid_t(offset + edge.to.value));
+    cfg.addEdge(blockid_t(offset + edge.from.value), blockid_t(offset + edge.to.value));
+
+  // Check if predicate is needed
+  for (auto base: builder.getBlocks()) {
+    auto succs = cfg.accessSuccessors(base->id);
+    if (succs.size() < 2 || base->type != compiler::ir::rvsdg::eBlockType::Simple) continue;
+
+    auto node = (compiler::ir::rvsdg::SimpleBlock*)base;
+
+    node->instructions.push_back(
+        builder.create<compiler::ir::dialect::core::CjumpAbsOp>(compiler::ir::dialect::OpSrc(getOperandKind(compiler::frontend::eOperandKind::VCC()), 0),
+                                                                compiler::ir::dialect::OpSrc(getOperandKind(compiler::frontend::eOperandKind::createImm(0)))));
+  }
 }
 
 TEST(ControlflowTransform, SimpleIfElse) {
@@ -71,20 +87,111 @@ TEST(ControlflowTransform, SimpleIfElse) {
   //   1
   //  / \
   // 2   3
+  // |   |
+  // 4   |
   //  \ /
+  //   5
+  //   |
+  //   6
+
+  std::pmr::monotonic_buffer_resource resource;
+  std::pmr::polymorphic_allocator<>   allocator {&resource};
+
+  rvsdg::IRBlocks blocks(allocator, 7);
+  ControlFlow     cfg(allocator, blocks);
+
+  createCFG(cfg, 7, 0, 6, {{0, 1}, {1, 2}, {1, 3}, {2, 4}, {4, 5}, {3, 5}, {5, 6}});
+  // createCFG(cfg, 5, 0, 4, {{0, 1}, {1, 2}, {1, 4}, {2, 4}});
+  debug::dump(std::cout, cfg);
+
+  std::array<uint8_t, 10000>          buffer;
+  compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
+  compiler::transform::createRVSDG(tempResource, cfg);
+  debug::dump(std::cout, blocks);
+  EXPECT_FALSE(true); // todo
+}
+
+TEST(ControlflowTransform, CompactIfElse) {
+  //   0
+  //   |
+  //   1
+  //  / \
+  // 2   |
+  //  \ /
+  //   3
+  //   |
   //   4
 
   std::pmr::monotonic_buffer_resource resource;
   std::pmr::polymorphic_allocator<>   allocator {&resource};
 
-  ControlFlow cfg(allocator);
-  createCFG(cfg, 5, 0, 4, {{0, 1}, {1, 2}, {1, 3}, {2, 4}, {3, 4}});
-  dumpCFG(std::cout, cfg);
+  rvsdg::IRBlocks blocks(allocator, 7);
+  ControlFlow     cfg(allocator, blocks);
+
+  createCFG(cfg, 5, 0, 4, {{0, 1}, {1, 2}, {1, 3}, {2, 3}, {3, 4}});
+  debug::dump(std::cout, cfg);
 
   std::array<uint8_t, 10000>          buffer;
   compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
-  compiler::transform::restructureCfg(tempResource, cfg);
-  dumpCFG(std::cout, cfg);
+  compiler::transform::createRVSDG(tempResource, cfg);
+  debug::dump(std::cout, blocks);
+  EXPECT_FALSE(true); // todo
+}
+
+TEST(ControlflowTransform, GammaTwoCp) {
+  //      0
+  //      |
+  //      1
+  //     / \
+  //    2   7
+  //   / \  |
+  //  3   4 |
+  //  \    \|
+  //   \    5
+  //    \  /
+  //      6
+
+  std::pmr::monotonic_buffer_resource resource;
+  std::pmr::polymorphic_allocator<>   allocator {&resource};
+
+  rvsdg::IRBlocks blocks(allocator, 8);
+  ControlFlow     cfg(allocator, blocks);
+
+  createCFG(cfg, 8, 0, 6, {{0, 1}, {1, 2}, {1, 7}, {7, 5}, {2, 3}, {2, 4}, {4, 5}, {3, 6}, {5, 6}});
+  debug::dump(std::cout, cfg);
+
+  std::array<uint8_t, 10000>          buffer;
+  compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
+  compiler::transform::createRVSDG(tempResource, cfg);
+  debug::dump(std::cout, cfg);
+  EXPECT_FALSE(true); // todo
+}
+
+TEST(ControlflowTransform, GammaTwoCpCompact) {
+  //      0
+  //      |
+  //      1
+  //     / \
+  //    2   |
+  //   / \  |
+  //  |   \ |
+  //   \   3
+  //    \  /
+  //      4
+
+  std::pmr::monotonic_buffer_resource resource;
+  std::pmr::polymorphic_allocator<>   allocator {&resource};
+
+  rvsdg::IRBlocks blocks(allocator, 5);
+  ControlFlow     cfg(allocator, blocks);
+
+  createCFG(cfg, 5, 0, 4, {{0, 1}, {1, 2}, {1, 3}, {2, 4}, {2, 3}, {3, 4}});
+  debug::dump(std::cout, cfg);
+
+  std::array<uint8_t, 10000>          buffer;
+  compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
+  compiler::transform::createRVSDG(tempResource, cfg);
+  debug::dump(std::cout, cfg);
   EXPECT_FALSE(true); // todo
 }
 
@@ -100,14 +207,16 @@ TEST(ControlflowTransform, SimpleWhileLoop) {
   std::pmr::monotonic_buffer_resource resource;
   std::pmr::polymorphic_allocator<>   allocator {&resource};
 
-  ControlFlow cfg(allocator);
+  rvsdg::IRBlocks blocks(allocator, 7);
+  ControlFlow     cfg(allocator, blocks);
+
   createCFG(cfg, 5, 0, 4, {{0, 1}, {1, 2}, {1, 3}, {3, 1}, {2, 4}});
-  dumpCFG(std::cout, cfg);
+  debug::dump(std::cout, cfg);
 
   std::array<uint8_t, 10000>          buffer;
   compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
-  compiler::transform::restructureCfg(tempResource, cfg);
-  dumpCFG(std::cout, cfg);
+  compiler::transform::createRVSDG(tempResource, cfg);
+  debug::dump(std::cout, blocks);
   EXPECT_FALSE(true); // todo
 }
 
@@ -116,21 +225,23 @@ TEST(ControlflowTransform, SimpleDoLoop) {
   //   |
   //   1
   //   |
-  //   2
-  //  / \
-  // 3   1
+  //   2 -> 1
+  //  /
+  // 3
 
   std::pmr::monotonic_buffer_resource resource;
   std::pmr::polymorphic_allocator<>   allocator {&resource};
 
-  ControlFlow cfg(allocator);
+  rvsdg::IRBlocks blocks(allocator, 7);
+  ControlFlow     cfg(allocator, blocks);
+
   createCFG(cfg, 4, 0, 3, {{0, 1}, {1, 2}, {2, 3}, {2, 1}});
-  dumpCFG(std::cout, cfg);
+  debug::dump(std::cout, cfg);
 
   std::array<uint8_t, 10000>          buffer;
   compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
-  compiler::transform::restructureCfg(tempResource, cfg);
-  dumpCFG(std::cout, cfg);
+  compiler::transform::createRVSDG(tempResource, cfg);
+  debug::dump(std::cout, blocks);
   EXPECT_FALSE(true); // todo
 }
 
@@ -150,16 +261,19 @@ TEST(ControlflowTransform, NestedDoLoop) {
   std::pmr::monotonic_buffer_resource resource;
   std::pmr::polymorphic_allocator<>   allocator {&resource};
 
-  ControlFlow cfg(allocator);
+  rvsdg::IRBlocks blocks(allocator, 7);
+  ControlFlow     cfg(allocator, blocks);
+
   createCFG(cfg, 6, 0, 3, {{0, 1}, {1, 2}, {2, 3}, {2, 4}, {4, 5}, {5, 1}, {5, 4}});
-  dumpCFG(std::cout, cfg);
+  debug::dump(std::cout, cfg);
 
   std::array<uint8_t, 10000>          buffer;
   compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
-  compiler::transform::restructureCfg(tempResource, cfg);
-  dumpCFG(std::cout, cfg);
+  compiler::transform::createRVSDG(tempResource, cfg);
+  debug::dump(std::cout, blocks);
   EXPECT_FALSE(true); // todo
 }
+
 TEST(ControlflowTransform, NestedDoLoopSelfs) {
   //   0
   //   |
@@ -176,42 +290,51 @@ TEST(ControlflowTransform, NestedDoLoopSelfs) {
   std::pmr::monotonic_buffer_resource resource;
   std::pmr::polymorphic_allocator<>   allocator {&resource};
 
-  ControlFlow cfg(allocator);
+  rvsdg::IRBlocks blocks(allocator, 7);
+  ControlFlow     cfg(allocator, blocks);
+
   createCFG(cfg, 6, 0, 3, {{0, 1}, {1, 2}, {2, 3}, {2, 4}, {4, 5}, {5, 2}, {5, 5}});
-  dumpCFG(std::cout, cfg);
+  debug::dump(std::cout, cfg);
 
   std::array<uint8_t, 10000>          buffer;
   compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
-  compiler::transform::restructureCfg(tempResource, cfg);
-  dumpCFG(std::cout, cfg);
+  compiler::transform::createRVSDG(tempResource, cfg);
+  debug::dump(std::cout, blocks);
   EXPECT_FALSE(true); // todo
 }
 
 // fig. 4
 TEST(ControlflowTransform, BranchWithMultipleExitsIntoTail) {
-  //      0 (branch)
-  //     / \
-  //    1   5
-  //    |   |
-  //    2   6
-  //   / \
-  //  3   4
-  //  |   |
-  //  6   5
+  //      0
   //      |
-  //      6
+  //      1 (branch)
+  //     / \
+  //    2   6
+  //    |
+  //    3
+  //   / \
+  //  4   5
+  //  |   |
+  //  7   6
+  //      |
+  //      7
+  //      |
+  //      8
 
   std::pmr::monotonic_buffer_resource resource;
   std::pmr::polymorphic_allocator<>   allocator {&resource};
 
-  ControlFlow cfg(allocator);
-  createCFG(cfg, 4, 0, 6, {{0, 1}, {0, 5}, {1, 2}, {5, 6}, {2, 3}, {2, 4}, {3, 6}, {4, 5}, {5, 6}});
-  dumpCFG(std::cout, cfg);
+  rvsdg::IRBlocks blocks(allocator, 7);
+  ControlFlow     cfg(allocator, blocks);
+
+  createCFG(cfg, 9, 0, 8, {{0, 1}, {1, 2}, {1, 6}, {2, 3}, {6, 7}, {3, 4}, {3, 5}, {4, 7}, {5, 6}, {6, 7}, {7, 8}});
+  // createCFG(cfg, 8, 0, 7, {{0, 1}, {0, 6}, {1, 2}, {2, 6}, {2, 4}, {4, 5}, {5, 6}});
+  debug::dump(std::cout, cfg);
 
   std::array<uint8_t, 10000>          buffer;
   compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
-  compiler::transform::restructureCfg(tempResource, cfg);
-  dumpCFG(std::cout, cfg);
+  compiler::transform::createRVSDG(tempResource, cfg);
+  debug::dump(std::cout, blocks);
   EXPECT_FALSE(true); // todo
 }
 
@@ -244,14 +367,16 @@ TEST(ControlflowTransform, DeeplyNestedBranches) {
   std::pmr::monotonic_buffer_resource resource;
   std::pmr::polymorphic_allocator<>   allocator {&resource};
 
-  ControlFlow cfg(allocator);
+  rvsdg::IRBlocks blocks(allocator, 7);
+  ControlFlow     cfg(allocator, blocks);
+
   createCFG(cfg, 15, 0, 14,
             {{0, 1}, {0, 2}, {1, 3}, {2, 13}, {3, 4}, {3, 5}, {4, 6}, {5, 11}, {6, 7}, {6, 8}, {11, 12}, {7, 9}, {8, 9}, {9, 10}, {10, 12}, {12, 14}});
-  dumpCFG(std::cout, cfg);
+  debug::dump(std::cout, cfg);
 
   std::array<uint8_t, 10000>          buffer;
   compiler::util::checkpoint_resource tempResource(buffer.data(), buffer.size());
-  compiler::transform::restructureCfg(tempResource, cfg);
-  dumpCFG(std::cout, cfg);
+  compiler::transform::createRVSDG(tempResource, cfg);
+  debug::dump(std::cout, blocks);
   EXPECT_FALSE(true); // todo
 }

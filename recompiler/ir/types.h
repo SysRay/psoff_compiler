@@ -2,27 +2,24 @@
 
 #include "config.h"
 
+#include <functional>
 #include <limits>
 #include <utility>
 
 namespace compiler::ir {
 
-enum class eInstructionFlags : InstructionFlags_t {
-  kNone           = 0,
-  kHasSideEffects = 1u << 0, ///< cannot be removed / reordered
-  kWritesEXEC     = 1u << 1, ///< Writes to exec
-  kVirtual        = 1u << 2, ///< Instructions that run only with Exec set
-  kBarrier        = 1u << 3, ///< e.g. exec barrier, waitcnt
-  kConstant       = 1u << 4, ///< use src constant
+enum class eDialect : uint8_t {
+  kCore,
+  kArith,
 };
 
-enum class eInstructionGroup : InstructionGroup_t {
-  kUnknown,
-  kALU,
-  kBIT,
-  kConstant,
-  kFlowControl,
-  kBarrier,
+enum class eInstructionFlags : InstructionFlags_t {
+  kNone           = 0,
+  kTerminator     = 1u << 1,
+  kHasSideEffects = 1u << 2, ///< cannot be removed / reordered
+  kVirtual        = 1u << 3, ///< Instructions that run only with Exec set
+  kBarrier        = 1u << 4, ///< e.g. exec barrier, waitcnt
+  kConstant       = 1u << 5,
 };
 
 struct OperandType {
@@ -42,7 +39,7 @@ struct OperandType {
 
   struct __OperandTypeData {
     union {
-      struct _struct {
+      struct {
         OperandType_t base  : 4;
         OperandType_t kind  : 3;
         OperandType_t lanes : 9;
@@ -148,6 +145,51 @@ struct OperandType {
 // Hash support
 struct OperandTypeHash {
   auto operator()(const OperandType& t) const noexcept { return std::hash<OperandType_t> {}(t.packed()); }
+};
+
+struct blockid_t {
+  using underlying_t = uint32_t;
+
+  static inline constexpr blockid_t NO_VALUE() { return blockid_t(std::numeric_limits<underlying_t>::max()); };
+
+  underlying_t value = NO_VALUE().value;
+
+  constexpr blockid_t() = default;
+
+  constexpr explicit blockid_t(underlying_t v): value(v) {}
+
+  constexpr operator underlying_t() const { return value; }
+
+  constexpr bool operator==(blockid_t const&) const = default;
+
+  constexpr bool isValid() const { return value != NO_VALUE().value; }
+};
+
+struct edge_t {
+  blockid_t from;
+  blockid_t to;
+
+  constexpr operator std::pair<blockid_t, blockid_t>() const { return {from, to}; }
+
+  constexpr bool operator==(const edge_t&) const = default;
+
+  edge_t(blockid_t from, blockid_t to): from(from), to(to) {}
+
+  edge_t(blockid_t::underlying_t from, blockid_t::underlying_t to): from(blockid_t(from)), to(blockid_t(to)) {}
+};
+
+struct regionid_t {
+  using underlying_t = uint32_t;
+
+  underlying_t value = std::numeric_limits<underlying_t>::max();
+
+  constexpr regionid_t() = default;
+
+  constexpr explicit regionid_t(underlying_t v): value(v) {}
+
+  constexpr operator underlying_t() const { return value; }
+
+  bool isValid() const { return value != std::numeric_limits<underlying_t>::max(); }
 };
 
 } // namespace compiler::ir

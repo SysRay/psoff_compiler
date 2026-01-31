@@ -4,11 +4,12 @@ option(ENABLE_DEFAULT_LOGGING "printf logs" OFF)
 add_library(psOff_recompiler STATIC
   builder.cpp
   ir/debug_strings.cpp
-  ir/ir.cpp
+  ir/operations.cpp
+  ir/dialects/core/builder.cpp
+  ir/dialects/arith/builder.cpp
 
-  cfg/cfg.cpp
-  cfg/rvsdg.cpp
-  cfg/debug_strings.cpp
+  ir/cfg.cpp
+  ir/blocks.cpp
   analysis/debug_string.cpp
   transform/restructure.cpp
 
@@ -18,7 +19,6 @@ add_library(psOff_recompiler STATIC
   frontend/parser/debug_strings.cpp
   frontend/parser/shader_input.cpp
   frontend/parser/shader_types.cpp
-  frontend/parser/instruction_builder.cpp
   frontend/analysis/regions.cpp
   frontend/analysis/regions.cpp
   frontend/analysis/evaluate.cpp

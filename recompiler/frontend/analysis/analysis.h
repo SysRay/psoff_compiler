@@ -1,5 +1,5 @@
 #pragma once
-#include "ir/ir.h"
+#include "ir/operations.h"
 #include "types.h"
 
 #include <memory_resource>
@@ -8,7 +8,7 @@
 
 namespace compiler::frontend::analysis {
 
-bool createRegions(std::pmr::polymorphic_allocator<> allocator, ir::InstructionManager const& instructions, pcmapping_t const& mapping);
+bool createRegions(std::pmr::polymorphic_allocator<> allocator, ir::IROperations const& instructions, pcmapping_t const& mapping);
 
 class RegionBuilder;
 

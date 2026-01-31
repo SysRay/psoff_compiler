@@ -1,8 +1,8 @@
 #include "debug_strings.h"
 
-#include "cfg/cfg.h"
+#include "cfg.h"
+#include "dialects/dialects.h"
 #include "frontend/debug_strings.h"
-#include "instructions.h"
 
 #include <assert.h>
 #include <bit>
@@ -11,95 +11,301 @@
 #include <unordered_set>
 
 namespace compiler::ir::debug {
+
+std::string_view getDebug(rvsdg::eBlockType type) {
+  switch (type) {
+    case rvsdg::eBlockType::Simple: return "";
+    case rvsdg::eBlockType::Gamma: return "if";
+    case rvsdg::eBlockType::Theta: return "loop";
+    case rvsdg::eBlockType::Lambda: return "func";
+  }
+}
+
 static std::string_view isVirtual(InstCore const& op) {
   if (op.flags.is_set(eInstructionFlags::kVirtual)) {
     return "v_";
   }
   return "s_";
 }
-// todo
-static void printIMM(std::ostream& os, ConstantValue const& value) {
-  // assert(!value.type.is_vector());
-  // assert(!value.type.is_array());
 
-  // switch (value.type.base()) {
-  //   case OperandType::eBase::i1: {
-  //     os << std::bit_cast<bool>((bool)value.value_u64);
-  //   } break;
-  //   case OperandType::eBase::i8:
-  //   case OperandType::eBase::i16:
-  //   case OperandType::eBase::i32:
-  //   case OperandType::eBase::i64: {
-  //     if (value.type.is_signed()) {
-  //       if (value.value_i64 > 10000)
-  //         os << "0x" << std::hex << value.value_i64;
-  //       else
-  //         os << value.value_i64;
-  //     } else {
-  //       if (value.value_u64 > 10000)
-  //         os << "0x" << std::hex << value.value_u64;
-  //       else
-  //         os << value.value_u64;
-  //     }
-  //   } break;
-  //   case OperandType::eBase::f32: {
-  //     os << (float)value.value_f64;
-  //   } break;
-  //   case OperandType::eBase::f64: {
-  //     os << value.value_f64;
-  //   } break;
-  // }
-}
+static void printIMM(std::ostream& os, ConstantValue const& value, OperandType type) {
+  assert(!type.is_vector());
+  assert(!type.is_array());
 
-static void getDst(std::ostream& os, InstCore const& op) {
-  // for (uint8_t n = 0; n < op.numDst; ++n) {
-  //   os << " ";
-  //   frontend::debug::printOperandDst(os, op.dstOperands[n]);
-  // }
-}
-
-static void getSrc(std::ostream& os, InstCore const& op) {
-  // if (op.group == eInstructionGroup::kConstant) {
-  //   printIMM(os, op.srcConstant,);
-  //   return;
-  // }
-
-  // for (uint8_t n = 0; n < op.numSrc; ++n) {
-  //   os << " ";
-  //   frontend::debug::printOperandSrc(os, op.srcOperands[n]);
-  // }
-}
-
-static void printTypes(std::ostream& os, InstCore const& op) {
-  // os << "\t(";
-  // for (uint8_t n = 0; n < op.numDst; ++n) {
-  //   frontend::debug::printType(os, op.dstOperands[n].type);
-  //   if (n < op.numDst - 1) os << ", ";
-  // }
-
-  // for (uint8_t n = 0; n < op.numSrc; ++n) {
-  //   os << ", ";
-  //   frontend::debug::printType(os, op.srcOperands[n].type);
-  // }
-  // os << ")";
-}
-
-static void getDebug_generic(std::ostream& os, InstCore const& op) {
-  os << isVirtual(op) << getInstrKindStr((eInstKind)op.kind) << " ";
-  if (op.numDst > 0 || op.numSrc > 0) {
-    getDst(os, op);
-    os << ",";
-    getSrc(os, op);
-
-    printTypes(os, op);
+  switch (type.base()) {
+    case OperandType::eBase::i1: {
+      os << std::bit_cast<bool>((bool)value.value_u64);
+    } break;
+    case OperandType::eBase::i8:
+    case OperandType::eBase::i16:
+    case OperandType::eBase::i32:
+    case OperandType::eBase::i64: {
+      if (type.is_signed()) {
+        if (value.value_i64 > 10000)
+          os << "0x" << std::hex << value.value_i64;
+        else
+          os << value.value_i64;
+      } else {
+        if (value.value_u64 > 10000)
+          os << "0x" << std::hex << value.value_u64;
+        else
+          os << value.value_u64;
+      }
+    } break;
+    case OperandType::eBase::f32: {
+      os << (float)value.value_f64;
+    } break;
+    case OperandType::eBase::f64: {
+      os << value.value_f64;
+    } break;
   }
+}
+
+static void getDst(std::ostream& os, IROperations const& im, InstCore const& op) {
+  for (uint8_t n = 0; n < op.numDst; ++n) {
+    auto const& item = im.getOperand(op.getOutputId(n));
+    os << "%" << item.ssa.ssaValue;
+
+    if (item.hasKind()) {
+      os << "($";
+      frontend::debug::printOperandDst(os, item);
+      os << "), ";
+    }
+    if (n < op.numDst - 1) os << ", ";
+  }
+}
+
+static void getSrc(std::ostream& os, InputOperand const& operand) {
+  if (operand.isSSA()) {
+    os << " %" << operand.ssaId;
+    return;
+  }
+
+  os << " $";
+  frontend::debug::printOperandSrc(os, operand);
+}
+
+static void getSrc(std::ostream& os, IROperations const& im, InstCore const& op) {
+  for (uint8_t n = 0; n < op.numSrc; ++n) {
+    getSrc(os, im.getOperand(op.getInputId(n)));
+  }
+}
+
+static void printTypes(std::ostream& os, IROperations const& im, InstCore const& op) {
+  if (op.numSrc > 0) {
+    os << "   (";
+    for (uint8_t n = 0; n < op.numSrc; ++n) {
+      frontend::debug::printType(os, im.getOperand(op.getInputId(n)).type);
+      if (n < op.numSrc - 1) os << ", ";
+    }
+    os << ")";
+  }
+
+  if (op.numDst > 0) {
+    os << " -> ";
+    for (uint8_t n = 0; n < op.numDst; ++n) {
+      frontend::debug::printType(os, im.getOperand(op.getOutputId(n)).type);
+      if (n < op.numDst - 1) os << ", ";
+    }
+  }
+}
+
+static void getDebug_generic(std::ostream& os, IROperations const& im, InstCore const& op) {
+  if (op.numDst > 0) {
+    getDst(os, im, op);
+    os << " = ";
+  }
+
+  os << isVirtual(op) << dialect::getInstrKindStr(op.dialect, op.kind);
+
+  if (op.numSrc > 0) {
+    getSrc(os, im, op);
+  } else if (op.isConstant()) {
+    os << " #";
+    printIMM(os, im.getConstant(op.getConstantId()), im.getOperand(op.getOutputId(0)).type);
+  }
+
+  printTypes(os, im, op);
   os << std::endl;
 }
 
-void getDebug(std::ostream& os, InstCore const& op) {
+void getDebug(std::ostream& os, IROperations const& im, InstCore const& op) {
   switch (op.kind) {
 
-    default: return getDebug_generic(os, op);
+    default: return getDebug_generic(os, im, op);
   }
+}
+
+void printRegionOutValues(std::ostream& os, const rvsdg::Base* B, ir::IROperations const& im) {
+  if (!B->outputs.empty()) {
+    for (uint8_t n = 0; n < B->outputs.size(); ++n) {
+      auto const& item = im.getOperand(B->outputs[n]);
+      if (item.isSSA()) {
+        os << "%" << item.ssaId;
+      } else {
+        os << "unset";
+      }
+      if (n < B->outputs.size() - 1) os << ", ";
+    }
+
+    os << " = ";
+  }
+}
+
+void printRegionArgs(std::ostream& os, const rvsdg::Base* B, ir::IROperations const& im) {
+  if (!B->inputs.empty()) {
+    os << "(";
+    for (uint8_t n = 0; n < B->inputs.size(); ++n) {
+      auto const& item = im.getOperand(B->inputs[n]);
+      os << "%" << item.ssa.ssaValue << ":";
+      frontend::debug::printType(os, item.type);
+      if (n < B->inputs.size() - 1) os << ", ";
+    }
+
+    os << ") ";
+  }
+
+  if (!B->outputs.empty()) {
+    os << "-> ";
+    for (uint8_t n = 0; n < B->outputs.size(); ++n) {
+      auto const& item = im.getOperand(B->outputs[n]);
+      frontend::debug::printType(os, item.type);
+      if (n < B->outputs.size() - 1) os << ", ";
+    }
+  }
+}
+
+void dumpBlock(std::ostream& os, const rvsdg::IRBlocks& builder, blockid_t bid, const std::string& indent) {
+  const auto* B = builder.getBase(bid);
+
+  // Block header: ^bbX:
+  os << indent << "^bb" << B->id.value << ":\n";
+}
+
+static void dumpNode(std::ostream& os, const rvsdg::IRBlocks& builder, const ControlFlow* cfg, blockid_t bid, const std::string& indent);
+
+static void dumpRegion(std::ostream& os, const rvsdg::IRBlocks& builder, const ControlFlow* cfg, regionid_t rid, const std::string& indent) {
+  auto R = builder.getRegion(rid);
+
+  os << indent << "region @" << R->id.value << ":\n";
+
+  // // Entry block comment
+  // if (R->entry.isValid()) os << indent << "  // entry: ^bb" << R->entry.value << "\n";
+
+  // Dump blocks in region order
+  for (auto bid: R->blocks)
+    dumpNode(os, builder, cfg, bid, indent + "  ");
+
+  // // Exit block comment
+  // if (R->exit.isValid()) os << indent << "  // exit: ^bb" << R->exit.value << "\n";
+
+  os << indent << "}\n";
+}
+
+static void dumpNode(std::ostream& os, const rvsdg::IRBlocks& builder, const ControlFlow* cfg, blockid_t bid, const std::string& indent) {
+  const auto* B = builder.getBase(bid);
+
+  // os << indent << "^bb" << B->id;
+
+  auto& im = builder.getInstructions();
+
+  using namespace rvsdg;
+  switch (B->type) {
+    case eBlockType::Simple: {
+      auto node = builder.getNode<SimpleBlock>(B->id);
+
+      os << indent;
+      printRegionArgs(os, B, im);
+      os << " {\n";
+
+      auto& im = builder.getInstructions();
+      for (auto id: node->instructions) {
+        os << indent << "  ";
+        ir::debug::getDebug(os, im, im.getInstr(id));
+      }
+    } break;
+    case eBlockType::Gamma: {
+      auto node = builder.getNode<GammaBlock>(B->id);
+
+      os << indent;
+      printRegionOutValues(os, B, im);
+      os << getDebug(B->type);
+
+      getSrc(os, im.getOperand(node->predicate));
+      printRegionArgs(os, B, im);
+      os << " {\n";
+      for (uint32_t n = 0; n < node->branches.size(); ++n) {
+        dumpRegion(os, builder, cfg, node->branches[n], indent + "  ");
+      }
+    } break;
+    case eBlockType::Theta: {
+      auto node = builder.getNode<ThetaBlock>(B->id);
+      os << indent << " loop ";
+      printRegionArgs(os, B, im);
+      os << " {\n";
+      dumpRegion(os, builder, cfg, node->body, indent + "  ");
+    } break;
+    case eBlockType::Lambda: {
+      auto node = builder.getNode<LambdaNode>(B->id);
+      os << indent << " func ";
+      printRegionArgs(os, B, im);
+      os << " {\n";
+      dumpRegion(os, builder, cfg, node->body, indent + "  ");
+    } break;
+  }
+
+  if (!B->outputs.empty()) {
+    os << indent << "  Outputs: ";
+    for (uint8_t n = 0; n < B->outputs.size(); ++n) {
+      auto const& item = builder.getInstructions().getOperand(B->outputs[n]);
+      if (item.isSSA()) {
+        os << "%" << item.ssaId;
+      } else {
+        os << "unset";
+      }
+      if (n < B->outputs.size() - 1) os << ", ";
+    }
+
+    os << "   (";
+    for (uint8_t n = 0; n < B->outputs.size(); ++n) {
+      auto const& item = builder.getInstructions().getOperand(B->outputs[n]);
+      frontend::debug::printType(os, item.type);
+      if (n < B->outputs.size() - 1) os << ", ";
+    }
+    os << ")";
+  }
+  os << std::endl;
+
+  if (cfg) {
+    auto succs = cfg->getSuccessors(bid);
+    if (!succs.empty()) {
+      os << indent << "  successors:";
+      for (auto s: succs)
+        os << " ^bb" << s.value;
+      os << std::endl;
+    }
+  }
+  os << indent << "} //-" << "^bb" << B->id << "\n";
+}
+
+void dump(std::ostream& os, const rvsdg::IRBlocks& builder) {
+  os << "RVSDG {\n";
+
+  if (builder.getMainFunctionId().isValid()) {
+    dumpNode(os, builder, nullptr, builder.getMainFunctionId(), "  ");
+  }
+
+  os << "}\n";
+}
+
+void dump(std::ostream& os, const ControlFlow& cfg) {
+  os << "CFG {\n";
+
+  auto& builder = cfg.getBlocks();
+  if (builder.getMainFunctionId().isValid()) {
+    dumpNode(os, builder, &cfg, builder.getMainFunctionId(), "  ");
+  }
+
+  os << "}\n";
 }
 } // namespace compiler::ir::debug

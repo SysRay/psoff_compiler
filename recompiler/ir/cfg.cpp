@@ -2,15 +2,15 @@
 
 #include <assert.h>
 
-namespace compiler::cfg {
+namespace compiler::ir {
 
-void ControlFlow::addEdge(rvsdg::nodeid_t from, rvsdg::nodeid_t to) {
+void ControlFlow::addEdge(blockid_t from, blockid_t to) {
   assert(from.isValid() && to.isValid());
   _successors[from.value].push_back(to);
   _predecessors[to.value].push_back(from);
 }
 
-void ControlFlow::removeEdge(rvsdg::nodeid_t from, rvsdg::nodeid_t to) {
+void ControlFlow::removeEdge(blockid_t from, blockid_t to) {
   assert(from.isValid() && to.isValid());
 
   auto& succ = _successors[from.value];
@@ -20,7 +20,8 @@ void ControlFlow::removeEdge(rvsdg::nodeid_t from, rvsdg::nodeid_t to) {
   pred.erase(std::remove(pred.begin(), pred.end(), from), pred.end());
 }
 
-void ControlFlow::redirectEdge(rvsdg::nodeid_t from, rvsdg::nodeid_t oldSucc, rvsdg::nodeid_t newSucc) {
+void ControlFlow::redirectEdge(blockid_t from, blockid_t oldSucc, blockid_t newSucc) {
+  if (oldSucc == newSucc) return;
   assert(from.isValid() && oldSucc.isValid() && newSucc.isValid());
 
   auto& succ = _successors[from.value];
@@ -31,12 +32,12 @@ void ControlFlow::redirectEdge(rvsdg::nodeid_t from, rvsdg::nodeid_t oldSucc, rv
     }
 
   auto& predOld = _predecessors[oldSucc.value];
-  predOld.erase(std::remove(predOld.begin(), predOld.end(), from), predOld.end());
+  predOld.erase(std::find(predOld.begin(), predOld.end(), from));
 
   _predecessors[newSucc.value].push_back(from);
 }
 
-void ControlFlow::redirectEdgeReversed(rvsdg::nodeid_t oldPred, rvsdg::nodeid_t to, rvsdg::nodeid_t newPred) {
+void ControlFlow::redirectEdgeReversed(blockid_t oldPred, blockid_t to, blockid_t newPred) {
   assert(oldPred.isValid() && to.isValid() && newPred.isValid());
 
   // 1. Fix successors of oldPred -> remove 'to'
@@ -55,4 +56,4 @@ void ControlFlow::redirectEdgeReversed(rvsdg::nodeid_t oldPred, rvsdg::nodeid_t 
   // 3. Add 'to' to successors of newPred
   _successors[newPred.value].push_back(to);
 }
-} // namespace compiler::cfg
+} // namespace compiler::ir

@@ -4,19 +4,11 @@
 #include <fstream>
 #include <iostream>
 
-namespace compiler {
-uint64_t getAddr(uint64_t addr) {
-  printf("Error: getAddr called!");
-  exit(1);
-  return 0;
-}
-} // namespace compiler
-
 int main(int argc, char* argv[]) {
   // // Read Dump
   std::filesystem::path fp = argv[1];
   if (!std::filesystem::exists(fp)) {
-    printf("Missing file: %S\n", fp.c_str());
+    printf("Missing file: %s\n", fp.string().c_str());
     return 1;
   }
 

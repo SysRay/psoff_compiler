@@ -1,6 +1,8 @@
 #pragma once
 #include <algorithm>
 #include <concepts>
+#include <cstdint>
+#include <stdint.h>
 
 #ifdef _MSC_VER
 #define PACK(__Declaration__) __pragma(pack(push, 1)) __Declaration__ __pragma(pack(pop))
@@ -39,6 +41,7 @@ bool contains(const Container& container, const T& value) {
   return std::find(container.begin(), container.end(), value) != container.end();
 }
 
+namespace compiler {
 template <typename Tag, typename T = uint32_t>
 struct id_t {
   using underlying_t = T;
@@ -57,3 +60,4 @@ struct id_t {
 
   constexpr bool isValid() const { return value != NO_VALUE().value; }
 };
+} // namespace compiler

@@ -1,0 +1,102 @@
+#include "blocks.h"
+
+#include <assert.h>
+#include <stdexcept>
+
+namespace compiler::ir::rvsdg {
+bool IRBlocks::contains(regionid_t rid, blockid_t bid) const {
+  const auto& R = _regions[rid.value];
+  for (auto b: R.blocks)
+    if (b == bid) return true;
+  return false;
+}
+
+void IRBlocks::move(blockid_t bid, regionid_t dst) {
+  assert(bid.isValid() && dst.isValid());
+  auto base = accessBase(bid);
+  if (base->parentRegion == dst) return;
+
+  // Remove from current region
+  auto srcRegionId = base->parentRegion;
+  if (srcRegionId.isValid()) {
+    auto region = accessRegion(srcRegionId);
+    auto it     = std::find(region->blocks.begin(), region->blocks.end(), bid);
+
+    if (it != region->blocks.end()) {
+      region->blocks.erase(it);
+    }
+  }
+
+  // Insert into new region
+  _regions[dst.value].blocks.push_back(bid);
+  base->parentRegion = dst;
+}
+
+bool IRBlocks::regionReplace(blockid_t src, blockid_t dst) {
+  assert(src.isValid() && dst.isValid());
+
+  auto baseB = accessBase(dst);
+  if (!baseB->parentRegion.isValid()) return false;
+
+  auto region = accessRegion(baseB->parentRegion);
+  auto it     = std::find(region->blocks.begin(), region->blocks.end(), dst);
+  if (it == region->blocks.end()) return false;
+  *it = src;
+
+  accessBase(src)->parentRegion = region->id;
+  baseB->parentRegion           = regionid_t(); // invalidate
+  return true;
+}
+
+bool IRBlocks::regionInsertAfter(blockid_t target, blockid_t item) {
+  assert(item.isValid() && target.isValid());
+
+  auto baseB = accessBase(target);
+  if (!baseB->parentRegion.isValid()) return false;
+
+  auto region = accessRegion(baseB->parentRegion);
+  auto it     = std::find(region->blocks.begin(), region->blocks.end(), target);
+  if (it == region->blocks.end()) return false;
+
+  region->blocks.insert(it + 1, item);
+
+  accessBase(item)->parentRegion = region->id;
+  return true;
+}
+
+void IRBlocks::replaceBlockInRegion(regionid_t rid, blockid_t oldB, blockid_t newB) {
+  auto& list = _regions[rid.value].blocks;
+  for (auto& b: list)
+    if (b == oldB) {
+      b = newB;
+      return;
+    }
+}
+
+void IRBlocks::removeBlockFromRegion(regionid_t rid, blockid_t bid) {
+  auto& list = _regions[rid.value].blocks;
+  list.erase(std::remove(list.begin(), list.end(), bid), list.end());
+}
+
+InstCore const* IRBlocks::getTerminator(blockid_t id) const {
+  auto header = getNode<ir::rvsdg::SimpleBlock>(id);
+
+  // Check if header is correct
+  if (header->type != ir::rvsdg::eBlockType::Simple) {
+    // throw std::runtime_error("wrong header type");
+    return nullptr;
+  }
+
+  if (!header->instructions.empty()) {
+    auto terminatorOp = header->instructions.back();
+
+    if (terminatorOp.isValid()) {
+      auto const& op = getInstructions().getInstr(terminatorOp);
+      if (op.isTerminator()) {
+        return &op;
+      }
+    }
+  }
+  return nullptr;
+}
+} // namespace compiler::ir::rvsdg
