@@ -32,6 +32,22 @@ else()
   list(APPEND CMAKE_PREFIX_PATH ${llvm_install_SOURCE_DIR})
 endif()
 
+set(LLVM_DIR
+  "${llvm_install_SOURCE_DIR}/lib/cmake/llvm"
+  CACHE PATH "LLVM CMake config directory" FORCE
+)
+
+set(MLIR_DIR
+  "${llvm_install_SOURCE_DIR}/lib/cmake/mlir"
+  CACHE PATH "MLIR CMake config directory" FORCE
+)
+
+find_package(LLVM REQUIRED CONFIG)
+find_package(MLIR REQUIRED CONFIG)
+
+add_definitions(${LLVM_DEFINITIONS})
+add_compile_definitions(_DEPRECATE_NONFLOATING_COMPLEX _SILENCE_NONFLOATING_COMPLEX_DEPRECATION_WARNING)
+
 
 add_library(psOff_compiler STATIC
   builder.cpp

@@ -24,3 +24,13 @@ target_link_libraries(analysis_test
 )
 
 add_dependencies(analysis_test psOff_recompiler)
+
+add_executable(compiler_test
+  test_mlir_cf_to_scf.cpp
+)
+
+target_link_libraries(compiler_test
+  PRIVATE gtest gtest_main psOff_compiler
+)
+
+add_dependencies(compiler_test psOff_compiler)
