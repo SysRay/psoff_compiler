@@ -16,8 +16,6 @@ constexpr auto operator""_MB(unsigned long long x) -> size_t {
 
 namespace compiler {
 
-constexpr size_t MEMORY_SIZE = 1_MB;
-
 using ShaderDump_t = std::vector<uint8_t>;
 
 enum class ShaderBuildFlags : uint16_t {
@@ -45,6 +43,8 @@ class Builder {
   std::string_view getName() const { return _name.data(); }
 
   HostMapping* getHostMapping(uint64_t pc);
+
+  auto getContext() { return &_mlirCtx; }
 
   // // Getter for flags
   template <ShaderBuildFlags item>

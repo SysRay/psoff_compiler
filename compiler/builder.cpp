@@ -7,8 +7,12 @@
 #include <filesystem>
 
 // mlir
+#include "mlir/custom.h"
+
+#include <mlir/Dialect/Arith/IR/Arith.h>
 #include <mlir/Dialect/ControlFlow/IR/ControlFlowOps.h>
 #include <mlir/Dialect/Func/IR/FuncOps.h>
+#include <mlir/Dialect/SCF/IR/SCF.h>
 
 namespace compiler {
 static std::string_view getFileTpye(frontend::ShaderStage stage) {
@@ -36,7 +40,7 @@ Builder::Builder(util::Flags<ShaderBuildFlags> const& flags): _debugFlags(flags)
   _mlirCtx.disableMultithreading();
   _mlirCtx.allowUnregisteredDialects();
 
-  _mlirCtx.loadDialect<mlir::func::FuncDialect, mlir::cf::ControlFlowDialect>();
+  _mlirCtx.loadDialect<mlir::func::FuncDialect, mlir::arith::ArithDialect, mlir::scf::SCFDialect, mlir::cf::ControlFlowDialect, mlir::psoff::PSOFFDialect>();
 }
 
 void Builder::print() const {
