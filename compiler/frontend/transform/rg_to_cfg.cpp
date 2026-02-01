@@ -1,8 +1,10 @@
 #include "builder.h"
 #include "transform.h"
 
+#include <mlir/Dialect/Func/IR/FuncOps.h>
+
 namespace compiler::frontend::transform {
-bool transformRg2Cfg(Builder& builder, std::span<pcmapping_t> const& mapping) {
+bool transformRg2Cfg(Builder& builder, mlir::func::FuncOp& func, std::span<pcmapping_t> const& mapping) {
   // todo
   // uint32_t const   expectedBlocks = 1 + 1.5 * rb.getNumRegions();
   // cfg::ControlFlow cfg(allocator, expectedBlocks); // Leave some place for extra branch nodes

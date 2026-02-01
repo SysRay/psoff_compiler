@@ -16,11 +16,10 @@ class RGToCF: public ::testing::Test {
 
     _mlirModule = mlir::ModuleOp::create(mlir::UnknownLoc::get(_builder.getContext()));
 
-    auto funcOp =
-        builder.create<mlir::func::FuncOp>(mlir::UnknownLoc::get(_builder.getContext()), "test_func", builder.getFunctionType({builder.getI1Type()}, {}));
-    _mlirModule.push_back(funcOp);
+    _func = builder.create<mlir::func::FuncOp>(mlir::UnknownLoc::get(_builder.getContext()), "test_func", builder.getFunctionType({builder.getI1Type()}, {}));
+    _mlirModule.push_back(_func);
 
-    _block = funcOp.addEntryBlock();
+    _block = _func.addEntryBlock();
   }
 
   void TearDown() override {}
@@ -29,6 +28,8 @@ class RGToCF: public ::testing::Test {
 
   mlir::Block*   _block;
   mlir::ModuleOp _mlirModule;
+
+  mlir::func::FuncOp _func;
 };
 
 TEST_F(RGToCF, SimpleIfElse) {
@@ -38,12 +39,14 @@ TEST_F(RGToCF, SimpleIfElse) {
   using namespace compiler::frontend;
   std::vector<pcmapping_t> pcMappings;
 
-  auto loc      = mlir::UnknownLoc::get(_builder.getContext());
-  auto intConst = builder.create<mlir::arith::ConstantOp>(loc, builder.getI64Type(), builder.getI32IntegerAttr(40));
-  builder.create<mlir::psoff::Branch>(loc, intConst);
+  auto loc = mlir::UnknownLoc::get(_builder.getContext());
+  builder.create<mlir::psoff::Branch>(loc, builder.getI64IntegerAttr(40));
   pcMappings.emplace_back(10, &_block->back());
 
+  builder.create<mlir::func::ReturnOp>(loc);
+  pcMappings.emplace_back(40, &_block->back());
   _mlirModule.dump();
+
   // transform
-  transform::transformRg2Cfg(_builder, pcMappings);
+  transform::transformRg2Cfg(_builder, _func, pcMappings);
 }

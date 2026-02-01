@@ -21,6 +21,19 @@ def PSOFF_Branch : Op<PSOFFDialect,"branch"> {
   let description = [{
     Branches to a target using a variable as destination.
   }];
-  let arguments = (ins I64:$dst);
+  let arguments = (ins I64Attr:$dst);
+  let results = (outs);
+}
+
+def PSOFF_CBranch : Op<PSOFFDialect,"cbranch"> {
+  let summary = "Branch to a target using a variable";
+  let description = [{
+    Branches to a target using a variable as destination.
+  }];
+  let arguments = (ins
+    I1:$cond,
+    I64Attr:$ifBranch,
+    I64Attr:$elseBranch
+  );
   let results = (outs);
 }
