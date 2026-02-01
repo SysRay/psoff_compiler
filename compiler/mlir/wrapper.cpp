@@ -31,12 +31,12 @@ void PSOFFDialect::initialize() {
 }
 
 ::mlir::Operation* PSOFFDialect::materializeConstant(mlir::OpBuilder& builder, mlir::Attribute value, mlir::Type type, mlir::Location loc) {
-  // if (auto intAttr = llvm::cast<mlir::IntegerAttr>(value)) {
-  //   return builder.create<mlir::arith::ConstantOp>(loc, type, intAttr);
-  // }
-  // if (auto intAttr = llvm::cast<mlir::FloatAttr>(value)) {
-  //   return builder.create<mlir::arith::ConstantOp>(loc, type, intAttr);
-  // }
+  if (auto intAttr = llvm::dyn_cast<mlir::IntegerAttr>(value)) {
+    return builder.create<mlir::arith::ConstantOp>(loc, type, intAttr);
+  }
+  if (auto intAttr = llvm::dyn_cast<mlir::FloatAttr>(value)) {
+    return builder.create<mlir::arith::ConstantOp>(loc, type, intAttr);
+  }
   return nullptr; // Fallback if unsupported constant
 }
 } // namespace mlir::psoff

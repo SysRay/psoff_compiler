@@ -52,13 +52,12 @@ add_subdirectory(mlir)
 
 add_library(psOff_compiler STATIC
   builder.cpp
-  mlir/wrapper.cpp
   frontend/shader_input.cpp
   frontend/shader_types.cpp
   frontend/transform/rg_to_cfg.cpp
 )
 
-add_dependencies(psOff_compiler psOffGpu-tablegen)
+add_dependencies(psOff_compiler mlir_custom)
 if(ENABLE_DEFAULT_LOGGING)
   target_sources(psOff_compiler PRIVATE logging_default.cpp)
 endif()
@@ -68,8 +67,6 @@ target_include_directories(psOff_compiler
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party/alpaca/include
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party/fixed-containers/include
-  ${llvm_install_SOURCE_DIR}/include
-  ${CMAKE_BINARY_DIR}/generated
 )
 
 target_link_directories(psOff_compiler
@@ -79,6 +76,8 @@ target_link_directories(psOff_compiler
 
 target_link_libraries(
   psOff_compiler PUBLIC
+  mlir_custom
+
   MLIRIR
   MLIRSupport
   MLIRArithDialect

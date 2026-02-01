@@ -38,12 +38,12 @@ TEST_F(RGToCF, SimpleIfElse) {
   using namespace compiler::frontend;
   std::vector<pcmapping_t> pcMappings;
 
-  // auto loc      = mlir::UnknownLoc::get(_builder.getContext());
-  // auto intConst = builder.create<mlir::arith::ConstantOp>(loc, builder.getI64Type(), builder.getI32IntegerAttr(40));
-  // builder.create<mlir::psoff::Branch>(loc, intConst);
-  // pcMappings.emplace_back(10, &_block->back());
+  auto loc      = mlir::UnknownLoc::get(_builder.getContext());
+  auto intConst = builder.create<mlir::arith::ConstantOp>(loc, builder.getI64Type(), builder.getI32IntegerAttr(40));
+  builder.create<mlir::psoff::Branch>(loc, intConst);
+  pcMappings.emplace_back(10, &_block->back());
 
-  //_mlirModule.dump();
+  _mlirModule.dump();
   // transform
   transform::transformRg2Cfg(_builder, pcMappings);
 }

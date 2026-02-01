@@ -86,3 +86,10 @@ add_custom_command(
 add_custom_target(psOffGpu-tablegen
   DEPENDS ${OUTPUTS}
 )
+
+add_definitions(-fno-rtti)
+
+add_library(mlir_custom STATIC wrapper.cpp)
+add_dependencies(mlir_custom psOffGpu-tablegen)
+
+target_include_directories(mlir_custom PUBLIC ${CMAKE_BINARY_DIR}/generated ${LLVM_INCLUDE_DIRS} ${MLIR_INCLUDE_DIRS})
