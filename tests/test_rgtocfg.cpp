@@ -1,6 +1,8 @@
 #include "builder.h"
-#include "frontend/transform/transform.h"
+#include "frontend/analysis/analysis.h"
+#include "frontend/analysis/regions.h"
 #include "mlir/custom.h"
+#include "util/bump_allocator.h"
 
 #include <gtest/gtest.h>
 #include <mlir/Dialect/Arith/IR/Arith.h>
@@ -37,16 +39,22 @@ TEST_F(RGToCF, SimpleIfElse) {
   builder.setInsertionPointToEnd(_block);
 
   using namespace compiler::frontend;
-  std::vector<pcmapping_t> pcMappings;
+  std::vector<analysis::pcmapping_t> pcMappings;
+
+  compiler::util::BumpAllocator allocator;
+  analysis::RegionBuilder       regions(&allocator);
 
   auto loc = mlir::UnknownLoc::get(_builder.getContext());
   builder.create<mlir::psoff::Branch>(loc, builder.getI64IntegerAttr(40));
   pcMappings.emplace_back(10, &_block->back());
+  regions.addJump(10, 40);
 
   builder.create<mlir::func::ReturnOp>(loc);
   pcMappings.emplace_back(40, &_block->back());
+  regions.addReturn(40);
   _mlirModule.dump();
 
   // transform
-  transform::transformRg2Cfg(_builder, _func, pcMappings);
+  regions.finalize();
+  analysis::createRegions(_builder, _func, regions, pcMappings);
 }

@@ -54,7 +54,7 @@ add_library(psOff_compiler STATIC
   builder.cpp
   frontend/shader_input.cpp
   frontend/shader_types.cpp
-  frontend/transform/rg_to_cfg.cpp
+  frontend/analysis/regions.cpp
 )
 
 add_dependencies(psOff_compiler mlir_custom)

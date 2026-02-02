@@ -16,7 +16,7 @@ def PSOFFDialect : Dialect {
   let hasConstantMaterializer = 1;
 }
 
-def PSOFF_Branch : Op<PSOFFDialect,"branch"> {
+def PSOFF_Branch : Op<PSOFFDialect,"BranchOp"> {
   let summary = "Branch to a target using a variable";
   let description = [{
     Branches to a target using a variable as destination.
@@ -25,7 +25,7 @@ def PSOFF_Branch : Op<PSOFFDialect,"branch"> {
   let results = (outs);
 }
 
-def PSOFF_CBranch : Op<PSOFFDialect,"cbranch"> {
+def PSOFF_CBranch : Op<PSOFFDialect,"CBranchOp"> {
   let summary = "Branch to a target using a variable";
   let description = [{
     Branches to a target using a variable as destination.
