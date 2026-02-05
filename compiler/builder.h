@@ -24,7 +24,7 @@ enum class ShaderBuildFlags : uint16_t {
 };
 
 struct HostMapping {
-  uint64_t pc      = 0;
+  uint64_t pc      = std::numeric_limits<uint64_t>::max();
   uint64_t host    = 0;
   uint32_t size_dw = 0;
 };
@@ -43,6 +43,7 @@ class Builder {
   std::string_view getName() const { return _name.data(); }
 
   HostMapping* getHostMapping(uint64_t pc);
+  void         setHostMapping(uint64_t pc, uint32_t const* vaddr, uint32_t size_dw = 0);
 
   auto getContext() { return &_mlirCtx; }
 
@@ -59,7 +60,7 @@ class Builder {
 
   private:
   util::Flags<ShaderBuildFlags> _debugFlags = {};
-  std::array<HostMapping, 2>    _hostMapping {};
+  std::array<HostMapping, 4>    _hostMapping {};
   frontend::ShaderInput         _shaderInput;
 
   mlir::MLIRContext _mlirCtx;

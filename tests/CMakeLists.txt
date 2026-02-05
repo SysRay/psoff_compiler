@@ -27,7 +27,7 @@ add_dependencies(analysis_test psOff_recompiler)
 
 add_executable(compiler_test
   test_mlir_cf_to_scf.cpp
-  test_rgtocfg.cpp
+  test_cfg.cpp
 )
 
 target_link_libraries(compiler_test

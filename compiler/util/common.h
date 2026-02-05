@@ -60,4 +60,12 @@ struct id_t {
 
   constexpr bool isValid() const { return value != NO_VALUE().value; }
 };
+
+#define CLASS_NO_COPY(name)                                                                                                                                    \
+  name(const name&)            = delete;                                                                                                                       \
+  name& operator=(const name&) = delete;
+
+#define CLASS_NO_MOVE(name)                                                                                                                                    \
+  name(name&&) noexcept            = delete;                                                                                                                   \
+  name& operator=(name&&) noexcept = delete
 } // namespace compiler

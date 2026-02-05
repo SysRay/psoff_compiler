@@ -55,6 +55,15 @@ add_library(psOff_compiler STATIC
   frontend/shader_input.cpp
   frontend/shader_types.cpp
   frontend/analysis/regions.cpp
+  frontend/parser.cpp
+  frontend/debug_strings.cpp
+
+  frontend/encoding/sop.cpp
+  frontend/encoding/vop.cpp
+  frontend/encoding/mimg.cpp
+  frontend/encoding/buf.cpp
+  frontend/encoding/ds.cpp
+  frontend/encoding/exp.cpp
 )
 
 add_dependencies(psOff_compiler mlir_custom)

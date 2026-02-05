@@ -85,10 +85,7 @@ bool Builder::createShader(frontend::ShaderStage stage, uint32_t id, frontend::S
   auto const     baseHost = getAddr(base);
 
   // Register mapping
-  _hostMapping[0].pc      = base;
-  _hostMapping[0].host    = baseHost;
-  _hostMapping[0].size_dw = header->length / sizeof(uint32_t);
-
+  setHostMapping(0, (uint32_t const*)base, header->length / sizeof(uint32_t));
   return processBinary();
 }
 
@@ -125,12 +122,7 @@ bool Builder::createShader(ShaderDump_t const& dump) {
   for (uint8_t n = 0; n < data.shaders.size(); ++n) {
     auto const& item = data.shaders[n];
 
-    auto& itemHost = _hostMapping[n];
-    itemHost.pc    = item.pc;
-
-    if (item.instructions.empty()) continue;
-    itemHost.host    = (uint64_t)item.instructions.data();
-    itemHost.size_dw = item.instructions.size();
+    setHostMapping(item.pc, item.instructions.data(), item.instructions.size());
   }
 
   return processBinary();
@@ -175,20 +167,25 @@ bool Builder::createDump(frontend::ShaderHeader const* header, uint32_t const* g
 
 HostMapping* Builder::getHostMapping(uint64_t pc) {
   { // Search existing
-    auto it = std::find_if(_hostMapping.begin(), _hostMapping.end(), [pc](auto const& item) { return item.pc == pc; });
+    auto it = std::find_if(_hostMapping.begin(), _hostMapping.end(), [pc](auto const& item) { return item.pc <= pc; });
     if (it != _hostMapping.end()) {
-      return &*it;
-    }
-  }
-  { // Search free
-    auto it = std::find_if(_hostMapping.begin(), _hostMapping.end(), [](auto const& item) { return item.pc == 0; });
-    if (it != _hostMapping.end()) {
-      it->pc   = pc;
-      it->host = getAddr(pc);
       return &*it;
     }
   }
   return nullptr;
+}
+
+void Builder::setHostMapping(uint64_t pc, uint32_t const* vaddr, uint32_t size_dw) {
+  { // Search free
+    auto it = std::find_if(_hostMapping.begin(), _hostMapping.end(), [](auto const& item) { return item.pc == std::numeric_limits<uint64_t>::max(); });
+    if (it != _hostMapping.end()) {
+      it->pc      = pc;
+      it->host    = (uint64_t)vaddr;
+      it->size_dw = size_dw;
+    }
+  }
+
+  std::ranges::sort(_hostMapping, [](const HostMapping& a, const HostMapping& b) { return a.pc < b.pc; });
 }
 
 bool Builder::processBinary() {
