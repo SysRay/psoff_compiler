@@ -59,29 +59,7 @@ TEST_F(ControlFlow, SimpleIfElse) {
 
   parser.process();
 
-  // builder.getModule()->dump();
-
-  mlir::OpPrintingFlags flags {};
-  flags.enableDebugInfo();
-  flags.printGenericOpForm();
-
-  builder.getModule()->print(llvm::outs(), flags);
-
-  // analysis::RegionBuilder       regions(&allocator);
-
-  // auto loc = mlir::UnknownLoc::get(_builder.getContext());
-  // builder.create<mlir::psoff::Branch>(loc, builder.getI64IntegerAttr(40));
-  // pcMappings.emplace_back(10, &_block->back());
-  // regions.addJump(10, 40);
-
-  // builder.create<mlir::func::ReturnOp>(loc);
-  // pcMappings.emplace_back(40, &_block->back());
-  // regions.addReturn(40);
-  // _mlirModule.dump();
-
-  // // transform
-  // regions.finalize();
-  // analysis::createRegions(_builder, _func, regions, pcMappings);
+  builder.getModule()->dump();
 }
 
 TEST_F(ControlFlow, Forloop) {

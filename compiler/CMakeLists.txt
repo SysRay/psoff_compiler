@@ -54,7 +54,6 @@ add_library(psOff_compiler STATIC
   builder.cpp
   frontend/shader_input.cpp
   frontend/shader_types.cpp
-  frontend/analysis/regions.cpp
   frontend/parser.cpp
   frontend/debug_strings.cpp
 
