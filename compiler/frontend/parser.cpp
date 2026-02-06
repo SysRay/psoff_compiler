@@ -7,6 +7,9 @@
 
 #include <limits>
 
+// mlir
+#include <mlir/Dialect/ControlFlow/IR/ControlFlowOps.h>
+
 namespace compiler::frontend {
 
 enum eEncodingMask : uint32_t {
@@ -82,31 +85,104 @@ static eEncoding getEncoding(uint32_t code) {
   return eEncoding::UNK;
 }
 
-CodeBlock* Parser::getOrCreateBlock(pc_t pc) {
-  auto block = _blocks.get_allocator().new_object<CodeBlock>(pc);
+Parser::Parser(Builder& builder, std::pmr::memory_resource* resource)
+    : _builder(builder),
+      _blocks(resource),
+      _tasks(resource),
+      _mlirBuilder(builder.getContext()),
+      _defaultLocation(mlir::UnknownLoc::get(builder.getContext())) {
+  ;
+}
 
-  // Sorted insert
-  auto it = std::upper_bound(_blocks.begin(), _blocks.end(), pc, [](pc_t rhs, const std::pair<pc_t, CodeBlock*>& lhs) { return lhs.first > rhs; });
+Parser::~Parser() {
+  auto allocator = _blocks.get_allocator();
+  for (auto const& item: _blocks) {
+    allocator.delete_object<CodeBlock>(item.second);
+  }
+}
 
-  bool addtask = true;
-  if (it != _blocks.begin()) {
-    auto prevBlock = std::prev(it)->second;
+auto upperBoundOpByPC(mlir::Block* block, uint64_t targetPC) {
+  auto& ops     = block->getOperations();
+  auto  beginIt = ops.begin();
+  auto  endIt   = ops.end();
 
-    if (prevBlock->isParsed && pc <= prevBlock->pc_end) {
-      LOG(eLOG_TYPE::DEBUG, " Parse| split block to pc:0x{:x}:0x{:x}  0x{:x}:0x{:x}:", prevBlock->pc_start, pc, pc, prevBlock->pc_end);
+  auto candidate = beginIt;
 
-      prevBlock->pc_end = pc;
-      addtask           = false;
+  while (beginIt != endIt) {
+    auto midIt = beginIt;
+    std::advance(midIt, std::distance(beginIt, endIt) / 2);
+    mlir::Operation& op = *midIt;
+
+    uint64_t opPC = 0;
+    if (auto loc = llvm::dyn_cast<mlir::OpaqueLoc>(op.getLoc())) {
+      opPC = reinterpret_cast<uint64_t>(loc.getUnderlyingLocation());
     } else {
+      // If no location, scan forward for next valid operation
+      auto scanIt = std::next(midIt);
+      while (scanIt != endIt) {
+        if (auto loc = llvm::dyn_cast<mlir::OpaqueLoc>((*scanIt).getLoc())) {
+          opPC = reinterpret_cast<uint64_t>(loc.getAsOpaquePointer());
+          break;
+        }
+        ++scanIt;
+      }
+
+      if (opPC == 0) opPC = UINT64_MAX; // If still zero, treat as infinity to move left
+    }
+
+    if (opPC <= targetPC) {
+      // Go right
+      beginIt = std::next(midIt);
+    } else {
+      // Go left
+      candidate = midIt;
+      endIt     = midIt;
     }
   }
 
-  _blocks.insert(it, std::make_pair(pc, block));
-  // -
+  return candidate; // first op with pc > targetPC, or nullptr if none
+}
 
-  if (addtask) _tasks.push_back(block);
+CodeBlock* Parser::getOrCreateBlock(pc_t pc, mlir::Region* region) {
+  // Sorted insert
+  auto it = std::upper_bound(_blocks.begin(), _blocks.end(), pc, [](pc_t rhs, const std::pair<pc_t, CodeBlock*>& lhs) { return lhs.first > rhs; });
 
-  return block;
+  if (it != _blocks.begin()) {
+    auto prev = std::prev(it);
+    if (prev->first == pc) return prev->second; // Return matchin block
+
+    // Check if block needs splitting
+    auto prevBlock = prev->second;
+    if (prevBlock->isParsed && pc <= prevBlock->pc_end) {
+      LOG(eLOG_TYPE::DEBUG, " Parse| split block to pc:0x{:x}:0x{:x}  0x{:x}:0x{:x}:", prevBlock->pc_start, pc, pc, prevBlock->pc_end);
+
+      auto block = prevBlock->mlirBlock;
+
+      auto itOp = upperBoundOpByPC(block, pc);
+
+      auto pNewBlock = _blocks.get_allocator().new_object<CodeBlock>(pc, _blocks.get_allocator().resource());
+      _blocks.insert(it, std::make_pair(pc, pNewBlock));
+
+      mlir::OpBuilder::InsertionGuard guard(_mlirBuilder);
+
+      pNewBlock->mlirBlock = block->splitBlock(itOp);
+      pNewBlock->pc_end    = prevBlock->pc_end;
+
+      _mlirBuilder.setInsertionPointToEnd(block);
+      _mlirBuilder.create<mlir::cf::BranchOp>(_defaultLocation, pNewBlock->mlirBlock);
+      prevBlock->pc_end = pc;
+      return pNewBlock;
+    }
+  }
+
+  auto pBlock = _blocks.get_allocator().new_object<CodeBlock>(pc, _blocks.get_allocator().resource());
+  _blocks.insert(it, std::make_pair(pc, pBlock));
+
+  mlir::OpBuilder::InsertionGuard guard(_mlirBuilder);
+  pBlock->mlirBlock = _mlirBuilder.createBlock(region);
+
+  _tasks.push_back(pBlock);
+  return pBlock;
 }
 
 void Parser::process() {
@@ -131,7 +207,10 @@ void Parser::process() {
 
     LOG(eLOG_TYPE::DEBUG, "Parse| -> pc:0x{:x} module:0x{:x}", pc, hostMemory->pc);
 
+    _mlirBuilder.setInsertionPointToEnd(curBlock.mlirBlock);
     curBlock.isParsed = true;
+
+    size_t curOperationIndex = 0;
     while (pc < curBlock.pc_end) {
       auto handle = [&] {
         auto pCode = (uint32_t const*)(hostMemory->host + pc);
@@ -164,11 +243,24 @@ void Parser::process() {
       };
 
       pc += handle();
+
+      // handle pc mapping
+      auto& ops = curBlock.mlirBlock->getOperations();
+      if (curOperationIndex != ops.size()) {
+        curOperationIndex = ops.size();
+
+        ops.back().setLoc(mlir::OpaqueLoc::get(pc, _builder.getContext()));
+      }
+      // -
     }
     curBlock.pc_end     = pc;
     hostMemory->size_dw = std::max(hostMemory->size_dw, (uint32_t((pc - hostMemory->pc) / sizeof(uint32_t)))); // update shader size
 
-    // todo handle falltrough (no terminator)
+    if (curBlock.mlirBlock->empty() || !curBlock.mlirBlock->getTerminator()) {
+      // Note: handle Falltrough
+      auto target = getOrCreateBlock(pc, curBlock.mlirBlock->getParent());
+      _mlirBuilder.create<mlir::cf::BranchOp>(_defaultLocation, target->mlirBlock);
+    }
 
     LOG(eLOG_TYPE::DEBUG, "Parse| <- pc:0x{:x}-0x{:x}  binary size:0x{:x} bytes", curBlock.pc_start, curBlock.pc_end, sizeof(uint32_t) * hostMemory->size_dw);
   }

@@ -8,6 +8,7 @@
 #include <vector>
 
 // mlir
+#include <mlir/IR/BuiltinOps.h>
 #include <mlir/IR/MLIRContext.h>
 
 constexpr auto operator""_MB(unsigned long long x) -> size_t {
@@ -47,6 +48,8 @@ class Builder {
 
   auto getContext() { return &_mlirCtx; }
 
+  auto getModule() { return &_mlirModule; }
+
   // // Getter for flags
   template <ShaderBuildFlags item>
   constexpr bool is_set() const {
@@ -58,12 +61,13 @@ class Builder {
   private:
   bool processBinary();
 
-  private:
+  protected:
   util::Flags<ShaderBuildFlags> _debugFlags = {};
   std::array<HostMapping, 4>    _hostMapping {};
   frontend::ShaderInput         _shaderInput;
 
   mlir::MLIRContext _mlirCtx;
+  mlir::ModuleOp    _mlirModule;
 
   std::array<char, 32> _name = {"dump"};
 };

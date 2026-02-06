@@ -41,6 +41,9 @@ Builder::Builder(util::Flags<ShaderBuildFlags> const& flags): _debugFlags(flags)
   _mlirCtx.allowUnregisteredDialects();
 
   _mlirCtx.loadDialect<mlir::func::FuncDialect, mlir::arith::ArithDialect, mlir::scf::SCFDialect, mlir::cf::ControlFlowDialect, mlir::psoff::PSOFFDialect>();
+
+  auto location = mlir::UnknownLoc::get(&_mlirCtx);
+  _mlirModule   = mlir::ModuleOp::create(location);
 }
 
 void Builder::print() const {

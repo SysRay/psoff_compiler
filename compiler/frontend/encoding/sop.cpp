@@ -7,6 +7,11 @@
 #include <format>
 #include <stdexcept>
 
+// mlir
+#include <mlir/Dialect/Arith/IR/Arith.h>
+#include <mlir/Dialect/ControlFlow/IR/ControlFlowOps.h>
+#include <mlir/Dialect/Func/IR/FuncOps.h>
+
 namespace compiler::frontend {
 
 uint8_t Parser::handleSop1(CodeBlock& cb, pc_t pc, uint32_t const* pCode) {
@@ -412,67 +417,82 @@ uint8_t Parser::handleSopp(CodeBlock& cb, pc_t pc, uint32_t const* pCode) {
     case eOpcode::S_ENDPGM: {
 
       cb.pc_end = pc;
+      _mlirBuilder.create<mlir::func::ReturnOp>(_defaultLocation);
     } break;
     case eOpcode::S_BRANCH: {
 
       cb.pc_end = pc;
 
       auto targetPc = (int64_t)(sizeof(uint32_t) + pc) + sizeof(uint32_t) * (int64_t)offset;
-      getOrCreateBlock(targetPc);
+      auto target   = getOrCreateBlock(targetPc, cb.mlirBlock->getParent());
+
+      _mlirBuilder.create<mlir::cf::BranchOp>(_defaultLocation, target->mlirBlock);
     } break;
     case eOpcode::S_CBRANCH_SCC0: {
-
       cb.pc_end = pc;
 
-      auto targetIfPc   = sizeof(uint32_t) + pc;
-      auto targetElsePc = (int64_t)(sizeof(uint32_t) + pc) + sizeof(uint32_t) * (int64_t)offset;
-      getOrCreateBlock(targetElsePc);
-      getOrCreateBlock(targetIfPc);
+      auto target0 = getOrCreateBlock(sizeof(uint32_t) + pc, cb.mlirBlock->getParent());
+      auto target1 = getOrCreateBlock((int64_t)(sizeof(uint32_t) + pc) + sizeof(uint32_t) * (int64_t)offset, cb.mlirBlock->getParent());
+
+      // todo predicate
+      mlir::Value predicate = _mlirBuilder.create<mlir::arith::ConstantOp>(_defaultLocation, _mlirBuilder.getBoolAttr(true));
+
+      _mlirBuilder.create<mlir::cf::CondBranchOp>(_defaultLocation, predicate, target0->mlirBlock, target1->mlirBlock);
     } break;
     case eOpcode::S_CBRANCH_SCC1: {
-
       cb.pc_end = pc;
 
-      auto targetIfPc   = sizeof(uint32_t) + pc;
-      auto targetElsePc = (int64_t)(sizeof(uint32_t) + pc) + sizeof(uint32_t) * (int64_t)offset;
-      getOrCreateBlock(targetElsePc);
-      getOrCreateBlock(targetIfPc);
+      auto target0 = getOrCreateBlock(sizeof(uint32_t) + pc, cb.mlirBlock->getParent());
+      auto target1 = getOrCreateBlock((int64_t)(sizeof(uint32_t) + pc) + sizeof(uint32_t) * (int64_t)offset, cb.mlirBlock->getParent());
+
+      // todo predicate
+      mlir::Value predicate = _mlirBuilder.create<mlir::arith::ConstantOp>(_defaultLocation, _mlirBuilder.getBoolAttr(true));
+
+      _mlirBuilder.create<mlir::cf::CondBranchOp>(_defaultLocation, predicate, target0->mlirBlock, target1->mlirBlock);
     } break;
     case eOpcode::S_CBRANCH_VCCZ: {
-
       cb.pc_end = pc;
 
-      auto targetIfPc   = sizeof(uint32_t) + pc;
-      auto targetElsePc = (int64_t)(sizeof(uint32_t) + pc) + sizeof(uint32_t) * (int64_t)offset;
-      getOrCreateBlock(targetElsePc);
-      getOrCreateBlock(targetIfPc);
+      auto target0 = getOrCreateBlock(sizeof(uint32_t) + pc, cb.mlirBlock->getParent());
+      auto target1 = getOrCreateBlock((int64_t)(sizeof(uint32_t) + pc) + sizeof(uint32_t) * (int64_t)offset, cb.mlirBlock->getParent());
+
+      // todo predicate
+      mlir::Value predicate = _mlirBuilder.create<mlir::arith::ConstantOp>(_defaultLocation, _mlirBuilder.getBoolAttr(true));
+
+      _mlirBuilder.create<mlir::cf::CondBranchOp>(_defaultLocation, predicate, target0->mlirBlock, target1->mlirBlock);
     } break;
     case eOpcode::S_CBRANCH_VCCNZ: {
-
       cb.pc_end = pc;
 
-      auto targetIfPc   = sizeof(uint32_t) + pc;
-      auto targetElsePc = (int64_t)(sizeof(uint32_t) + pc) + sizeof(uint32_t) * (int64_t)offset;
-      getOrCreateBlock(targetElsePc);
-      getOrCreateBlock(targetIfPc);
+      auto target0 = getOrCreateBlock(sizeof(uint32_t) + pc, cb.mlirBlock->getParent());
+      auto target1 = getOrCreateBlock((int64_t)(sizeof(uint32_t) + pc) + sizeof(uint32_t) * (int64_t)offset, cb.mlirBlock->getParent());
+
+      // todo predicate
+      mlir::Value predicate = _mlirBuilder.create<mlir::arith::ConstantOp>(_defaultLocation, _mlirBuilder.getBoolAttr(true));
+
+      _mlirBuilder.create<mlir::cf::CondBranchOp>(_defaultLocation, predicate, target0->mlirBlock, target1->mlirBlock);
     } break;
     case eOpcode::S_CBRANCH_EXECZ: {
-
       cb.pc_end = pc;
 
-      auto targetIfPc   = sizeof(uint32_t) + pc;
-      auto targetElsePc = (int64_t)(sizeof(uint32_t) + pc) + sizeof(uint32_t) * (int64_t)offset;
-      getOrCreateBlock(targetElsePc);
-      getOrCreateBlock(targetIfPc);
+      auto target0 = getOrCreateBlock(sizeof(uint32_t) + pc, cb.mlirBlock->getParent());
+      auto target1 = getOrCreateBlock((int64_t)(sizeof(uint32_t) + pc) + sizeof(uint32_t) * (int64_t)offset, cb.mlirBlock->getParent());
+
+      // todo predicate
+      mlir::Value predicate = _mlirBuilder.create<mlir::arith::ConstantOp>(_defaultLocation, _mlirBuilder.getBoolAttr(true));
+
+      _mlirBuilder.create<mlir::cf::CondBranchOp>(_defaultLocation, predicate, target0->mlirBlock, target1->mlirBlock);
     } break;
     case eOpcode::S_CBRANCH_EXECNZ: {
-
       cb.pc_end = pc;
 
-      auto targetIfPc   = sizeof(uint32_t) + pc;
-      auto targetElsePc = (int64_t)(sizeof(uint32_t) + pc) + sizeof(uint32_t) * (int64_t)offset;
-      getOrCreateBlock(targetElsePc);
-      getOrCreateBlock(targetIfPc);
+      auto target0 = getOrCreateBlock(sizeof(uint32_t) + pc, cb.mlirBlock->getParent());
+      auto target1 = getOrCreateBlock((int64_t)(sizeof(uint32_t) + pc) + sizeof(uint32_t) * (int64_t)offset, cb.mlirBlock->getParent());
+
+      // todo predicate
+      mlir::Value predicate = _mlirBuilder.create<mlir::arith::ConstantOp>(_defaultLocation, _mlirBuilder.getBoolAttr(true));
+
+      _mlirBuilder.create<mlir::cf::CondBranchOp>(_defaultLocation, predicate, target0->mlirBlock, target1->mlirBlock);
     } break;
     case eOpcode::S_BARRIER: {
     } break;

@@ -63,7 +63,7 @@ static void createCFG(mlir::MLIRContext& ctx, uint32_t numBlocks, std::initializ
       builder.create<mlir::cf::BranchOp>(mlir::UnknownLoc::get(&ctx), blocks[edge.to]);
     }
   }
-  //mlir::Operation test;
+  // mlir::Operation test;
 
   builder.setInsertionPointToEnd(blocks.back());
   builder.create<mlir::func::ReturnOp>(mlir::UnknownLoc::get(&ctx));

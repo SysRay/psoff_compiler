@@ -4,6 +4,8 @@
 
 #include <limits>
 #include <memory_resource>
+#include <mlir/IR/Block.h>
+#include <mlir/IR/Builders.h>
 #include <stdint.h>
 #include <vector>
 
@@ -17,15 +19,18 @@ class FuncOp;
 
 namespace compiler::frontend {
 
+struct OperationId;
+using OperationId_t = id_t<OperationId, uint32_t>;
+
 struct CodeBlock {
   CLASS_NO_COPY(CodeBlock);
 
-  pc_t pc_start;
-  pc_t pc_end;
+  pc_t         pc_start, pc_end;
+  mlir::Block* mlirBlock;
 
   bool isParsed = false;
 
-  CodeBlock(pc_t start): pc_start(start), pc_end(start + std::numeric_limits<uint32_t>::max()) {}
+  CodeBlock(pc_t start, std::pmr::memory_resource* resource): pc_start(start), pc_end(start + std::numeric_limits<uint32_t>::max()) {}
 };
 
 class Parser {
@@ -47,17 +52,22 @@ class Parser {
   uint8_t handleDs(CodeBlock& cb, pc_t pc, uint32_t const* pCode);
 
   public:
-  Parser(Builder& builder, std::pmr::polymorphic_allocator<> allocator = {}): _builder(builder), _blocks(allocator), _tasks(allocator) {}
+  Parser(Builder& builder, std::pmr::memory_resource* resource);
+
+  ~Parser();
 
   void process();
 
-  CodeBlock* getOrCreateBlock(pc_t pc);
+  CodeBlock* getOrCreateBlock(pc_t pc, mlir::Region* region);
 
   private:
   std::pmr::vector<std::pair<pc_t, CodeBlock*>> _blocks;
   std::pmr::vector<CodeBlock*>                  _tasks;
 
   Builder& _builder;
+
+  mlir::OpBuilder _mlirBuilder;
+  mlir::Location  _defaultLocation;
 };
 
 } // namespace compiler::frontend

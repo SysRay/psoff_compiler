@@ -6,6 +6,7 @@
 
 #include <gtest/gtest.h>
 #include <mlir/Dialect/Arith/IR/Arith.h>
+#include <mlir/Dialect/ControlFlow/IR/ControlFlowOps.h>
 #include <mlir/Dialect/Func/IR/FuncOps.h>
 #include <mlir/IR/Builders.h>
 #include <mlir/IR/BuiltinOps.h>
@@ -44,8 +45,27 @@ TEST_F(ControlFlow, SimpleIfElse) {
   static auto const binary = shader_ps_exec_ifelse;
   builder.setHostMapping(0, binary.data(), binary.size());
 
-  parser.getOrCreateBlock(0);
+  mlir::OpBuilder mlirBuilder(builder.getContext());
+  auto            funcOp =
+      mlirBuilder.create<mlir::func::FuncOp>(mlir::UnknownLoc::get(builder.getContext()), "main", mlirBuilder.getFunctionType({mlirBuilder.getI1Type()}, {}));
+
+  builder.getModule()->push_back(funcOp);
+
+  auto startBlock = funcOp.addEntryBlock();
+  auto block      = parser.getOrCreateBlock(0, &funcOp.getBody());
+
+  mlirBuilder.setInsertionPointToStart(startBlock);
+  mlirBuilder.create<mlir::cf::BranchOp>(mlir::UnknownLoc::get(builder.getContext()), block->mlirBlock);
+
   parser.process();
+
+  // builder.getModule()->dump();
+
+  mlir::OpPrintingFlags flags {};
+  flags.enableDebugInfo();
+  flags.printGenericOpForm();
+
+  builder.getModule()->print(llvm::outs(), flags);
 
   // analysis::RegionBuilder       regions(&allocator);
 
@@ -74,7 +94,19 @@ TEST_F(ControlFlow, Forloop) {
   static auto const binary = shader_ps_forloop;
   builder.setHostMapping(0, binary.data(), binary.size());
 
-  parser.getOrCreateBlock(0);
+  mlir::OpBuilder mlirBuilder(builder.getContext());
+  auto            funcOp =
+      mlirBuilder.create<mlir::func::FuncOp>(mlir::UnknownLoc::get(builder.getContext()), "main", mlirBuilder.getFunctionType({mlirBuilder.getI1Type()}, {}));
+
+  builder.getModule()->push_back(funcOp);
+
+  auto startBlock = funcOp.addEntryBlock();
+  auto block      = parser.getOrCreateBlock(0, &funcOp.getBody());
+
+  mlirBuilder.setInsertionPointToStart(startBlock);
+  mlirBuilder.create<mlir::cf::BranchOp>(mlir::UnknownLoc::get(builder.getContext()), block->mlirBlock);
+
   parser.process();
 
+  builder.getModule()->dump();
 }
