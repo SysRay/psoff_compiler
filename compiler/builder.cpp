@@ -34,10 +34,6 @@ static std::string_view getFileTpye(frontend::ShaderStage stage) {
 
 Builder::Builder(util::Flags<ShaderBuildFlags> const& flags): _debugFlags(flags), _mlirCtx(mlir::MLIRContext::Threading::DISABLED) {
   _mlirCtx.allowUnregisteredDialects();
-
-  mlir::DialectRegistry registry;
-  registry.insert<mlir::func::FuncDialect, mlir::arith::ArithDialect>();
-
   _mlirCtx.loadDialect<mlir::func::FuncDialect, mlir::arith::ArithDialect, mlir::scf::SCFDialect, mlir::cf::ControlFlowDialect, mlir::psoff::PSOFFDialect>();
 
   auto location = mlir::UnknownLoc::get(&_mlirCtx);
