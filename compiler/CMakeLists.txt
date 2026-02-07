@@ -49,6 +49,8 @@ add_subdirectory(mlir)
 
 add_library(psOff_compiler STATIC
   builder.cpp
+  compiler_ctx.cpp
+
   frontend/shader_input.cpp
   frontend/shader_types.cpp
   frontend/parser.cpp

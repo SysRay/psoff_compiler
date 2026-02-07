@@ -1,6 +1,5 @@
 #include "shader_input.h"
 
-#include "builder.h"
 #include "gfx/si_ci_vi_merged_offset.h"
 #include "shader_registers.h"
 

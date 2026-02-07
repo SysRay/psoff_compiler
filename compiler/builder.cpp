@@ -1,22 +1,25 @@
 #include "builder.h"
 
 #include "alpaca/alpaca.h"
-#include "frontend/parser.h"
+#include "compiler_ctx.h"
 #include "logging.h"
-#include "util/bump_allocator.h"
 
-#include <cstring>
 #include <filesystem>
-
-// mlir
-#include "mlir/custom.h"
-
-#include <mlir/Dialect/Arith/IR/Arith.h>
-#include <mlir/Dialect/ControlFlow/IR/ControlFlowOps.h>
-#include <mlir/Dialect/Func/IR/FuncOps.h>
-#include <mlir/Dialect/SCF/IR/SCF.h>
+#include <format>
 
 namespace compiler {
+
+struct DumpData {
+  frontend::ShaderInput shaderInput;
+
+  struct InstData {
+    uint64_t              pc {};
+    std::vector<uint32_t> instructions {};
+  };
+
+  std::array<InstData, 2> shaders;
+};
+
 static std::string_view getFileTpye(frontend::ShaderStage stage) {
   using namespace frontend;
   switch (stage) {
@@ -32,105 +35,14 @@ static std::string_view getFileTpye(frontend::ShaderStage stage) {
   }
 }
 
-Builder::Builder(util::Flags<ShaderBuildFlags> const& flags): _debugFlags(flags), _mlirCtx(mlir::MLIRContext::Threading::DISABLED) {
-  _mlirCtx.allowUnregisteredDialects();
-  _mlirCtx.loadDialect<mlir::func::FuncDialect, mlir::arith::ArithDialect, mlir::scf::SCFDialect, mlir::cf::ControlFlowDialect, mlir::psoff::PSOFFDialect>();
-
-  auto location = mlir::UnknownLoc::get(&_mlirCtx);
-  _mlirModule   = mlir::ModuleOp::create(location);
-}
-
-void Builder::print() const {
-  // std::cout << "\nInstructions:\n";
-  // for (size_t n = 0; n < _instructions.size(); ++n) {
-  //   std::cout << std::dec << n << "| ";
-  //   ir::debug::getDebug(std::cout, _instructions[n]);
-  // }
-}
-
-bool Builder::createShader(frontend::ShaderStage stage, uint32_t id, frontend::ShaderHeader const* header, uint32_t const* gpuRegs) {
-  { // Create name
-    size_t const len = std::format("{}_{:#x}_{}", getFileTpye(stage), header->hash0, id).copy(_name.data(), sizeof(_name) - 1);
-    _name[len]       = '\0';
-  }
-
-  // Get shader data
-  using namespace frontend;
-
-  _shaderInput.stage = stage;
-#define __INIT(name)                                                                                                                                           \
-  {                                                                                                                                                            \
-    name obj;                                                                                                                                                  \
-    obj.init(_shaderInput, header, gpuRegs);                                                                                                                   \
-    _shaderInput.stageData = obj;                                                                                                                              \
-  }
-
-  switch (stage) {
-    case ShaderStage::Compute: __INIT(ShaderComputeData) break;
-    case ShaderStage::Vertex: __INIT(ShaderVertexData) break;
-    case ShaderStage::VertexExport: __INIT(ShaderVertexExportData) break;
-    case ShaderStage::VertexLocal: __INIT(ShaderVertexLocalData) break;
-    case ShaderStage::Fragment: __INIT(ShaderFragmentData) break;
-    case ShaderStage::Geometry: __INIT(ShaderGeometryData) break;
-    case ShaderStage::Copy: __INIT(ShaderCopyData) break;
-    case ShaderStage::TessellationCtrl: __INIT(ShaderTessCntrlData) break;
-    case ShaderStage::TessellationEval: __INIT(ShaderTessEvalData) break;
-  }
-#undef __INIT
-
-  uint64_t const base = getShaderBase(_shaderInput.stage, gpuRegs);
-
-  // Register mapping
-  setHostMapping(0, (uint32_t const*)base, header->length / sizeof(uint32_t));
-  return processBinary();
-}
-
-struct DumpData {
-  frontend::ShaderInput shaderInput;
-
-  struct InstData {
-    uint64_t              pc {};
-    std::vector<uint32_t> instructions {};
-  };
-
-  std::array<InstData, 2> shaders;
-};
-
-bool Builder::createShader(ShaderDump_t const& dump) {
-  _debugFlags.set(ShaderBuildFlags::ISDUMP);
-
-  size_t         start   = 0;
-  size_t         end     = dump.size();
-  constexpr auto OPTIONS = alpaca::options::fixed_length_encoding;
-
-  DumpData data;
-
-  std::error_code ec;
-  alpaca::deserialize<OPTIONS>(data, dump, start, end, ec);
-  if (ec) {
-    std::cerr << "Deserialization failed: " << ec.message() << "\n";
-    return false;
-  }
-
-  _shaderInput = data.shaderInput;
-
-  // Register mapping
-  for (uint8_t n = 0; n < data.shaders.size(); ++n) {
-    auto const& item = data.shaders[n];
-
-    setHostMapping(item.pc, item.instructions.data(), item.instructions.size());
-  }
-
-  return processBinary();
-}
-
-bool Builder::createDump(frontend::ShaderHeader const* header, uint32_t const* gpuRegs) const {
+static bool createDump(CompilerCtx& ctx, frontend::ShaderHeader const* header, uint32_t const* gpuRegs) {
   // // Create dump data
-  DumpData data {.shaderInput = _shaderInput};
+  DumpData data {.shaderInput = ctx.getShaderInput()};
 
   // Collect memory
-  for (uint8_t n = 0; n < _hostMapping.size(); ++n) {
-    auto const& itemHost = _hostMapping[n];
+  auto const& hostMapping = ctx.getHostMapping();
+  for (uint8_t n = 0; n < hostMapping.size(); ++n) {
+    auto const& itemHost = hostMapping[n];
     if (itemHost.host == 0) continue;
 
     auto& item = data.shaders[n];
@@ -148,7 +60,7 @@ bool Builder::createDump(frontend::ShaderHeader const* header, uint32_t const* g
   constexpr auto OPTIONS = alpaca::options::fixed_length_encoding;
   numBytes               = alpaca::serialize<OPTIONS>(data, binaryData);
 
-  auto const path = std::filesystem::path("shader_dumps") / (std::string(getName()) + ".bin");
+  auto const path = std::filesystem::path("shader_dumps") / (std::string(ctx.getName()) + ".bin");
   try {
     std::ofstream file(path, std::ios::binary);
     file.write((char const*)binaryData.data(), binaryData.size());
@@ -161,54 +73,80 @@ bool Builder::createDump(frontend::ShaderHeader const* header, uint32_t const* g
   return true;
 }
 
-HostMapping* Builder::getHostMapping(uint64_t pc) {
-  { // Search existing
-    auto it = std::find_if(_hostMapping.begin(), _hostMapping.end(), [pc](auto const& item) { return item.pc <= pc; });
-    if (it != _hostMapping.end()) {
-      return &*it;
-    }
-  }
-  return nullptr;
-}
+bool createShader(frontend::ShaderStage stage, uint32_t id, frontend::ShaderHeader const* header, uint32_t const* gpuRegs,
+                  util::Flags<ShaderBuildFlags> buildFlags) {
 
-void Builder::setHostMapping(uint64_t pc, uint32_t const* vaddr, uint32_t size_dw) {
-  { // Search free
-    auto it = std::find_if(_hostMapping.begin(), _hostMapping.end(), [](auto const& item) { return item.pc == std::numeric_limits<uint64_t>::max(); });
-    if (it != _hostMapping.end()) {
-      it->pc      = pc;
-      it->host    = (uint64_t)vaddr;
-      it->size_dw = size_dw;
-    }
+  CompilerCtx compilerCtx(buildFlags);
+
+  if (buildFlags.is_set(ShaderBuildFlags::ISDEBUG) || buildFlags.is_set(ShaderBuildFlags::WITHDUMP)) {
+    compilerCtx.setName(std::format("{}_{:#x}_{}", getFileTpye(stage), header->hash0, id));
   }
 
-  std::ranges::sort(_hostMapping, [](const HostMapping& a, const HostMapping& b) { return a.pc < b.pc; });
+  // Get shader data
+  using namespace frontend;
+
+  auto& shaderInput = compilerCtx.getShaderInput();
+
+  shaderInput.stage = stage;
+#define __INIT(name)                                                                                                                                           \
+  {                                                                                                                                                            \
+    name obj;                                                                                                                                                  \
+    obj.init(shaderInput, header, gpuRegs);                                                                                                                    \
+    shaderInput.stageData = obj;                                                                                                                               \
+  }
+
+  switch (stage) {
+    case ShaderStage::Compute: __INIT(ShaderComputeData) break;
+    case ShaderStage::Vertex: __INIT(ShaderVertexData) break;
+    case ShaderStage::VertexExport: __INIT(ShaderVertexExportData) break;
+    case ShaderStage::VertexLocal: __INIT(ShaderVertexLocalData) break;
+    case ShaderStage::Fragment: __INIT(ShaderFragmentData) break;
+    case ShaderStage::Geometry: __INIT(ShaderGeometryData) break;
+    case ShaderStage::Copy: __INIT(ShaderCopyData) break;
+    case ShaderStage::TessellationCtrl: __INIT(ShaderTessCntrlData) break;
+    case ShaderStage::TessellationEval: __INIT(ShaderTessEvalData) break;
+  }
+#undef __INIT
+
+  uint64_t const base = getShaderBase(shaderInput.stage, gpuRegs);
+
+  // Register mapping
+  compilerCtx.setHostMapping(0, (uint32_t const*)base, header->length / sizeof(uint32_t));
+  auto result = compilerCtx.processBinary();
+
+  if (buildFlags.is_set(ShaderBuildFlags::WITHDUMP)) {
+  }
+  return result;
 }
 
-bool Builder::processBinary() {
-  auto const      pcStart = _hostMapping[0].pc;
-  uint32_t const* pCode   = (uint32_t const*)_hostMapping[0].host;
-  auto const      size    = _hostMapping[0].size_dw;
-  if (pCode == nullptr) return false;
+bool createShader(ShaderDump_t const& dump, util::Flags<ShaderBuildFlags> buildFlags) {
+  buildFlags.set(ShaderBuildFlags::ISDUMP);
 
-  compiler::util::BumpAllocator allocator;
+  size_t         start   = 0;
+  size_t         end     = dump.size();
+  constexpr auto OPTIONS = alpaca::options::fixed_length_encoding;
 
-  frontend::Parser parser(*this, &allocator);
+  DumpData data;
 
-  mlir::OpBuilder mlirBuilder(getContext());
+  std::error_code ec;
+  alpaca::deserialize<OPTIONS>(data, dump, start, end, ec);
+  if (ec) {
+    std::cerr << "Deserialization failed: " << ec.message() << "\n";
+    return false;
+  }
 
-  auto loc = mlir::UnknownLoc::get(getContext());
+  CompilerCtx compilerCtx(buildFlags);
 
-  auto funcOp = mlirBuilder.create<mlir::func::FuncOp>(loc, "main", mlirBuilder.getFunctionType({}, {}));
-  getModule()->push_back(funcOp);
+  auto& shaderInput = compilerCtx.getShaderInput();
+  shaderInput       = data.shaderInput;
 
-  auto startBlock = funcOp.addEntryBlock();
-  auto block      = parser.getOrCreateBlock(0, &funcOp.getBody());
+  // Register mapping
+  for (uint8_t n = 0; n < data.shaders.size(); ++n) {
+    auto const& item = data.shaders[n];
 
-  mlirBuilder.setInsertionPointToStart(startBlock);
-  mlirBuilder.create<mlir::cf::BranchOp>(mlir::UnknownLoc::get(getContext()), block->mlirBlock);
+    compilerCtx.setHostMapping(item.pc, item.instructions.data(), item.instructions.size());
+  }
 
-  parser.process();
-
-  return true;
+  return compilerCtx.processBinary();
 }
 } // namespace compiler

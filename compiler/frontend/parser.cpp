@@ -1,6 +1,6 @@
 #include "parser.h"
 
-#include "builder.h"
+#include "compiler_ctx.h"
 #include "encoding/opcodes_table.h"
 #include "gfx/encoding_types.h"
 #include "logging.h"
@@ -85,12 +85,12 @@ static eEncoding getEncoding(uint32_t code) {
   return eEncoding::UNK;
 }
 
-Parser::Parser(Builder& builder, std::pmr::memory_resource* resource)
-    : _builder(builder),
+Parser::Parser(CompilerCtx& ctx, std::pmr::memory_resource* resource)
+    : _compilerCtx(ctx),
       _blocks(resource),
       _tasks(resource),
-      _mlirBuilder(builder.getContext()),
-      _defaultLocation(mlir::UnknownLoc::get(builder.getContext())) {
+      _mlirBuilder(_compilerCtx.getContext()),
+      _defaultLocation(mlir::UnknownLoc::get(_compilerCtx.getContext())) {
   ;
 }
 
@@ -202,7 +202,7 @@ void Parser::process() {
       }
     }
 
-    auto hostMemory = _builder.getHostMapping(pc);
+    auto hostMemory = _compilerCtx.getHostMapping(pc);
     if (hostMemory == nullptr) throw std::runtime_error("missing mapping");
 
     LOG(eLOG_TYPE::DEBUG, "Parse| -> pc:0x{:x} module:0x{:x}", pc, hostMemory->pc);
@@ -249,7 +249,7 @@ void Parser::process() {
       if (curOperationIndex != ops.size()) {
         curOperationIndex = ops.size();
 
-        ops.back().setLoc(mlir::OpaqueLoc::get(pc, _builder.getContext()));
+        ops.back().setLoc(mlir::OpaqueLoc::get(pc, _compilerCtx.getContext()));
       }
       // -
     }

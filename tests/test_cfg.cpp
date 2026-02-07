@@ -1,4 +1,4 @@
-#include "builder.h"
+#include "compiler_ctx.h"
 #include "frontend/parser.h"
 #include "mlir/custom.h"
 #include "shaders.h"
@@ -15,11 +15,11 @@ class ControlFlow: public ::testing::Test {
   protected:
   void SetUp() override {
 
-    mlir::OpBuilder builder(_builder.getContext());
+    mlir::OpBuilder builder(_ctx.getContext());
 
-    _mlirModule = mlir::ModuleOp::create(mlir::UnknownLoc::get(_builder.getContext()));
+    _mlirModule = mlir::ModuleOp::create(mlir::UnknownLoc::get(_ctx.getContext()));
 
-    _func = builder.create<mlir::func::FuncOp>(mlir::UnknownLoc::get(_builder.getContext()), "test_func", builder.getFunctionType({builder.getI1Type()}, {}));
+    _func = builder.create<mlir::func::FuncOp>(mlir::UnknownLoc::get(_ctx.getContext()), "test_func", builder.getFunctionType({builder.getI1Type()}, {}));
     _mlirModule.push_back(_func);
 
     _block = _func.addEntryBlock();
@@ -27,7 +27,7 @@ class ControlFlow: public ::testing::Test {
 
   void TearDown() override {}
 
-  compiler::Builder _builder {};
+  compiler::CompilerCtx _ctx {};
 
   mlir::Block*   _block;
   mlir::ModuleOp _mlirModule;
@@ -39,52 +39,50 @@ TEST_F(ControlFlow, SimpleIfElse) {
   using namespace compiler::frontend;
   compiler::util::BumpAllocator allocator;
 
-  compiler::Builder builder {};
-  Parser            parser(builder, &allocator);
+  Parser parser(_ctx, &allocator);
 
   static auto const binary = shader_ps_exec_ifelse;
-  builder.setHostMapping(0, binary.data(), binary.size());
+  _ctx.setHostMapping(0, binary.data(), binary.size());
 
-  mlir::OpBuilder mlirBuilder(builder.getContext());
+  mlir::OpBuilder mlirBuilder(_ctx.getContext());
   auto            funcOp =
-      mlirBuilder.create<mlir::func::FuncOp>(mlir::UnknownLoc::get(builder.getContext()), "main", mlirBuilder.getFunctionType({mlirBuilder.getI1Type()}, {}));
+      mlirBuilder.create<mlir::func::FuncOp>(mlir::UnknownLoc::get(_ctx.getContext()), "main", mlirBuilder.getFunctionType({mlirBuilder.getI1Type()}, {}));
 
-  builder.getModule()->push_back(funcOp);
+  _ctx.getModule()->push_back(funcOp);
 
   auto startBlock = funcOp.addEntryBlock();
   auto block      = parser.getOrCreateBlock(0, &funcOp.getBody());
 
   mlirBuilder.setInsertionPointToStart(startBlock);
-  mlirBuilder.create<mlir::cf::BranchOp>(mlir::UnknownLoc::get(builder.getContext()), block->mlirBlock);
+  mlirBuilder.create<mlir::cf::BranchOp>(mlir::UnknownLoc::get(_ctx.getContext()), block->mlirBlock);
 
   parser.process();
 
-  builder.getModule()->dump();
+  _ctx.getModule()->dump();
 }
 
 TEST_F(ControlFlow, Forloop) {
   using namespace compiler::frontend;
   compiler::util::BumpAllocator allocator;
 
-  compiler::Builder builder {};
-  Parser            parser(builder, &allocator);
+  Parser parser(_ctx, &allocator);
 
   static auto const binary = shader_ps_forloop;
-  builder.setHostMapping(0, binary.data(), binary.size());
+  _ctx.setHostMapping(0, binary.data(), binary.size());
 
-  mlir::OpBuilder mlirBuilder(builder.getContext());
+  mlir::OpBuilder mlirBuilder(_ctx.getContext());
   auto            funcOp =
-      mlirBuilder.create<mlir::func::FuncOp>(mlir::UnknownLoc::get(builder.getContext()), "main", mlirBuilder.getFunctionType({mlirBuilder.getI1Type()}, {}));
+      mlirBuilder.create<mlir::func::FuncOp>(mlir::UnknownLoc::get(_ctx.getContext()), "main", mlirBuilder.getFunctionType({mlirBuilder.getI1Type()}, {}));
 
-  builder.getModule()->push_back(funcOp);
+  _ctx.getModule()->push_back(funcOp);
 
   auto startBlock = funcOp.addEntryBlock();
   auto block      = parser.getOrCreateBlock(0, &funcOp.getBody());
 
   mlirBuilder.setInsertionPointToStart(startBlock);
-  mlirBuilder.create<mlir::cf::BranchOp>(mlir::UnknownLoc::get(builder.getContext()), block->mlirBlock);
+  mlirBuilder.create<mlir::cf::BranchOp>(mlir::UnknownLoc::get(_ctx.getContext()), block->mlirBlock);
 
   parser.process();
 
-  builder.getModule()->dump();
+  _ctx.getModule()->dump();
 }

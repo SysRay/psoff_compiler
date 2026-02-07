@@ -10,7 +10,7 @@
 #include <vector>
 
 namespace compiler {
-class Builder;
+class CompilerCtx;
 }
 
 namespace mlir::func {
@@ -52,7 +52,7 @@ class Parser {
   uint8_t handleDs(CodeBlock& cb, pc_t pc, uint32_t const* pCode);
 
   public:
-  Parser(Builder& builder, std::pmr::memory_resource* resource);
+  Parser(CompilerCtx& builder, std::pmr::memory_resource* resource);
 
   ~Parser();
 
@@ -64,7 +64,7 @@ class Parser {
   std::pmr::vector<std::pair<pc_t, CodeBlock*>> _blocks;
   std::pmr::vector<CodeBlock*>                  _tasks;
 
-  Builder& _builder;
+  CompilerCtx& _compilerCtx;
 
   mlir::OpBuilder _mlirBuilder;
   mlir::Location  _defaultLocation;
