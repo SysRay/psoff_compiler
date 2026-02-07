@@ -1,7 +1,9 @@
 #include "builder.h"
 
 #include "alpaca/alpaca.h"
+#include "frontend/parser.h"
 #include "logging.h"
+#include "util/bump_allocator.h"
 
 #include <cstring>
 #include <filesystem>
@@ -30,15 +32,11 @@ static std::string_view getFileTpye(frontend::ShaderStage stage) {
   }
 }
 
-uint64_t getAddr(uint64_t addr) {
-  printf("Error: getAddr called!");
-  exit(1);
-  return 0;
-}
-
-Builder::Builder(util::Flags<ShaderBuildFlags> const& flags): _debugFlags(flags) {
-  _mlirCtx.disableMultithreading();
+Builder::Builder(util::Flags<ShaderBuildFlags> const& flags): _debugFlags(flags), _mlirCtx(mlir::MLIRContext::Threading::DISABLED) {
   _mlirCtx.allowUnregisteredDialects();
+
+  mlir::DialectRegistry registry;
+  registry.insert<mlir::func::FuncDialect, mlir::arith::ArithDialect>();
 
   _mlirCtx.loadDialect<mlir::func::FuncDialect, mlir::arith::ArithDialect, mlir::scf::SCFDialect, mlir::cf::ControlFlowDialect, mlir::psoff::PSOFFDialect>();
 
@@ -84,8 +82,7 @@ bool Builder::createShader(frontend::ShaderStage stage, uint32_t id, frontend::S
   }
 #undef __INIT
 
-  uint64_t const base     = getShaderBase(_shaderInput.stage, gpuRegs);
-  auto const     baseHost = getAddr(base);
+  uint64_t const base = getShaderBase(_shaderInput.stage, gpuRegs);
 
   // Register mapping
   setHostMapping(0, (uint32_t const*)base, header->length / sizeof(uint32_t));
@@ -197,34 +194,25 @@ bool Builder::processBinary() {
   auto const      size    = _hostMapping[0].size_dw;
   if (pCode == nullptr) return false;
 
-  // auto instr = ir::IROperations(getBuffer(), size);
-  // {
-  //   auto checkpoint = getTempBuffer()->checkpoint();
+  compiler::util::BumpAllocator allocator;
 
-  //   // parse instructions
-  //   frontend::analysis::pcmapping_t pcMapping {checkpoint.obj}; // map pc to instructions for resolving jmp
-  //   pcMapping.reserve(_hostMapping[0].size_dw);
+  frontend::Parser parser(*this, &allocator);
 
-  //   auto curCode = pCode;
+  mlir::OpBuilder mlirBuilder(getContext());
 
-  //   frontend::parser::Context ctx(*this, instr);
-  //   try {
-  //     while (curCode < (pCode + size)) {
-  //       auto const pc = pcStart + (frontend::parser::pc_t)curCode - (frontend::parser::pc_t)pCode;
-  //       pcMapping.push_back({pc, instr.instructionCount()});
-  //       frontend::parser::parseInstruction(ctx, pc, &curCode);
-  //     }
-  //   } catch (std::runtime_error const& ex) {
-  //     LOG(eLOG_TYPE::ERROR, "{} error:{}", getName().data(), ex.what());
-  //     return {};
-  //   }
+  auto loc = mlir::UnknownLoc::get(getContext());
 
-  //   // create code regions
-  //   if (!frontend::analysis::createRegions(getTempBuffer(), instr, pcMapping)) {
-  //     LOG(eLOG_TYPE::ERROR, "Couldn't create regions");
-  //     return false;
-  //   }
-  // }
+  auto funcOp = mlirBuilder.create<mlir::func::FuncOp>(loc, "main", mlirBuilder.getFunctionType({}, {}));
+  getModule()->push_back(funcOp);
+
+  auto startBlock = funcOp.addEntryBlock();
+  auto block      = parser.getOrCreateBlock(0, &funcOp.getBody());
+
+  mlirBuilder.setInsertionPointToStart(startBlock);
+  mlirBuilder.create<mlir::cf::BranchOp>(mlir::UnknownLoc::get(getContext()), block->mlirBlock);
+
+  parser.process();
+
   return true;
 }
 } // namespace compiler

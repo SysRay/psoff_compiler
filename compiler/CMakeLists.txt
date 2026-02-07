@@ -7,10 +7,7 @@ option(ENABLE_DEFAULT_LOGGING "printf logs" OFF)
 # -DLLVM_ENABLE_ABI_BREAKING_CHECKS=OFF
 
 if(USE_LOCAL_LLVM)
-  set(LLVM_MLIR_ROOT "D:/Source/llvm-project/build/.install")
-
-  set(LLVM_DIR "${LLVM_MLIR_ROOT}/lib/cmake/llvm")
-  set(MLIR_DIR "${LLVM_MLIR_ROOT}/lib/cmake/mlir")
+  set(llvm_install_SOURCE_DIR "/mnt/prog/Source/psOff_compiler/.build/_deps/llvm_install-src/")
 else()
   # Download LLVM
   set(LLVM_DOWN_VERSION "2025Sep27")
@@ -28,9 +25,9 @@ else()
     DOWNLOAD_EXTRACT_TIMESTAMP True
   )
   FetchContent_MakeAvailable(llvm_install)
-
-  list(APPEND CMAKE_PREFIX_PATH ${llvm_install_SOURCE_DIR})
 endif()
+
+list(APPEND CMAKE_PREFIX_PATH ${llvm_install_SOURCE_DIR})
 
 set(LLVM_DIR
   "${llvm_install_SOURCE_DIR}/lib/cmake/llvm"

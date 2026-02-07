@@ -29,9 +29,6 @@ struct HostMapping {
   uint64_t host    = 0;
   uint32_t size_dw = 0;
 };
-
-uint64_t getAddr(uint64_t addr); ///< User implementation
-
 class Builder {
   public:
   Builder(util::Flags<ShaderBuildFlags> const& flags = {});
