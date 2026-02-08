@@ -1,6 +1,7 @@
 #include "../debug_strings.h"
 #include "../gfx/encoding_types.h"
 #include "../parser.h"
+#include "compiler_ctx.h"
 #include "opcodes_table.h"
 
 #include <format>
@@ -84,8 +85,14 @@ uint8_t Parser::handleSop1(CodeBlock& cb, pc_t pc, uint32_t const* pCode) {
     case eOpcode::S_FLBIT_I32_I64: {
     } break;
     case eOpcode::S_SEXT_I32_I8: {
+      auto value0 = loadRegister(src0, types().i8());
+      auto res    = _mlirBuilder.create<mlir::arith::ExtSIOp>(_defaultLocation, types().i32(), value0);
+      storeRegister(sdst, res);
     } break;
     case eOpcode::S_SEXT_I32_I16: {
+      auto value0 = loadRegister(src0, types().i16());
+      auto res    = _mlirBuilder.create<mlir::arith::ExtSIOp>(_defaultLocation, types().i32(), value0);
+      storeRegister(sdst, res);
     } break;
     case eOpcode::S_BITSET0_B32: {
     } break;
@@ -96,21 +103,55 @@ uint8_t Parser::handleSop1(CodeBlock& cb, pc_t pc, uint32_t const* pCode) {
     case eOpcode::S_BITSET1_B64: {
     } break;
     case eOpcode::S_GETPC_B64: {
+      auto res = _mlirBuilder.create<mlir::arith::ConstantIntOp>(_defaultLocation, types().i64(), 4 + pc);
+      storeRegister(sdst, res);
     } break;
     case eOpcode::S_SETPC_B64: {
-
       cb.pc_end = pc;
+
+      auto value0 = loadRegister(src0, types().i64());
+      auto res    = _mlirBuilder.create<mlir::psoff::IndirectBranch>(_defaultLocation, value0);
     } break;
     case eOpcode::S_SWAPPC_B64: {
+      // save pc
+      auto res = _mlirBuilder.create<mlir::arith::ConstantIntOp>(_defaultLocation, types().i64(), 4 + pc);
+      storeRegister(sdst, res);
 
-      cb.pc_end = pc;
+      auto const& shaderInput = _compilerCtx.getShaderInput();
+      if (shaderInput.getLogicalStage() == ShaderLogicalStage::Vertex && src0.isSGPR() && src0.getSGPR() < shaderInput.userSGPRSize) {
+        // todo fetch shader
+      }
+
+      else {
+        cb.pc_end = pc;
+        // todo
+      }
     } break;
     // case eOpcode::S_RFE_B64: break; // Does not exist
     case eOpcode::S_AND_SAVEEXEC_B64: {
+      auto exec = loadRegister(eOperandKind::EXEC(), types().i64());
+      storeRegister(sdst, exec); // save exec
+
+      auto mask = loadRegister(src0, types().i64());
+      auto res  = _mlirBuilder.create<mlir::arith::AndIOp>(_defaultLocation, types().i64(), exec, mask);
+      storeRegister(eOperandKind::EXEC(), res);
     } break;
     case eOpcode::S_OR_SAVEEXEC_B64: {
+      auto exec = loadRegister(eOperandKind::EXEC(), types().i64());
+      storeRegister(sdst, exec); // save exec
+
+      auto mask = loadRegister(src0, types().i64());
+      auto res  = _mlirBuilder.create<mlir::arith::OrIOp>(_defaultLocation, types().i64(), exec, mask);
+      storeRegister(eOperandKind::EXEC(), res);
     } break;
     case eOpcode::S_XOR_SAVEEXEC_B64: {
+      auto exec = loadRegister(eOperandKind::EXEC(), types().i64());
+      auto mask = loadRegister(src0, types().i64());
+
+      storeRegister(sdst, exec); // save exec
+
+      auto res = _mlirBuilder.create<mlir::arith::XOrIOp>(_defaultLocation, types().i64(), exec, mask);
+      storeRegister(eOperandKind::EXEC(), res);
     } break;
     case eOpcode::S_ANDN2_SAVEEXEC_B64: {
     } break;

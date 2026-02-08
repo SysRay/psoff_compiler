@@ -23,7 +23,7 @@ namespace compiler {
 
 OperandTypeCache::OperandTypeCache(mlir::MLIRContext* ctx) {
   auto builder = mlir::OpBuilder(ctx);
-  _types       = {builder.getI1Type(), builder.getI32Type(), builder.getI64Type()};
+  _types       = {builder.getI1Type(), builder.getI8Type(), builder.getI16Type(), builder.getI32Type(), builder.getI64Type()};
 }
 
 CompilerCtx::CompilerCtx(util::Flags<ShaderBuildFlags> const& flags): _debugFlags(flags), _mlirCtx(mlir::MLIRContext::Threading::DISABLED), _types(&_mlirCtx) {

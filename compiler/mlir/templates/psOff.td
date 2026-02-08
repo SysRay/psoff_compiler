@@ -16,29 +16,16 @@ def PSOFFDialect : Dialect {
   let hasConstantMaterializer = 1;
 }
 
-def PSOFF_Branch : Op<PSOFFDialect,"BranchOp"> {
+def PSOFF_IndirectBranch : Op<PSOFFDialect,"IndirectBranch"> {
   let summary = "Branch to a target using a variable";
   let description = [{
     Branches to a target using a variable as destination.
   }];
-  let arguments = (ins I64Attr:$dst);
+  let arguments = (ins I64:$dst);
   let results = (outs);
 }
 
-def PSOFF_CBranch : Op<PSOFFDialect,"CBranchOp"> {
-  let summary = "Branch to a target using a variable";
-  let description = [{
-    Branches to a target using a variable as destination.
-  }];
-  let arguments = (ins
-    I1:$cond,
-    I64Attr:$ifBranch,
-    I64Attr:$elseBranch
-  );
-  let results = (outs);
-}
-
-def PSOFF_LoadOp : Op<PSOFFDialect, "loadOp", [MemoryEffects<[MemRead]>]> {
+def PSOFF_LoadOp : Op<PSOFFDialect, "LoadOp", [MemoryEffects<[MemRead]>]> {
   let summary = "Load a value into the register identified by an unsigned ID";
   let description = [{
     Loads a value from memory into the register specified by a compile-time constant unsigned integer ID.
@@ -53,7 +40,7 @@ def PSOFF_LoadOp : Op<PSOFFDialect, "loadOp", [MemoryEffects<[MemRead]>]> {
   let hasCustomAssemblyFormat = 1;
 }
 
-def PSOFF_StoreOp : Op<PSOFFDialect, "storeOp", [MemoryEffects<[MemWrite]>]> {
+def PSOFF_StoreOp : Op<PSOFFDialect, "StoreOp", [MemoryEffects<[MemWrite]>]> {
   let summary = "Store a value from an register";
   let description = [{
     Stores a value from the specified register into memory.
