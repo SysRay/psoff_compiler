@@ -10,6 +10,7 @@
 // mlir
 #include "mlir/custom.h"
 
+#include <mlir/Dialect/Arith/IR/Arith.h>
 #include <mlir/Dialect/ControlFlow/IR/ControlFlowOps.h>
 
 namespace compiler::frontend {
@@ -215,32 +216,32 @@ void Parser::process() {
     size_t curOperationIndex = 0;
     while (pc < curBlock.pc_end) {
       auto handle = [&] {
-        auto pCode = (uint32_t const*)(hostMemory->host + pc);
-        switch (getEncoding(*pCode)) {
-          case eEncoding::SOP1: return handleSop1(curBlock, pc, pCode);
-          case eEncoding::SOP2: return handleSop2(curBlock, pc, pCode);
-          case eEncoding::SOPP: return handleSopp(curBlock, pc, pCode);
-          case eEncoding::SOPC: return handleSopc(curBlock, pc, pCode);
-          case eEncoding::EXP: return handleExp(curBlock, pc, pCode);
-          case eEncoding::VINTRP: return handleVintrp(curBlock, pc, pCode);
-          case eEncoding::DS: return handleDs(curBlock, pc, pCode);
-          case eEncoding::MUBUF: return handleMubuf(curBlock, pc, pCode);
-          case eEncoding::MTBUF: return handleMtbuf(curBlock, pc, pCode);
-          case eEncoding::MIMG: return handleMimg(curBlock, pc, pCode);
-          case eEncoding::SMRD: return handleSmrd(curBlock, pc, pCode);
-          case eEncoding::SOPK: return handleSopk(curBlock, pc, pCode);
-          case eEncoding::VOP1: return handleVop1(curBlock, pc, pCode, false);
-          case eEncoding::VOP2: return handleVop2(curBlock, pc, pCode, false);
+        _curCode = (uint32_t const*)(hostMemory->host + pc);
+        switch (getEncoding(*_curCode)) {
+          case eEncoding::SOP1: return handleSop1(curBlock, pc, _curCode);
+          case eEncoding::SOP2: return handleSop2(curBlock, pc, _curCode);
+          case eEncoding::SOPP: return handleSopp(curBlock, pc, _curCode);
+          case eEncoding::SOPC: return handleSopc(curBlock, pc, _curCode);
+          case eEncoding::EXP: return handleExp(curBlock, pc, _curCode);
+          case eEncoding::VINTRP: return handleVintrp(curBlock, pc, _curCode);
+          case eEncoding::DS: return handleDs(curBlock, pc, _curCode);
+          case eEncoding::MUBUF: return handleMubuf(curBlock, pc, _curCode);
+          case eEncoding::MTBUF: return handleMtbuf(curBlock, pc, _curCode);
+          case eEncoding::MIMG: return handleMimg(curBlock, pc, _curCode);
+          case eEncoding::SMRD: return handleSmrd(curBlock, pc, _curCode);
+          case eEncoding::SOPK: return handleSopk(curBlock, pc, _curCode);
+          case eEncoding::VOP1: return handleVop1(curBlock, pc, _curCode, false);
+          case eEncoding::VOP2: return handleVop2(curBlock, pc, _curCode, false);
           case eEncoding::VOP3: {
-            auto const header = VOP3(*pCode);
+            auto const header = VOP3(*_curCode);
             auto const op     = header.get<VOP3::Field::OP>();
-            if (op >= OpcodeOffset_VOP1_VOP3) return handleVop1(curBlock, pc, pCode, true);
-            if (op >= 0x140) return handleVop3(curBlock, pc, pCode);
-            if (op >= OpcodeOffset_VOP2_VOP3) return handleVop2(curBlock, pc, pCode, true);
-            return handleVopc(curBlock, pc, pCode, true);
+            if (op >= OpcodeOffset_VOP1_VOP3) return handleVop1(curBlock, pc, _curCode, true);
+            if (op >= 0x140) return handleVop3(curBlock, pc, _curCode);
+            if (op >= OpcodeOffset_VOP2_VOP3) return handleVop2(curBlock, pc, _curCode, true);
+            return handleVopc(curBlock, pc, _curCode, true);
           }
-          case eEncoding::VOPC: return handleVopc(curBlock, pc, pCode, false);
-          default: throw std::runtime_error(std::format("wrong encoding 0x{:x}", *pCode));
+          case eEncoding::VOPC: return handleVopc(curBlock, pc, _curCode, false);
+          default: throw std::runtime_error(std::format("wrong encoding 0x{:x}", *_curCode));
         }
       };
 
@@ -273,7 +274,22 @@ OperandTypeCache const& Parser::types() const {
 }
 
 mlir::Value Parser::loadRegister(eOperandKind src, mlir::Type type) {
-  return _mlirBuilder.create<mlir::psoff::LoadOp>(_defaultLocation, type, _mlirBuilder.getIndexAttr((uint32_t)src.base()));
+  if (src.isLiteral()) {
+    if (type.getIntOrFloatBitWidth() == 64 && type.isFloat()) {
+      // Note Literal double constants are placed in high 32-bits of double
+      return _mlirBuilder.create<mlir::arith::ConstantFloatOp>(_defaultLocation, (mlir::FloatType)type,
+                                                               llvm::APFloat(std::bit_cast<double>((uint64_t)(*(_curCode + 1)) << 32u)));
+    } else {
+      // Note: signed ops need to sign extend. make it i32 and extend later
+      return _mlirBuilder.create<mlir::arith::ConstantIntOp>(_defaultLocation, types().i32(), *(_curCode + 1));
+    }
+  } else if (src.isConstI()) {
+    return _mlirBuilder.create<mlir::arith::ConstantIntOp>(_defaultLocation, type, src.getConstI());
+  } else if (src.isConstF()) {
+    return _mlirBuilder.create<mlir::arith::ConstantFloatOp>(_defaultLocation, (mlir::FloatType)type, llvm::APFloat(src.getConstF()));
+  } else {
+    return _mlirBuilder.create<mlir::psoff::LoadOp>(_defaultLocation, type, _mlirBuilder.getIndexAttr((uint32_t)src.base()));
+  }
 }
 
 void Parser::storeRegister(eOperandKind dst, mlir::Value value) {

@@ -75,6 +75,8 @@ class Parser {
 
   mlir::OpBuilder _mlirBuilder;
   mlir::Location  _defaultLocation;
+
+  uint32_t const* _curCode = nullptr;
 };
 
 } // namespace compiler::frontend
