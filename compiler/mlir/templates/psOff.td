@@ -50,6 +50,7 @@ def PSOFF_LoadOp : Op<PSOFFDialect, "loadOp", [MemoryEffects<[MemRead]>]> {
   let results = (outs AnyType:$val);
 
   let traits = [ConstantLike];
+  let hasCustomAssemblyFormat = 1;
 }
 
 def PSOFF_StoreOp : Op<PSOFFDialect, "storeOp", [MemoryEffects<[MemWrite]>]> {
@@ -58,6 +59,8 @@ def PSOFF_StoreOp : Op<PSOFFDialect, "storeOp", [MemoryEffects<[MemWrite]>]> {
     Stores a value from the specified register into memory.
   }];
 
-  let arguments = (ins IndexAttr:$reg, AnyType:$val);
+  let arguments = (ins IndexAttr:$id, AnyType:$val);
   let results = (outs);
+
+  let hasCustomAssemblyFormat = 1;
 }
