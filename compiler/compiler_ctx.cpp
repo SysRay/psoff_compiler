@@ -11,14 +11,22 @@
 // mlir
 #include "mlir/custom.h"
 
+#include <mlir/Conversion/Passes.h>
 #include <mlir/Dialect/Arith/IR/Arith.h>
 #include <mlir/Dialect/ControlFlow/IR/ControlFlowOps.h>
 #include <mlir/Dialect/Func/IR/FuncOps.h>
 #include <mlir/Dialect/SCF/IR/SCF.h>
+#include <mlir/Pass/PassManager.h>
+#include <mlir/Transforms/Passes.h>
 
 namespace compiler {
 
-CompilerCtx::CompilerCtx(util::Flags<ShaderBuildFlags> const& flags): _debugFlags(flags), _mlirCtx(mlir::MLIRContext::Threading::DISABLED) {
+OperandTypeCache::OperandTypeCache(mlir::MLIRContext* ctx) {
+  auto builder = mlir::OpBuilder(ctx);
+  _types       = {builder.getI1Type(), builder.getI32Type(), builder.getI64Type()};
+}
+
+CompilerCtx::CompilerCtx(util::Flags<ShaderBuildFlags> const& flags): _debugFlags(flags), _mlirCtx(mlir::MLIRContext::Threading::DISABLED), _types(&_mlirCtx) {
   _mlirCtx.allowUnregisteredDialects();
   _mlirCtx.loadDialect<mlir::func::FuncDialect, mlir::arith::ArithDialect, mlir::scf::SCFDialect, mlir::cf::ControlFlowDialect, mlir::psoff::PSOFFDialect>();
 
@@ -73,6 +81,15 @@ bool CompilerCtx::processBinary() {
   mlirBuilder.create<mlir::cf::BranchOp>(mlir::UnknownLoc::get(getContext()), block->mlirBlock);
 
   parser.process();
+
+  mlir::PassManager pm(&_mlirCtx);
+  pm.enableVerifier(false);
+  pm.addNestedPass<mlir::func::FuncOp>(mlir::createLiftControlFlowToSCFPass());
+
+  if (failed(pm.run(funcOp))) {
+    printf("Failed to lower psoff\n");
+    return false;
+  }
 
   return true;
 }

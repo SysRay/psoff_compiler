@@ -9,14 +9,18 @@
 #include <mlir/Interfaces/CastInterfaces.h>
 #define GET_OP_CLASSES
 #define GET_ATTRDEF_CLASSES
+#define GET_TYPEDEF_CLASSES
 // clang-format off
 #include "psOff.td.enum.cpp.inc"
 #include "psOff.td.attr.cpp.inc"
 #include "psOff.td.op.cpp.inc"
 #include "psOff.td.cpp.inc"
+#include "psOff.td.types.cpp.inc"
 // clang-format on
 
 #undef GET_OP_CLASSES
+#undef GET_ATTRDEF_CLASSES
+#undef GET_TYPEDEF_CLASSES
 
 namespace mlir::psoff {
 void PSOFFDialect::initialize() {
@@ -27,6 +31,10 @@ void PSOFFDialect::initialize() {
   addAttributes<
 #define GET_ATTRDEF_LIST
 #include "psOff.td.attr.cpp.inc"
+      >();
+  addTypes<
+#define GET_TYPEDEF_LIST
+#include "psOff.td.types.h.inc"
       >();
 }
 

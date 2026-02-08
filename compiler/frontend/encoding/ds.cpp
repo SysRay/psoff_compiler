@@ -1,6 +1,5 @@
 #include "../debug_strings.h"
 #include "../gfx/encoding_types.h"
-#include "../gfx/operand_types.h"
 #include "../parser.h"
 #include "opcodes_table.h"
 

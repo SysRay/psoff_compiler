@@ -1,4 +1,6 @@
 #pragma once
+#include "gfx/register_types.h"
+#include "operand_types.h"
 #include "types.h"
 #include "util/common.h"
 
@@ -50,6 +52,11 @@ class Parser {
   uint8_t handleMtbuf(CodeBlock& cb, pc_t pc, uint32_t const* pCode);
   uint8_t handleMimg(CodeBlock& cb, pc_t pc, uint32_t const* pCode);
   uint8_t handleDs(CodeBlock& cb, pc_t pc, uint32_t const* pCode);
+
+  mlir::Value loadRegister(eOperandKind op, mlir::Type type);
+  void        storeRegister(eOperandKind dst, mlir::Value value);
+
+  OperandTypeCache const& types() const;
 
   public:
   Parser(CompilerCtx& builder, std::pmr::memory_resource* resource);

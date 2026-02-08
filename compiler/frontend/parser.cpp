@@ -8,6 +8,8 @@
 #include <limits>
 
 // mlir
+#include "mlir/custom.h"
+
 #include <mlir/Dialect/ControlFlow/IR/ControlFlowOps.h>
 
 namespace compiler::frontend {
@@ -266,4 +268,15 @@ void Parser::process() {
   }
 }
 
+OperandTypeCache const& Parser::types() const {
+  return _compilerCtx.types();
+}
+
+mlir::Value Parser::loadRegister(eOperandKind src, mlir::Type type) {
+  return _mlirBuilder.create<mlir::psoff::LoadOp>(_defaultLocation, type, _mlirBuilder.getIndexAttr((uint32_t)src.base()));
+}
+
+void Parser::storeRegister(eOperandKind dst, mlir::Value value) {
+  _mlirBuilder.create<mlir::psoff::StoreOp>(_defaultLocation, _mlirBuilder.getIndexAttr((uint32_t)dst.base()), value);
+}
 } // namespace compiler::frontend

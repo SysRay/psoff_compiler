@@ -77,6 +77,14 @@ add_custom_command(
   -o "${GENERATED_DIR}/${BASE_FILE}.pass.h.inc"
   ${TBLGEN_INCLUDES}
 
+  COMMAND "${MLIR_TBLGEN}" --gen-typedef-defs "${INPUT_FILE}"
+  -o "${GENERATED_DIR}/${BASE_FILE}.types.cpp.inc"
+  ${TBLGEN_INCLUDES}
+
+  COMMAND "${MLIR_TBLGEN}" --gen-typedef-decls "${INPUT_FILE}"
+  -o "${GENERATED_DIR}/${BASE_FILE}.types.h.inc"
+  ${TBLGEN_INCLUDES}
+
   DEPENDS "${INPUT_FILE}"
   COMMENT "Generating MLIR TableGen files for ${BASE_FILE}"
   VERBATIM
