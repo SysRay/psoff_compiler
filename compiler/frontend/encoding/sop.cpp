@@ -130,27 +130,26 @@ uint8_t Parser::handleSop1(CodeBlock& cb, pc_t pc, uint32_t const* pCode) {
     // case eOpcode::S_RFE_B64: break; // Does not exist
     case eOpcode::S_AND_SAVEEXEC_B64: {
       auto exec = loadRegister(eOperandKind::EXEC(), types().i64());
-      storeRegister(sdst, exec); // save exec
-
       auto mask = loadRegister(src0, types().i64());
-      auto res  = _mlirBuilder.create<mlir::arith::AndIOp>(_defaultLocation, types().i64(), exec, mask);
+
+      auto res = _mlirBuilder.create<mlir::arith::AndIOp>(_defaultLocation, types().i64(), exec, mask);
+      storeRegister(sdst, exec); // save exec
       storeRegister(eOperandKind::EXEC(), res);
     } break;
     case eOpcode::S_OR_SAVEEXEC_B64: {
       auto exec = loadRegister(eOperandKind::EXEC(), types().i64());
-      storeRegister(sdst, exec); // save exec
-
       auto mask = loadRegister(src0, types().i64());
-      auto res  = _mlirBuilder.create<mlir::arith::OrIOp>(_defaultLocation, types().i64(), exec, mask);
+
+      auto res = _mlirBuilder.create<mlir::arith::OrIOp>(_defaultLocation, types().i64(), exec, mask);
+      storeRegister(sdst, exec); // save exec
       storeRegister(eOperandKind::EXEC(), res);
     } break;
     case eOpcode::S_XOR_SAVEEXEC_B64: {
       auto exec = loadRegister(eOperandKind::EXEC(), types().i64());
       auto mask = loadRegister(src0, types().i64());
 
-      storeRegister(sdst, exec); // save exec
-
       auto res = _mlirBuilder.create<mlir::arith::XOrIOp>(_defaultLocation, types().i64(), exec, mask);
+      storeRegister(sdst, exec); // save exec
       storeRegister(eOperandKind::EXEC(), res);
     } break;
     case eOpcode::S_ANDN2_SAVEEXEC_B64: {

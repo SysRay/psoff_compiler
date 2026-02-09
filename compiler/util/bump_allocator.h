@@ -15,10 +15,7 @@ class BumpAllocator: public std::pmr::memory_resource {
 
   void do_deallocate(void* p, std::size_t bytes, std::size_t alignment) override {}
 
-  bool do_is_equal(const std::pmr::memory_resource& other) const noexcept override {
-    const BumpAllocator* otherAlloc = dynamic_cast<const BumpAllocator*>(&other);
-    return otherAlloc && &otherAlloc->allocator == &allocator;
-  }
+  bool do_is_equal(const std::pmr::memory_resource& other) const noexcept override { return *this == other; }
 
   private:
   llvm::BumpPtrAllocator allocator;

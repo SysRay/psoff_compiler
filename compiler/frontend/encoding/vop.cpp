@@ -1,3 +1,4 @@
+#include "../debug_strings.h"
 #include "../gfx/encoding_types.h"
 #include "../parser.h"
 #include "opcodes_table.h"
@@ -5,6 +6,9 @@
 #include <bitset>
 #include <format>
 #include <stdexcept>
+
+// mlir
+#include <mlir/Dialect/Arith/IR/Arith.h>
 
 namespace compiler::frontend {
 
@@ -112,16 +116,17 @@ uint8_t Parser::handleVop3(CodeBlock& cb, pc_t pc, uint32_t const* pCode) {
 }
 
 uint8_t Parser::handleVopc(CodeBlock& cb, pc_t pc, uint32_t const* pCode, bool extended) {
-  eOpcode op;
+  eOpcode      op;
+  eOperandKind sdst {}, src0 {}, src1 {};
 
   uint8_t size = sizeof(uint32_t);
   if (extended) {
     auto inst = VOP3_SDST(getU64(pCode));
     op        = (eOpcode)(OPcodeStart_VOPC + inst.template get<VOP3_SDST::Field::OP>() - OpcodeOffset_VOPC_VOP3);
 
-    auto const sdst_ = eOperandKind((eOperandKind_t)inst.template get<VOP3_SDST::Field::SDST>());
-    auto const src0_ = eOperandKind((eOperandKind_t)inst.template get<VOP3_SDST::Field::SRC0>());
-    auto const src1_ = eOperandKind((eOperandKind_t)inst.template get<VOP3_SDST::Field::SRC1>());
+    sdst = eOperandKind((eOperandKind_t)inst.template get<VOP3_SDST::Field::SDST>());
+    src0 = eOperandKind((eOperandKind_t)inst.template get<VOP3_SDST::Field::SRC0>());
+    src1 = eOperandKind((eOperandKind_t)inst.template get<VOP3_SDST::Field::SRC1>());
 
     auto const           omod   = inst.template get<VOP3_SDST::Field::OMOD>();
     std::bitset<3> const negate = inst.template get<VOP3_SDST::Field::NEG>();
@@ -130,14 +135,177 @@ uint8_t Parser::handleVopc(CodeBlock& cb, pc_t pc, uint32_t const* pCode, bool e
   } else {
     auto inst = VOPC(*pCode);
     op        = (eOpcode)(OPcodeStart_VOPC + inst.template get<VOPC::Field::OP>());
-    auto sdst = eOperandKind::VCC();
-    auto src0 = eOperandKind((eOperandKind_t)inst.template get<VOPC::Field::SRC0>());
-    auto src1 = eOperandKind::VGPR(inst.template get<VOPC::Field::VSRC1>());
+    sdst      = eOperandKind::VCC();
+    src0      = eOperandKind((eOperandKind_t)inst.template get<VOPC::Field::SRC0>());
+    src1      = eOperandKind::VGPR(inst.template get<VOPC::Field::VSRC1>());
 
     if (src0.isLiteral() || src1.isLiteral()) {
       size = sizeof(uint64_t);
-      // src0 = createSrc(ctx.create<core::ConstantOp>(createDst(), ir::ConstantValue {.value_u64 = **pCode}, ir::OperandType::i32()));
     }
+  }
+
+  using namespace mlir::arith;
+
+  auto compf = [&](CmpFPredicate comp, mlir::Type type, bool exec, bool signaling) {
+    auto value0 = loadRegister(src0, type);
+    auto value1 = loadRegister(src1, type);
+
+    auto res = _mlirBuilder.create<mlir::arith::CmpFOp>(_defaultLocation, comp, value0, value1);
+
+    storeRegister(sdst, res);
+    if (exec) storeRegister(eOperandKind::EXEC(), res);
+  };
+
+  auto compI = [&](CmpIPredicate comp, mlir::Type type, bool exec) {
+    auto value0 = loadRegister(src0, type);
+    auto value1 = loadRegister(src1, type);
+
+    auto res = _mlirBuilder.create<mlir::arith::CmpIOp>(_defaultLocation, comp, value0, value1);
+
+    storeRegister(sdst, res);
+    if (exec) storeRegister(eOperandKind::EXEC(), res);
+  };
+
+  constexpr std::array cmpOpsF = {CmpFPredicate::AlwaysFalse, CmpFPredicate::OLT, CmpFPredicate::OEQ, CmpFPredicate::OLE,
+                                  CmpFPredicate::OGT,         CmpFPredicate::ONE, CmpFPredicate::OGE, CmpFPredicate::ORD,
+                                  CmpFPredicate::UNO,         CmpFPredicate::OLT, CmpFPredicate::OEQ, CmpFPredicate::OLE,
+                                  CmpFPredicate::OGT,         CmpFPredicate::ONE, CmpFPredicate::OGE, CmpFPredicate::AlwaysTrue};
+
+  constexpr std::array cmdOpsSI = {
+      CmpIPredicate::slt, // CmpIPredicate::AlwaysFalse
+      CmpIPredicate::slt, CmpIPredicate::eq, CmpIPredicate::sle, CmpIPredicate::sgt, CmpIPredicate::ne, CmpIPredicate::sge,
+      CmpIPredicate::slt, // CmpIPredicate::AlwaysFalse
+  };
+
+  constexpr std::array cmdOpsUI = {
+      CmpIPredicate::ult, // CmpIPredicate::AlwaysFalse
+      CmpIPredicate::ult, CmpIPredicate::eq, CmpIPredicate::ule, CmpIPredicate::ugt, CmpIPredicate::ne, CmpIPredicate::uge,
+      CmpIPredicate::ult, // CmpIPredicate::AlwaysTrue
+
+  };
+
+  // // compare float
+
+  if (op >= eOpcode::V_CMP_F_F32 && op <= eOpcode::V_CMP_T_F32) {
+    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMP_F_F32;
+    compf(cmpOpsF[opIndex], types().f32(), false, false);
+  } else if (op >= eOpcode::V_CMPX_F_F32 && op <= eOpcode::V_CMPX_T_F32) {
+    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPX_F_F32;
+    compf(cmpOpsF[opIndex], types().f32(), true, false);
+  } else if (op >= eOpcode::V_CMP_F_F64 && op <= eOpcode::V_CMP_T_F64) {
+    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMP_F_F64;
+    compf(cmpOpsF[opIndex], types().f32(), false, false);
+  } else if (op >= eOpcode::V_CMPX_F_F64 && op <= eOpcode::V_CMPX_T_F64) {
+    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPX_F_F64;
+    compf(cmpOpsF[opIndex], types().f64(), true, false);
+  } else if (op >= eOpcode::V_CMPS_F_F32 && op <= eOpcode::V_CMPS_T_F32) {
+    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPS_F_F32;
+    compf(cmpOpsF[opIndex], types().f32(), false, true);
+  } else if (op >= eOpcode::V_CMPSX_F_F32 && op <= eOpcode::V_CMPSX_T_F32) {
+    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPSX_F_F32;
+    compf(cmpOpsF[opIndex], types().f32(), true, true);
+  } else if (op >= eOpcode::V_CMPS_F_F64 && op <= eOpcode::V_CMPSX_T_F64) {
+    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPS_F_F64;
+    compf(cmpOpsF[opIndex], types().f64(), false, true);
+  } else if (op >= eOpcode::V_CMPSX_F_F64 && op <= eOpcode::V_CMPSX_T_F64) {
+    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPSX_F_F64;
+    compf(cmpOpsF[opIndex], types().f64(), true, true);
+  }
+
+  // Compare integer
+  else if (op == eOpcode::V_CMP_F_I32) {
+    auto res = loadRegister(eOperandKind::createImm(0), types().i1());
+    storeRegister(sdst, res);
+  } else if (op > eOpcode::V_CMP_F_I32 && op < eOpcode::V_CMP_T_I32) {
+    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMP_F_I32;
+    compI(cmdOpsSI[opIndex], types().i32(), false);
+  } else if (op == eOpcode::V_CMP_T_I32) {
+    auto res = loadRegister(eOperandKind::createImm(1), types().i1());
+    storeRegister(sdst, res);
+  } else if (op == eOpcode::V_CMP_CLASS_F32) { // todo
+    throw std::runtime_error("class comp");
+  } else if (op == eOpcode::V_CMPX_F_I32) {
+    auto res = loadRegister(eOperandKind::createImm(0), types().i1());
+    storeRegister(sdst, res);
+    storeRegister(eOperandKind::EXEC(), res);
+  } else if (op > eOpcode::V_CMPX_F_I32 && op < eOpcode::V_CMPX_T_I32) {
+    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPX_F_I32;
+    compI(cmdOpsSI[opIndex], types().i32(), true);
+  } else if (op == eOpcode::V_CMPX_T_I32) {
+    auto res = loadRegister(eOperandKind::createImm(1), types().i1());
+    storeRegister(sdst, res);
+    storeRegister(eOperandKind::EXEC(), res);
+  } else if (op == eOpcode::V_CMPX_CLASS_F32) {
+    throw std::runtime_error("class comp"); // todo
+  } else if (op == eOpcode::V_CMP_F_I64) {
+    auto res = loadRegister(eOperandKind::createImm(0), types().i1());
+    storeRegister(sdst, res);
+  } else if (op > eOpcode::V_CMP_F_I64 && op < eOpcode::V_CMP_T_I64) {
+    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMP_F_I64;
+    compI(cmdOpsSI[opIndex], types().i64(), false);
+  } else if (op == eOpcode::V_CMP_T_I64) {
+    auto res = loadRegister(eOperandKind::createImm(1), types().i1());
+    storeRegister(sdst, res);
+  } else if (op == eOpcode::V_CMP_CLASS_F64) {
+    throw std::runtime_error("class comp"); // todo
+  } else if (op == eOpcode::V_CMPX_F_I64) {
+    auto res = loadRegister(eOperandKind::createImm(0), types().i1());
+    storeRegister(sdst, res);
+    storeRegister(eOperandKind::EXEC(), res);
+  } else if (op > eOpcode::V_CMPX_F_I64 && op < eOpcode::V_CMPX_T_I64) {
+    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPX_F_I64;
+    compI(cmdOpsSI[opIndex], types().i64(), true);
+  } else if (op == eOpcode::V_CMPX_T_I64) {
+    auto res = loadRegister(eOperandKind::createImm(1), types().i1());
+    storeRegister(sdst, res);
+    storeRegister(eOperandKind::EXEC(), res);
+  } else if (op == eOpcode::V_CMPX_CLASS_F64) {
+    throw std::runtime_error("class comp"); // todo
+  }
+
+  // // unsigned integers
+  else if (op == eOpcode::V_CMP_F_U32) {
+    auto res = loadRegister(eOperandKind::createImm(0), types().i1());
+    storeRegister(sdst, res);
+  } else if (op > eOpcode::V_CMP_F_U32 && op < eOpcode::V_CMP_T_U32) {
+    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMP_F_U32;
+    compI(cmdOpsUI[opIndex], types().i32(), false);
+  } else if (op == eOpcode::V_CMP_T_U32) {
+    auto res = loadRegister(eOperandKind::createImm(1), types().i1());
+    storeRegister(sdst, res);
+  } else if (op == eOpcode::V_CMPX_F_U32) {
+    auto res = loadRegister(eOperandKind::createImm(0), types().i1());
+    storeRegister(sdst, res);
+    storeRegister(eOperandKind::EXEC(), res);
+  } else if (op > eOpcode::V_CMPX_F_U32 && op < eOpcode::V_CMPX_T_U32) {
+    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPX_F_U32;
+    compI(cmdOpsUI[opIndex], types().i32(), true);
+  } else if (op == eOpcode::V_CMPX_T_U32) {
+    auto res = loadRegister(eOperandKind::createImm(1), types().i1());
+    storeRegister(sdst, res);
+    storeRegister(eOperandKind::EXEC(), res);
+  } else if (op == eOpcode::V_CMP_F_U64) {
+    auto res = loadRegister(eOperandKind::createImm(0), types().i1());
+    storeRegister(sdst, res);
+  } else if (op > eOpcode::V_CMP_F_U64 && op < eOpcode::V_CMP_T_U64) {
+    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMP_F_U64;
+    compI(cmdOpsUI[opIndex], types().i64(), false);
+  } else if (op == eOpcode::V_CMP_F_U64) {
+    auto res = loadRegister(eOperandKind::createImm(1), types().i1());
+    storeRegister(sdst, res);
+  } else if (op == eOpcode::V_CMPX_F_U64) {
+    auto res = loadRegister(eOperandKind::createImm(0), types().i1());
+    storeRegister(sdst, res);
+    storeRegister(eOperandKind::EXEC(), res);
+  } else if (op > eOpcode::V_CMPX_F_U64 && op < eOpcode::V_CMPX_T_U64) {
+    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPX_F_U64;
+    compI(cmdOpsUI[opIndex], types().i64(), true);
+  } else if (op == eOpcode::V_CMPX_T_U64) {
+    auto res = loadRegister(eOperandKind::createImm(1), types().i1());
+    storeRegister(sdst, res);
+    storeRegister(eOperandKind::EXEC(), res);
+  } else {
+    throw std::runtime_error(std::format("missing inst {}", debug::getDebug(op)));
   }
 
   return size;
@@ -156,7 +324,6 @@ uint8_t Parser::handleVintrp(CodeBlock& cb, pc_t pc, uint32_t const* pCode) {
 
   if (src0.isLiteral()) {
     size = sizeof(uint64_t);
-    // src0 = createSrc(ctx.create<core::ConstantOp>(createDst(), ir::ConstantValue {.value_u64 = **pCode}, ir::OperandType::i32()));
   }
 
   return size;

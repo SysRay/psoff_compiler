@@ -17,7 +17,7 @@ static void printOperandKind(mlir::OpAsmPrinter& p, compiler::frontend::eOperand
   } else if (kind.isSGPR()) {
     p << "s" << "[" << kind.getSGPR() << "]";
   } else if (kind.isVGPR()) {
-    p << "s" << "[" << kind.getVGPR() << "]";
+    p << "v" << "[" << kind.getVGPR() << "]";
   } else {
     using namespace compiler::frontend;
     if (is64bit) {
@@ -110,24 +110,32 @@ mlir::ParseResult LoadOp::parse(mlir::OpAsmParser& parser, mlir::OperationState&
   using namespace compiler::frontend;
 
   std::string kindToken;
-  if (parser.parseKeywordOrString(&kindToken)) return mlir::failure();
-
-  uint32_t index;
-  if (parser.parseOptionalLSquare()) {
-    if (parser.parseInteger(index) || parser.parseOptionalRSquare()) return failure();
+  if (parser.parseKeywordOrString(&kindToken)) {
+    return mlir::failure();
   }
 
-  if (parser.parseColon()) return mlir::failure();
+  uint32_t index;
+  if (succeeded(parser.parseOptionalLSquare())) {
+    if (parser.parseInteger(index) || parser.parseRSquare()) {
+      return failure();
+    }
+  }
+
+  if (parser.parseColon()) {
+    return mlir::failure();
+  }
 
   mlir::Type valType;
-  if (parser.parseType(valType)) return mlir::failure();
+  if (parser.parseType(valType)) {
+    return mlir::failure();
+  }
 
   eOperandKind kind = parseOperandKind(kindToken, index);
   if (kind.raw() == eOperandKind::Unset().raw()) {
     return parser.emitError(parser.getCurrentLocation()) << "unknown operand literal: " << kindToken;
   }
 
-  auto idAttr = parser.getBuilder().getI32IntegerAttr(static_cast<uint32_t>(kind.raw()));
+  auto idAttr = parser.getBuilder().getIndexAttr(static_cast<uint32_t>(kind.raw()));
   result.addAttribute(getIdAttrName(result.name), idAttr);
   result.addTypes(valType);
 
@@ -149,29 +157,43 @@ mlir::ParseResult StoreOp::parse(mlir::OpAsmParser& parser, mlir::OperationState
   using namespace compiler::frontend;
 
   std::string kindToken;
-  if (parser.parseKeywordOrString(&kindToken)) return mlir::failure();
+  if (parser.parseKeywordOrString(&kindToken)) {
+    return mlir::failure();
+  }
 
   uint32_t index;
-  if (parser.parseOptionalLSquare()) {
-    if (parser.parseInteger(index) || parser.parseOptionalRSquare()) return failure();
+  if (succeeded(parser.parseOptionalLSquare())) {
+    if (!parser.parseInteger(index) || !parser.parseRSquare()) {
+      return failure();
+    }
   }
+
   eOperandKind kind = parseOperandKind(kindToken, index);
   if (kind.raw() == eOperandKind::Unset().raw()) {
     return parser.emitError(parser.getCurrentLocation()) << "unknown operand literal: " << kindToken;
   }
 
-  if (parser.parseEqual()) return mlir::failure();
+  if (parser.parseEqual()) {
+    return mlir::failure();
+  }
 
   mlir::OpAsmParser::UnresolvedOperand valOperand;
-  if (parser.parseOperand(valOperand)) return mlir::failure();
+  if (parser.parseOperand(valOperand)) {
+    return mlir::failure();
+  }
 
-  if (parser.parseColon()) return mlir::failure();
+  if (parser.parseColon()) {
+    return mlir::failure();
+  }
 
   mlir::Type valType;
-  if (parser.parseType(valType)) return mlir::failure();
-  if (parser.resolveOperand(valOperand, valType, result.operands)) return mlir::failure();
-
-  auto idAttr = parser.getBuilder().getI32IntegerAttr(static_cast<uint32_t>(kind.raw()));
+  if (parser.parseType(valType)) {
+    return mlir::failure();
+  }
+  if (parser.resolveOperand(valOperand, valType, result.operands)) {
+    return mlir::failure();
+  }
+  auto idAttr = parser.getBuilder().getIndexAttr(static_cast<uint32_t>(kind.raw()));
   result.addAttribute(getIdAttrName(result.name), idAttr);
 
   return mlir::success();

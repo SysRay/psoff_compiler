@@ -100,6 +100,7 @@ add_definitions(-fno-rtti)
 add_library(mlir_custom STATIC
   wrapper.cpp
   custom_printer.cpp
+  passes/promote_register.cpp
 )
 
 add_dependencies(mlir_custom psOffGpu-tablegen)

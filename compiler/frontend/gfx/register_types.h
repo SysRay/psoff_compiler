@@ -64,6 +64,8 @@ struct eOperandKind {
   constexpr explicit eOperandKind(eOperandKind_t b)
       : _v(__OperandTypeData {.bits = {.base = (eOperandKind_t)b, .kind = (eOperandKind_t)getKind(b), .b64 = is64bit(b)}}) {}
 
+  constexpr eOperandKind(): _v(__OperandTypeData {.bits = {.base = (eOperandKind_t)0, .kind = (eOperandKind_t)eKind::Register, .b64 = false}}) {}
+
   static constexpr eOperandKind createImm(uint8_t value) {
     assert(value <= 64);
     return eOperandKind((eOperandKind_t)((eOperandKind_t)eBase::ConstZero + value));
