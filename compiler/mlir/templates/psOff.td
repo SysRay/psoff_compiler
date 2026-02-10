@@ -16,6 +16,15 @@ def PSOFFDialect : Dialect {
   let hasConstantMaterializer = 1;
 }
 
+def RegisterSSAPass : Pass<"registerSSA", "mlir::func::FuncOp"> {
+  let summary = "Connect load and stores";
+  let description = [{
+   Rewrite non-SSA load and store patterns to SSA.
+  }];
+
+  let constructor = "mlir::createRegisterSSAPass()";
+}
+
 def PSOFF_IndirectBranch : Op<PSOFFDialect,"IndirectBranch"> {
   let summary = "Branch to a target using a variable";
   let description = [{

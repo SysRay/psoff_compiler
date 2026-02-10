@@ -6,7 +6,11 @@
 
 #include <unordered_map>
 
+#define GEN_PASS_DEF_REGISTERSSAPASS
+#include "psOff.td.pass.h.inc"
+
 namespace mlir::psoff {
+
 static inline bool is64BitType(mlir::Type ty) {
   return ty.getIntOrFloatBitWidth() == 64;
 }
@@ -62,22 +66,32 @@ mlir::Value Storage::get(compiler::frontend::eOperandKind kind, mlir::Type type)
   return {};
 }
 
-void PromoteRegisterPass::runOnOperation() {
-  auto const& funcOp = Pass::getOperation();
+struct RegisterSSAPass: public ::impl::RegisterSSAPassBase<RegisterSSAPass> {
+  compiler::util::BumpAllocator& _allocator;
 
-  std::pmr::unordered_map<Block*, Storage> values(&_allocator); // todo or use stack
+  RegisterSSAPass(compiler::util::BumpAllocator& allocator): _allocator(allocator) {}
 
-  auto curItem = values.emplace(funcOp->getBlock(), Storage {}).first;
+  void runOnOperation() final {
+    auto const& funcOp = Pass::getOperation();
 
-  funcOp->getBlock()->walk([&](Operation* opBase) {
-    if (auto op = dyn_cast<psoff::StoreOp>(opBase)) {
-      auto const kind = compiler::frontend::eOperandKind((compiler::frontend::eOperandKind_t)op.getId().getZExtValue());
-      curItem->second.set(kind, op.getVal());
-    } else if (auto op = dyn_cast<psoff::LoadOp>(opBase)) {
-      auto const kind  = compiler::frontend::eOperandKind((compiler::frontend::eOperandKind_t)op.getId().getZExtValue());
-      auto       value = curItem->second.get(kind, op.getType());
-      op.replaceAllUsesWith(value);
-    }
-  });
+    std::pmr::unordered_map<Block*, Storage> values(&_allocator); // todo or use stack
+
+    auto curItem = values.emplace(funcOp->getBlock(), Storage {}).first;
+
+    funcOp->getBlock()->walk([&](Operation* opBase) {
+      if (auto op = dyn_cast<psoff::StoreOp>(opBase)) {
+        auto const kind = compiler::frontend::eOperandKind((compiler::frontend::eOperandKind_t)op.getId().getZExtValue());
+        curItem->second.set(kind, op.getVal());
+      } else if (auto op = dyn_cast<psoff::LoadOp>(opBase)) {
+        auto const kind  = compiler::frontend::eOperandKind((compiler::frontend::eOperandKind_t)op.getId().getZExtValue());
+        auto       value = curItem->second.get(kind, op.getType());
+        op.replaceAllUsesWith(value);
+      }
+    });
+  }
+};
+
+std::unique_ptr<Pass> createRegisterSSAPass(compiler::util::BumpAllocator& allocator) {
+  return std::make_unique<RegisterSSAPass>(allocator);
 }
 } // namespace mlir::psoff

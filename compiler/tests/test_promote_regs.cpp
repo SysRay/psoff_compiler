@@ -26,9 +26,9 @@ TEST(PromoteRegs, Simple) {
 
   mlir::PassManager pm(ctx.getContext());
   pm.enableVerifier(false);
-  pm.addNestedPass<mlir::func::FuncOp>(std::make_unique<mlir::psoff::PromoteRegisterPass>(ctx.allocator()));
+  pm.addNestedPass<mlir::func::FuncOp>(mlir::psoff::createRegisterSSAPass(ctx.allocator()));
   pm.addPass(mlir::createRemoveDeadValuesPass());
-  //pm.addPass(mlir::createCSEPass());
+  // pm.addPass(mlir::createCSEPass());
   EXPECT_FALSE(failed(pm.run(inputModule.get())));
 
   inputModule->dump();

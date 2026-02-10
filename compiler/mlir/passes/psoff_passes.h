@@ -9,6 +9,7 @@ class BumpAllocator;
 }
 
 namespace mlir::psoff {
+
 /**
  * @brief Tries to fold value to constant
  *
@@ -17,12 +18,5 @@ namespace mlir::psoff {
  */
 mlir::Attribute evaluate(mlir::Value val);
 
-struct PromoteRegisterPass: public PassWrapper<PromoteRegisterPass, OperationPass<mlir::func::FuncOp>> {
-  PromoteRegisterPass(compiler::util::BumpAllocator& allocator): _allocator(allocator) {}
-
-  void runOnOperation() override;
-
-  private:
-  compiler::util::BumpAllocator& _allocator;
-};
+std::unique_ptr<Pass> createRegisterSSAPass(compiler::util::BumpAllocator& allocator);
 } // namespace mlir::psoff
