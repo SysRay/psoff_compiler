@@ -100,6 +100,7 @@ add_definitions(-fno-rtti)
 add_library(mlir_custom STATIC
   wrapper.cpp
   custom_printer.cpp
+  custom_ops.cpp
   passes/promote_register.cpp
 )
 

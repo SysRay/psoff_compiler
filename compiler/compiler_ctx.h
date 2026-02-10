@@ -3,6 +3,7 @@
 #include "frontend/shader_input.h"
 #include "frontend/shader_types.h"
 #include "operand_types.h"
+#include "util/bump_allocator.h"
 #include "util/flags.h"
 
 #include <array>
@@ -55,16 +56,19 @@ class CompilerCtx {
 
   auto& types() const { return _types; }
 
+  auto& allocator() { return _allocator; }
+
   private:
   protected:
   util::Flags<ShaderBuildFlags> _debugFlags = {};
 
-  std::array<HostMapping, 4> _hostMapping {};
-  frontend::ShaderInput      _shaderInput;
-  mlir::MLIRContext          _mlirCtx;
-  mlir::ModuleOp             _mlirModule;
+  compiler::util::BumpAllocator _allocator;
+  frontend::ShaderInput         _shaderInput;
+  mlir::MLIRContext             _mlirCtx;
+  mlir::ModuleOp                _mlirModule;
 
-  OperandTypeCache _types;
+  std::array<HostMapping, 4> _hostMapping {};
+  OperandTypeCache           _types;
 
   std::array<char, 32> _name = {"main"};
 };

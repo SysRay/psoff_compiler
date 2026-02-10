@@ -4,8 +4,8 @@
 #include <mlir/IR/PatternMatch.h>
 #include <mlir/Pass/Pass.h>
 
-namespace liverpool::lift {
-class LiftContext;
+namespace compiler::util {
+class BumpAllocator;
 }
 
 namespace mlir::psoff {
@@ -18,8 +18,11 @@ namespace mlir::psoff {
 mlir::Attribute evaluate(mlir::Value val);
 
 struct PromoteRegisterPass: public PassWrapper<PromoteRegisterPass, OperationPass<mlir::func::FuncOp>> {
-  PromoteRegisterPass() {}
+  PromoteRegisterPass(compiler::util::BumpAllocator& allocator): _allocator(allocator) {}
 
   void runOnOperation() override;
+
+  private:
+  compiler::util::BumpAllocator& _allocator;
 };
 } // namespace mlir::psoff

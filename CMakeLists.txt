@@ -19,5 +19,4 @@ add_subdirectory(recompiler)
 add_subdirectory(compiler)
 add_subdirectory(dump_reader)
 
-add_subdirectory(tests)
-add_subdirectory(benchmarks)
+#add_subdirectory(benchmarks)

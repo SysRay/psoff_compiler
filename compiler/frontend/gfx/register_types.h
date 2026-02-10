@@ -50,7 +50,6 @@ struct eOperandKind {
     union {
       struct {
         eOperandKind_t base : 10;
-        eOperandKind_t kind : 3;
         eOperandKind_t b64  : 1;
       } bits;
 
@@ -61,10 +60,9 @@ struct eOperandKind {
   // ---- construction -------------------------------------------------------
   static constexpr eOperandKind import(OperandKind_t b) { return eOperandKind(__OperandTypeData {.raw = b}); }
 
-  constexpr explicit eOperandKind(eOperandKind_t b)
-      : _v(__OperandTypeData {.bits = {.base = (eOperandKind_t)b, .kind = (eOperandKind_t)getKind(b), .b64 = is64bit(b)}}) {}
+  constexpr explicit eOperandKind(eOperandKind_t b): _v(__OperandTypeData {.bits = {.base = (eOperandKind_t)b, .b64 = is64bit(b)}}) {}
 
-  constexpr eOperandKind(): _v(__OperandTypeData {.bits = {.base = (eOperandKind_t)0, .kind = (eOperandKind_t)eKind::Register, .b64 = false}}) {}
+  constexpr eOperandKind(): _v(__OperandTypeData {.bits = {.base = (eOperandKind_t)0, .b64 = false}}) {}
 
   static constexpr eOperandKind createImm(uint8_t value) {
     assert(value <= 64);
@@ -75,17 +73,31 @@ struct eOperandKind {
 
   constexpr eOperandKind_t raw() const noexcept { return _v.raw; }
 
-  constexpr eKind kind() const noexcept { return (eKind)_v.bits.kind; }
+  constexpr eKind kind() {
+    if (_v.bits.base >= (eOperandKind_t)eBase::ConstZero && _v.bits.base < (eOperandKind_t)eBase::ConstFloat_0_5) return eKind::ConstantI;
+    if (_v.bits.base >= (eOperandKind_t)eBase::ConstFloat_0_5 && _v.bits.base <= (eOperandKind_t)eBase::ConstFloat_n4_0) return eKind::ConstantF;
+    return eKind::Register;
+  }
 
-  constexpr eBase base() const noexcept { return (eBase)_v.bits.base; }
+  constexpr eBase value() const noexcept { return (eBase)_v.bits.base; }
+
+  constexpr eBase base() const noexcept {
+    if (_v.bits.base < (eOperandKind_t)eBase::VccLo) return eBase::SGPR;
+    if (_v.bits.base >= (eOperandKind_t)eBase::VGPR) return eBase::VGPR;
+    return value();
+  }
 
   constexpr bool is64bit() const noexcept { return _v.bits.b64; }
 
   constexpr bool isLiteral() const noexcept { return (eBase)_v.bits.base == eBase::Literal; }
 
-  constexpr bool isConstF() const noexcept { return (eKind)_v.bits.kind == eKind::ConstantF; }
+  constexpr bool isConstF() const noexcept {
+    return (_v.bits.base >= (eOperandKind_t)eBase::ConstFloat_0_5 && _v.bits.base <= (eOperandKind_t)eBase::ConstFloat_n4_0);
+  }
 
-  constexpr bool isConstI() const noexcept { return (eKind)_v.bits.kind == eKind::ConstantI; }
+  constexpr bool isConstI() const noexcept {
+    return (_v.bits.base >= (eOperandKind_t)eBase::ConstZero && _v.bits.base < (eOperandKind_t)eBase::ConstFloat_0_5);
+  }
 
   constexpr bool isSGPR() const noexcept { return (eBase)_v.bits.base >= eBase::SGPR && (eBase)_v.bits.base < eBase::VccLo; }
 
@@ -127,12 +139,6 @@ struct eOperandKind {
   static constexpr eOperandKind Unset() { return eOperandKind((eOperandKind_t)eBase::CUSTOM_UNSET); }
 
   private:
-  static constexpr eKind getKind(eOperandKind_t b) {
-    if (b >= (eOperandKind_t)eBase::ConstZero && b < (eOperandKind_t)eBase::ConstFloat_0_5) return eKind::ConstantI;
-    if (b >= (eOperandKind_t)eBase::ConstFloat_0_5 && b <= (eOperandKind_t)eBase::ConstFloat_n4_0) return eKind::ConstantF;
-    return eKind::Register;
-  }
-
   static constexpr bool is64bit(eOperandKind_t b) { return b == (eOperandKind_t)eBase::ExecLo || b == (eOperandKind_t)eBase::VccLo; }
 
   __OperandTypeData _v;

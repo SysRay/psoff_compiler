@@ -519,6 +519,7 @@ uint8_t Parser::handleSopp(CodeBlock& cb, pc_t pc, uint32_t const* pCode) {
       auto target0 = getOrCreateBlock(sizeof(uint32_t) + pc, cb.mlirBlock->getParent());
       auto target1 = getOrCreateBlock((int64_t)(sizeof(uint32_t) + pc) + sizeof(uint32_t) * (int64_t)offset, cb.mlirBlock->getParent());
 
+      // todo use getThreadExec() or so
       auto predicate = loadRegister(eOperandKind::EXEC(), types().i1());
       _mlirBuilder.create<mlir::cf::CondBranchOp>(_defaultLocation, predicate, target0->mlirBlock, target1->mlirBlock);
     } break;
@@ -528,6 +529,7 @@ uint8_t Parser::handleSopp(CodeBlock& cb, pc_t pc, uint32_t const* pCode) {
       auto target0 = getOrCreateBlock(sizeof(uint32_t) + pc, cb.mlirBlock->getParent());
       auto target1 = getOrCreateBlock((int64_t)(sizeof(uint32_t) + pc) + sizeof(uint32_t) * (int64_t)offset, cb.mlirBlock->getParent());
 
+      // todo use getThreadExec() or so
       auto predicate = loadRegister(eOperandKind::EXEC(), types().i1());
       _mlirBuilder.create<mlir::cf::CondBranchOp>(_defaultLocation, predicate, target1->mlirBlock, target0->mlirBlock);
     } break;

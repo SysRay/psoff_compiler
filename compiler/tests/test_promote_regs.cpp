@@ -6,24 +6,19 @@
 #include <mlir/Dialect/Func/IR/FuncOps.h>
 #include <mlir/Parser/Parser.h>
 #include <mlir/Pass/PassManager.h>
+#include <mlir/Transforms/Passes.h>
 
 TEST(PromoteRegs, Simple) {
   compiler::CompilerCtx ctx {};
 
   static constexpr std::string_view sInputModule = R"(
-  func.func @main() {
-    %cst2 = arith.constant 1 : i64
-    psoff.StoreOp EXEC = %cst2 : i64
+  func.func @main(%arg0: f32) -> i1 {
+    psoff.store s[4] = %arg0 : f32
     %cst = arith.constant 0.000000e+00 : f32
-    %cst1 = arith.constant 1.000000e+00 : f32
-    %3 = arith.cmpf one, %cst, %cst1 : f32
-    psoff.StoreOp VCC_LO = %3 : i1
-    %4 = psoff.LoadOp EXEC : i64
-    %5 = psoff.LoadOp VCC : i64
-    %6 = arith.andi %4, %5 : i64
-    psoff.StoreOp VCC = %4 : i64
-    psoff.StoreOp EXEC = %6 : i64
-}
+    %2 = psoff.load s[4] : f32
+    %3 = arith.cmpf one, %cst, %2 : f32
+    return %3 : i1
+  }
 )";
 
   auto inputModule = mlir::parseSourceString<mlir::ModuleOp>(sInputModule, ctx.getContext());
@@ -31,8 +26,9 @@ TEST(PromoteRegs, Simple) {
 
   mlir::PassManager pm(ctx.getContext());
   pm.enableVerifier(false);
-  pm.addNestedPass<mlir::func::FuncOp>(std::make_unique<mlir::psoff::PromoteRegisterPass>());
-
+  pm.addNestedPass<mlir::func::FuncOp>(std::make_unique<mlir::psoff::PromoteRegisterPass>(ctx.allocator()));
+  pm.addPass(mlir::createRemoveDeadValuesPass());
+  //pm.addPass(mlir::createCSEPass());
   EXPECT_FALSE(failed(pm.run(inputModule.get())));
 
   inputModule->dump();

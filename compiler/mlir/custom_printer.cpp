@@ -1,9 +1,9 @@
-#include "../frontend/gfx/register_types.h"
 #include "custom.h"
+#include "frontend/gfx/register_types.h"
 
 namespace mlir::psoff {
 
-static bool is64BitType(mlir::Type ty) {
+static inline bool is64BitType(mlir::Type ty) {
   return ty.getIntOrFloatBitWidth() == 64;
 }
 
@@ -21,15 +21,15 @@ static void printOperandKind(mlir::OpAsmPrinter& p, compiler::frontend::eOperand
   } else {
     using namespace compiler::frontend;
     if (is64bit) {
-      switch (kind.base()) {
+      switch (kind.value()) {
         case eOperandKind::eBase::VccLo: p << "VCC"; break;
         case eOperandKind::eBase::CUSTOM_UNSET: p << "NOT_SET"; break;
         case eOperandKind::eBase::ExecLo: p << "EXEC"; break;
         case eOperandKind::eBase::Literal: p << "LITERAL"; break;
-        default: p << "UNK" << (uint16_t)kind.base(); break;
+        default: p << "UNK" << (uint16_t)kind.value(); break;
       }
     } else {
-      switch (kind.base()) {
+      switch (kind.value()) {
         case eOperandKind::eBase::VccLo: p << "VCC_LO"; break;
         case eOperandKind::eBase::VccHi: p << "VCC_HI"; break;
         case eOperandKind::eBase::M0: p << "M0"; break;
@@ -44,7 +44,7 @@ static void printOperandKind(mlir::OpAsmPrinter& p, compiler::frontend::eOperand
         case eOperandKind::eBase::Scc: p << "SCC"; break;
         case eOperandKind::eBase::LdsDirect: p << "DIRECT"; break;
         case eOperandKind::eBase::Literal: p << "LITERAL"; break;
-        default: p << "UNK" << (uint16_t)kind.base(); break;
+        default: p << "UNK" << (uint16_t)kind.value(); break;
       }
     }
   }
@@ -163,7 +163,7 @@ mlir::ParseResult StoreOp::parse(mlir::OpAsmParser& parser, mlir::OperationState
 
   uint32_t index;
   if (succeeded(parser.parseOptionalLSquare())) {
-    if (!parser.parseInteger(index) || !parser.parseRSquare()) {
+    if (parser.parseInteger(index) || parser.parseRSquare()) {
       return failure();
     }
   }

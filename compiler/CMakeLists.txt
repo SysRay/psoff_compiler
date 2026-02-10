@@ -45,6 +45,12 @@ find_package(MLIR REQUIRED CONFIG)
 add_definitions(${LLVM_DEFINITIONS})
 add_compile_definitions(_DEPRECATE_NONFLOATING_COMPLEX _SILENCE_NONFLOATING_COMPLEX_DEPRECATION_WARNING)
 
+include_directories(
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/alpaca/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/fixed-containers/include
+)
+
 add_subdirectory(mlir)
 
 add_library(psOff_compiler STATIC
@@ -69,13 +75,6 @@ if(ENABLE_DEFAULT_LOGGING)
   target_sources(psOff_compiler PRIVATE logging_default.cpp)
 endif()
 
-target_include_directories(psOff_compiler
-  PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/alpaca/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/fixed-containers/include
-)
-
 target_link_directories(psOff_compiler
   PUBLIC
   ${llvm_install_SOURCE_DIR}/lib
@@ -84,7 +83,6 @@ target_link_directories(psOff_compiler
 target_link_libraries(
   psOff_compiler PUBLIC
   mlir_custom
-
   MLIRIR
   MLIRSupport
   MLIRArithDialect
@@ -156,3 +154,5 @@ target_link_libraries(
   MLIRSPIRVSerialization
   LLVMSupport
 )
+
+add_subdirectory(tests)

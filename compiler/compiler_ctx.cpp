@@ -3,7 +3,6 @@
 #include "alpaca/alpaca.h"
 #include "frontend/parser.h"
 #include "logging.h"
-#include "util/bump_allocator.h"
 
 #include <cstring>
 #include <filesystem>
@@ -65,9 +64,7 @@ bool CompilerCtx::processBinary() {
   auto const      size    = _hostMapping[0].size_dw;
   if (pCode == nullptr) return false;
 
-  compiler::util::BumpAllocator allocator;
-
-  frontend::Parser parser(*this, &allocator);
+  frontend::Parser parser(*this, &_allocator);
 
   mlir::OpBuilder mlirBuilder(getContext());
 

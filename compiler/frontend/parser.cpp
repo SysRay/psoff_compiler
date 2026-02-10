@@ -294,11 +294,11 @@ mlir::Value Parser::loadRegister(eOperandKind src, mlir::Type type) {
   } else if (src.isConstF()) {
     return _mlirBuilder.create<mlir::arith::ConstantFloatOp>(_defaultLocation, (mlir::FloatType)type, llvm::APFloat(src.getConstF()));
   } else {
-    return _mlirBuilder.create<mlir::psoff::LoadOp>(_defaultLocation, type, _mlirBuilder.getIndexAttr((uint32_t)src.base()));
+    return _mlirBuilder.create<mlir::psoff::LoadOp>(_defaultLocation, type, _mlirBuilder.getIndexAttr((uint32_t)src.value()));
   }
 }
 
 void Parser::storeRegister(eOperandKind dst, mlir::Value value) {
-  _mlirBuilder.create<mlir::psoff::StoreOp>(_defaultLocation, _mlirBuilder.getIndexAttr((uint32_t)dst.base()), value);
+  _mlirBuilder.create<mlir::psoff::StoreOp>(_defaultLocation, _mlirBuilder.getIndexAttr((uint32_t)dst.value()), value);
 }
 } // namespace compiler::frontend
