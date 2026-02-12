@@ -33,3 +33,37 @@ TEST(PromoteRegs, Simple) {
 
   inputModule->dump();
 }
+
+TEST(PromoteRegs, SimpleIf) {
+  compiler::CompilerCtx ctx {};
+
+  static constexpr std::string_view sInputModule = R"(
+func.func @simpleIf(%arg0: f32, %arg1: i1) -> i1 {
+  psoff.store s[0] = %arg1 : i1
+  %1 = psoff.load s[0] : i1
+  %cst = arith.constant 0.000000e+00 : f32
+  psoff.store s[4] = %cst : f32
+
+  scf.if %1 {
+    psoff.store s[4] = %arg0 : f32
+  } else {
+  }
+
+  %2 = psoff.load s[4] : f32
+  %3 = arith.cmpf one, %cst, %2 : f32
+  return %3 : i1
+}
+)";
+
+  auto inputModule = mlir::parseSourceString<mlir::ModuleOp>(sInputModule, ctx.getContext());
+  ASSERT_TRUE(inputModule);
+
+  mlir::PassManager pm(ctx.getContext());
+  pm.enableVerifier(false);
+  pm.addNestedPass<mlir::func::FuncOp>(mlir::psoff::createRegisterSSAPass(ctx.allocator()));
+  pm.addPass(mlir::createRemoveDeadValuesPass());
+  // pm.addPass(mlir::createCSEPass());
+  EXPECT_FALSE(failed(pm.run(inputModule.get())));
+
+  inputModule->dump();
+}

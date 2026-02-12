@@ -9,6 +9,9 @@
 #define GEN_PASS_DEF_REGISTERSSAPASS
 #include "psOff.td.pass.h.inc"
 
+#include <mlir/Dialect/Arith/IR/Arith.h>
+#include <mlir/Dialect/SCF/IR/SCF.h>
+
 namespace mlir::psoff {
 
 static inline bool is64BitType(mlir::Type ty) {
@@ -98,19 +101,21 @@ struct RegisterSSAPass: public ::impl::RegisterSSAPassBase<RegisterSSAPass> {
   RegisterSSAPass(compiler::util::BumpAllocator& allocator): _allocator(allocator) {}
 
   void runOnOperation() final {
-    auto const& funcOp = Pass::getOperation();
+    auto const funcOp = Pass::getOperation();
 
     PatternRewriter rewriter(&getContext());
 
     std::pmr::unordered_map<Block*, Storage> values(&_allocator); // todo or use stack
-
-    auto curItem = values.emplace(funcOp->getBlock(), Storage {}).first;
-
     using namespace compiler::frontend;
 
-    funcOp->walk([&](Block* block) {
-      for (Operation& opBase: llvm::make_early_inc_range(*block)) {
-        if (auto op = dyn_cast<psoff::StoreOp>(opBase)) {
+    // funcOp->walk([&](Block* block)
+    {
+      auto& block   = funcOp->getRegions().front().getBlocks().front();
+      auto  curItem = values.emplace(&block, Storage {}).first;
+      for (Operation& opBase: llvm::make_early_inc_range(block)) {
+        if (auto op = dyn_cast<scf::IfOp>(opBase)) {
+
+        } else if (auto op = dyn_cast<psoff::StoreOp>(opBase)) {
           auto const kind = eOperandKind((eOperandKind_t)op.getId().getZExtValue());
           curItem->second.set(op.getLoc(), kind, op.getVal());
         } else if (auto op = dyn_cast<psoff::LoadOp>(opBase)) {
@@ -119,7 +124,7 @@ struct RegisterSSAPass: public ::impl::RegisterSSAPassBase<RegisterSSAPass> {
 
           if (!item.value) {
             signalPassFailure();
-            return WalkResult::interrupt();
+            return;
           }
 
           auto const targetType = op.getType();
@@ -133,7 +138,7 @@ struct RegisterSSAPass: public ::impl::RegisterSSAPassBase<RegisterSSAPass> {
               auto itemL = curItem->second.get(op.getLoc(), eOperandKind((eOperandKind_t)kind.value() + 1));
               if (!itemL.value) {
                 signalPassFailure();
-                return WalkResult::interrupt();
+                return;
               }
 
               rewriter.setInsertionPoint(op);
@@ -149,7 +154,8 @@ struct RegisterSSAPass: public ::impl::RegisterSSAPassBase<RegisterSSAPass> {
                 curItem->second.set(op.getLoc(), eOperandKind((eOperandKind_t)kind.value() + 1), newOp.getHi());
               }
             } else {
-              // bitcast
+              rewriter.setInsertionPoint(op);
+              auto newOp = rewriter.replaceOpWithNewOp<mlir::arith::BitcastOp>(op, targetType, item.value);
             }
           }
 
@@ -157,8 +163,8 @@ struct RegisterSSAPass: public ::impl::RegisterSSAPassBase<RegisterSSAPass> {
             op.replaceAllUsesWith(item.value);
         }
       }
-      return WalkResult::advance();
-    });
+      // return WalkResult::advance();
+    }
   }
 };
 
