@@ -75,8 +75,6 @@ def PSOFF_Create64bOp : Op<PSOFFDialect, "create64b", [Pure]> {
     I64:$result
   );
 
-  let assemblyFormat = "$lo `,` $hi attr-dict";
-
   let hasFolder = 1;
   let hasCanonicalizer = 1;
 }
@@ -95,8 +93,6 @@ def PSOFF_Split64bOp : Op<PSOFFDialect, "split64b", [Pure]> {
     I32:$lo,
     I32:$hi
   );
-
-  let assemblyFormat = "$input attr-dict";
 
   let hasFolder = 1;
   let hasCanonicalizer = 1;

@@ -101,7 +101,7 @@ add_library(mlir_custom STATIC
   wrapper.cpp
   custom_printer.cpp
   custom_ops.cpp
-  passes/promote_register.cpp
+  passes/register_ssa.cpp
 )
 
 add_dependencies(mlir_custom psOffGpu-tablegen)
