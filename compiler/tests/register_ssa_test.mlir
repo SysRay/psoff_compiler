@@ -109,3 +109,28 @@ func.func @simpleIf(%arg0: f32, %arg1: i1) -> i1 {
   %5 = arith.cmpf one, %3, %4 : f32
   return %5 : i1
 }
+
+func.func @simpleIfDiffTypes(%arg0: i64, %arg1: i1) -> i64 {
+  %cst = arith.constant 0 : i32
+  %cst1 = arith.constant 1 : i32
+
+  psoff.store s[4] = %cst : i32
+  psoff.store s[5] = %cst : i32
+  psoff.store v[2] = %cst1 : i32
+  psoff.store v[3] = %cst1 : i32
+
+  psoff.store s[0] = %arg1 : i1
+  %1 = psoff.load s[0] : i1
+
+  scf.if %1 {
+    psoff.store s[4] = %arg0 : i64
+  } else {
+    %2 = psoff.load s[5] : i32
+    psoff.store v[2] = %2 : i32
+  }
+
+  %3 = psoff.load s[4] : i64
+  %4 = psoff.load v[2] : i64
+  %res = arith.addi %3, %4 : i64
+  return %res : i64
+}

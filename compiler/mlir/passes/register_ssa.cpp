@@ -69,10 +69,10 @@ StorageItem Storage::get(compiler::frontend::eOperandKind kind) {
 struct ConflictItems {
   static constexpr uint32_t totalSize = compiler::frontend::eOperandKind::size();
 
-  std::array<StorageItem*, totalSize> items;
-  std::array<mlir::Type, totalSize>   results;
-  std::array<mlir::Value, totalSize>  resultsThen;
-  std::array<mlir::Value, totalSize>  resultsElse;
+  std::array<compiler::frontend::eOperandKind_t, totalSize> items;
+  std::array<mlir::Type, totalSize>                         results;
+  std::array<mlir::Value, totalSize>                        resultsThen;
+  std::array<mlir::Value, totalSize>                        resultsElse;
 
   uint32_t numItems = 0;
 };
@@ -82,6 +82,35 @@ struct RegisterSSAPass: public ::impl::RegisterSSAPassBase<RegisterSSAPass> {
   ConflictItems                  _conflict;
 
   RegisterSSAPass(compiler::util::BumpAllocator& allocator): _allocator(allocator) {}
+
+  mlir::Value getValue(Storage& storage, PatternRewriter& rewriter, uint32_t index, mlir::Type targetType, mlir::Operation* op) {
+    auto const& item = storage.regs[index];
+    if (item.value.getType() == targetType) {
+      return item.value;
+    }
+
+    auto const targetWidth = targetType.getIntOrFloatBitWidth();
+    auto const valueWidth  = item.value.getType().getIntOrFloatBitWidth();
+
+    if (targetWidth > valueWidth) {
+      auto itemL = storage.regs[1 + index];
+      assert(itemL.value);
+
+      rewriter.setInsertionPoint(op);
+      auto newOp = rewriter.create<mlir::psoff::Create64bOp>(op->getLoc(), targetType, itemL.value, item.value);
+
+      return newOp.getResult();
+    } else if (targetWidth < valueWidth) {
+      rewriter.setInsertionPoint(op);
+      auto newOp = rewriter.create<mlir::psoff::Split64bOp>(op->getLoc(), targetType, targetType, item.value);
+
+      if (item.index == 0) return newOp.getLo();
+      return newOp.getHi();
+    }
+
+    rewriter.setInsertionPoint(op);
+    return rewriter.create<mlir::arith::BitcastOp>(op->getLoc(), targetType, item.value).getResult();
+  }
 
   void visitRegion(mlir::Region& region, Storage& storage, PatternRewriter& rewriter) {
     using namespace compiler::frontend;
@@ -99,13 +128,22 @@ struct RegisterSSAPass: public ::impl::RegisterSSAPassBase<RegisterSSAPass> {
             auto&       lhs = storage.regs[n];
             auto const& rhs = storageThen.regs[n];
             if (lhs != rhs) {
+              // Get type
+              auto resultType =
+                  lhs.value.getType().getIntOrFloatBitWidth() >= rhs.value.getType().getIntOrFloatBitWidth() ? lhs.value.getType() : rhs.value.getType();
+
+              auto thenValue = getValue(storageThen, rewriter, n, resultType, op.getThenRegion().back().getTerminator());
+              auto elseValue = getValue(storage, rewriter, n, resultType, op.getElseRegion().back().getTerminator());
+
               auto const index             = conflicts.numItems;
-              conflicts.results[index]     = lhs.value.getType();
-              conflicts.resultsElse[index] = lhs.value;
-              conflicts.resultsThen[index] = rhs.value;
-              conflicts.items[index]       = &lhs;
+              conflicts.results[index]     = resultType;
+              conflicts.resultsElse[index] = elseValue;
+              conflicts.resultsThen[index] = thenValue;
+              conflicts.items[index]       = (eOperandKind_t)n;
 
               ++conflicts.numItems;
+
+              if (is64BitType(resultType)) ++n;
             }
           }
 
@@ -125,7 +163,7 @@ struct RegisterSSAPass: public ::impl::RegisterSSAPassBase<RegisterSSAPass> {
             rewriter.eraseOp(op);
 
             for (uint16_t n = 0; n < conflicts.numItems; ++n) {
-              *conflicts.items[n] = {newOp.getResult(n), 0};
+              storage.set(eOperandKind(conflicts.items[n]), newOp.getResult(n));
             }
           }
         } else if (auto op = dyn_cast<psoff::StoreOp>(opBase)) {
