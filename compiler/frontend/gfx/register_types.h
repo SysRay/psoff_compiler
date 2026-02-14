@@ -6,6 +6,7 @@
 #pragma once
 
 #include "../types.h"
+#include "frontend/shader_types.h"
 
 #include <assert.h>
 #include <utility>
@@ -68,6 +69,8 @@ struct eOperandKind {
     assert(value <= 64);
     return eOperandKind((eOperandKind_t)((eOperandKind_t)eBase::ConstZero + value));
   }
+
+  static constexpr size_t size() { return (eOperandKind_t)eOperandKind::eBase::VGPR + SPEC_TOTAL_VGPR; }
 
   // ---- queries ------------------------------------------------------------
 
