@@ -9,12 +9,14 @@
 
 // mlir
 #include "mlir/custom.h"
+#include "mlir/passes/psoff_passes.h"
 
 #include <mlir/Conversion/Passes.h>
 #include <mlir/Dialect/Arith/IR/Arith.h>
 #include <mlir/Dialect/ControlFlow/IR/ControlFlowOps.h>
 #include <mlir/Dialect/Func/IR/FuncOps.h>
 #include <mlir/Dialect/SCF/IR/SCF.h>
+#include <mlir/Dialect/SPIRV/IR/SPIRVDialect.h>
 #include <mlir/Pass/PassManager.h>
 #include <mlir/Transforms/Passes.h>
 
@@ -29,7 +31,8 @@ OperandTypeCache::OperandTypeCache(mlir::MLIRContext* ctx) {
 CompilerCtx::CompilerCtx(util::Flags<ShaderBuildFlags> const& flags): _debugFlags(flags), _mlirCtx(mlir::MLIRContext::Threading::DISABLED), _types(&_mlirCtx) {
   _mlirCtx.allowUnregisteredDialects();
 
-  _mlirCtx.loadDialect<mlir::func::FuncDialect, mlir::arith::ArithDialect, mlir::scf::SCFDialect, mlir::cf::ControlFlowDialect, mlir::psoff::PSOFFDialect>();
+  _mlirCtx.loadDialect<mlir::func::FuncDialect, mlir::arith::ArithDialect, mlir::scf::SCFDialect, mlir::cf::ControlFlowDialect, mlir::spirv::SPIRVDialect,
+                       mlir::psoff::PSOFFDialect>();
 
   auto location = mlir::UnknownLoc::get(&_mlirCtx);
   _mlirModule   = mlir::ModuleOp::create(location);
@@ -84,6 +87,7 @@ bool CompilerCtx::processBinary() {
   mlir::PassManager pm(&_mlirCtx);
   pm.enableVerifier(false);
   pm.addNestedPass<mlir::func::FuncOp>(mlir::createLiftControlFlowToSCFPass());
+  pm.addNestedPass<mlir::func::FuncOp>(mlir::psoff::createRegisterSSAPass(allocator()));
 
   if (failed(pm.run(funcOp))) {
     printf("Failed to lower psoff\n");

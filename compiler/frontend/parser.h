@@ -1,4 +1,5 @@
 #pragma once
+#include "../util/flags.h"
 #include "gfx/register_types.h"
 #include "operand_types.h"
 #include "types.h"
@@ -35,6 +36,35 @@ struct CodeBlock {
   CodeBlock(pc_t start, std::pmr::memory_resource* resource): pc_start(start), pc_end(start + std::numeric_limits<uint32_t>::max()) {}
 };
 
+enum OpFlags : uint8_t {
+  eNegate   = (1 << 0), ///< SET MSB
+  eAbsolute = (1 << 1),
+  eNot      = (1 << 2), ///< Invert
+  eClamp    = (1 << 3),
+};
+
+using OperandType_t = mlir::Type;
+using IRResult      = mlir::Value;
+
+struct OpSrc {
+  PACK(struct {
+    eOperandKind         kind;
+    util::Flags<OpFlags> flags;
+  });
+
+  constexpr explicit OpSrc(eOperandKind kind, util::Flags<OpFlags> flags = {}): kind(kind), flags(flags) {}
+};
+
+struct OpDst {
+  PACK(struct {
+    eOperandKind         kind;
+    util::Flags<OpFlags> flags;
+    uint8_t              omod = 0;
+  });
+
+  constexpr explicit OpDst(eOperandKind kind, util::Flags<OpFlags> flags = {}, uint8_t omod = 0): kind(kind), flags(flags), omod(omod) {}
+};
+
 class Parser {
   uint8_t handleSop1(CodeBlock& cb, pc_t pc, uint32_t const* pCode);
   uint8_t handleSop2(CodeBlock& cb, pc_t pc, uint32_t const* pCode);
@@ -53,10 +83,10 @@ class Parser {
   uint8_t handleMimg(CodeBlock& cb, pc_t pc, uint32_t const* pCode);
   uint8_t handleDs(CodeBlock& cb, pc_t pc, uint32_t const* pCode);
 
-  mlir::Value loadRegister(eOperandKind op, mlir::Type type);
-  void        storeRegister(eOperandKind dst, mlir::Value value);
-
-  OperandTypeCache const& types() const;
+  template <typename Op, typename... Args>
+  inline auto parse(Args&&... args) {
+    return Op::create(this, std::forward<Args>(args)...);
+  }
 
   public:
   Parser(CompilerCtx& builder, std::pmr::memory_resource* resource);
@@ -66,6 +96,15 @@ class Parser {
   void process();
 
   CodeBlock* getOrCreateBlock(pc_t pc, mlir::Region* region);
+
+  OperandTypeCache const& types() const;
+  mlir::Value             loadRegister(OpSrc op, mlir::Type type);
+  void                    storeRegister(OpDst dst, mlir::Value value);
+
+  template <typename Op, typename... Args>
+  inline auto create(Args&&... args) {
+    return _mlirBuilder.create<Op>(_defaultLocation, std::forward<Args>(args)...);
+  }
 
   private:
   std::pmr::vector<std::pair<pc_t, CodeBlock*>> _blocks;

@@ -53,19 +53,6 @@ StorageItem Storage::get(compiler::frontend::eOperandKind kind) {
   return regs[(eOperandKind_t)kind.value()];
 }
 
-// static mlir::Value getB32(std::pair<StorageKey_t, Storage> const& value) {
-//   auto const width = value.second.value.getType().getIntOrFloatBitWidth();
-//   if (width == 32)
-//     return value.second.value;
-//   else if (width < 32)
-//     return _mlirData.create<mlir::arith::ExtUIOp>(_types._i32, value.second.value).getResult();
-
-//   auto splitValue = _mlirData.create<mlir::psoff::Split64bOp>(_types._i32, _types._i32, getB64(value));
-
-//   if (value.first.second == 0) return splitValue.getLo();
-//   return splitValue.getHi();
-// };
-
 struct ConflictItems {
   static constexpr uint32_t totalSize = compiler::frontend::eOperandKind::size();
 
@@ -85,6 +72,14 @@ struct RegisterSSAPass: public ::impl::RegisterSSAPassBase<RegisterSSAPass> {
 
   mlir::Value getValue(Storage& storage, PatternRewriter& rewriter, uint32_t index, mlir::Type targetType, mlir::Operation* op) {
     auto const& item = storage.regs[index];
+    if (!item.value) {
+      rewriter.setInsertionPoint(op);
+      if (targetType.isFloat()) {
+        return rewriter.create<mlir::arith::ConstantFloatOp>(op->getLoc(), (mlir::FloatType)targetType, llvm::APFloat(0.f));
+      } else {
+        return rewriter.create<mlir::arith::ConstantIntOp>(op->getLoc(), targetType, 0);
+      }
+    }
     if (item.value.getType() == targetType) {
       return item.value;
     }
@@ -94,9 +89,11 @@ struct RegisterSSAPass: public ::impl::RegisterSSAPassBase<RegisterSSAPass> {
 
     if (targetWidth > valueWidth) {
       auto itemL = storage.regs[1 + index];
-      assert(itemL.value);
-
       rewriter.setInsertionPoint(op);
+      if (!itemL.value) {
+        itemL = {rewriter.create<mlir::arith::ConstantIntOp>(op->getLoc(), targetType, 0), 0};
+      }
+
       auto newOp = rewriter.create<mlir::psoff::Create64bOp>(op->getLoc(), targetType, itemL.value, item.value);
 
       return newOp.getResult();
@@ -173,13 +170,19 @@ struct RegisterSSAPass: public ::impl::RegisterSSAPassBase<RegisterSSAPass> {
           auto const kind = eOperandKind((eOperandKind_t)op.getId().getZExtValue());
           auto       item = storage.get(kind);
 
+          auto const targetType = op.getType();
           if (!item.value) {
-            signalPassFailure();
+            rewriter.setInsertionPoint(op);
+            if (targetType.isFloat()) {
+              rewriter.replaceOpWithNewOp<mlir::arith::ConstantFloatOp>(op, (mlir::FloatType)targetType, llvm::APFloat(0.f));
+            } else {
+              rewriter.replaceOpWithNewOp<mlir::arith::ConstantIntOp>(op, targetType, 0);
+            }
+            // signalPassFailure();
             return;
           }
 
-          auto const targetType = op.getType();
-          auto const valueType  = item.value.getType();
+          auto const valueType = item.value.getType();
           if (targetType != valueType) { // Handle different type width
             auto const targetWidth = targetType.getIntOrFloatBitWidth();
             auto const valueWidth  = valueType.getIntOrFloatBitWidth();

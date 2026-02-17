@@ -38,10 +38,144 @@ uint8_t Parser::handleVop1(CodeBlock& cb, pc_t pc, uint32_t const* pCode, bool e
 
     if (src0.isLiteral()) {
       size = sizeof(uint64_t);
-      // src0 = createSrc(ctx.create<core::ConstantOp>(createDst(), ir::ConstantValue {.value_u64 = **pCode}, ir::OperandType::i32()));
     }
   }
 
+  switch (op) {
+    case eOpcode::V_NOP: {
+    } break;
+    case eOpcode::V_MOV_B32: {
+    } break;
+    case eOpcode::V_READFIRSTLANE_B32: {
+    } break;
+    case eOpcode::V_CVT_I32_F64: {
+    } break;
+    case eOpcode::V_CVT_F64_I32: {
+    } break;
+    case eOpcode::V_CVT_F32_I32: {
+    } break;
+    case eOpcode::V_CVT_F32_U32: {
+    } break;
+    case eOpcode::V_CVT_U32_F32: {
+    } break;
+    case eOpcode::V_CVT_I32_F32: {
+    } break;
+    case eOpcode::V_MOV_FED_B32: {
+    } break;
+    case eOpcode::V_CVT_F16_F32: {
+    } break;
+    case eOpcode::V_CVT_F32_F16: {
+    } break;
+    case eOpcode::V_CVT_RPI_I32_F32: {
+    } break;
+    case eOpcode::V_CVT_FLR_I32_F32: {
+    } break;
+    case eOpcode::V_CVT_OFF_F32_I4: {
+    } break;
+    case eOpcode::V_CVT_F32_F64: {
+    } break;
+    case eOpcode::V_CVT_F64_F32: {
+    } break;
+    case eOpcode::V_CVT_F32_UBYTE0: {
+    } break;
+    case eOpcode::V_CVT_F32_UBYTE1: {
+    } break;
+    case eOpcode::V_CVT_F32_UBYTE2: {
+    } break;
+    case eOpcode::V_CVT_F32_UBYTE3: {
+    } break;
+    case eOpcode::V_CVT_U32_F64: {
+    } break;
+    case eOpcode::V_CVT_F64_U32: {
+    } break;
+    case eOpcode::V_TRUNC_F64: {
+    } break;
+    case eOpcode::V_CEIL_F64: {
+    } break;
+    case eOpcode::V_RNDNE_F64: {
+    } break;
+    case eOpcode::V_FLOOR_F64: {
+    } break;
+    case eOpcode::V_FRACT_F32: {
+    } break;
+    case eOpcode::V_TRUNC_F32: {
+    } break;
+    case eOpcode::V_CEIL_F32: {
+    } break;
+    case eOpcode::V_RNDNE_F32: {
+    } break;
+    case eOpcode::V_FLOOR_F32: {
+    } break;
+    case eOpcode::V_EXP_F32: {
+    } break;
+    case eOpcode::V_LOG_CLAMP_F32: {
+    } break;
+    case eOpcode::V_LOG_F32: {
+    } break;
+    case eOpcode::V_RCP_CLAMP_F32: {
+    } break;
+    case eOpcode::V_RCP_LEGACY_F32: {
+    } break;
+    case eOpcode::V_RCP_F32: {
+    } break;
+    case eOpcode::V_RCP_IFLAG_F32: {
+    } break;
+    case eOpcode::V_RSQ_CLAMP_F32: {
+    } break;
+    case eOpcode::V_RSQ_LEGACY_F32: {
+    } break;
+    case eOpcode::V_RSQ_F32: {
+    } break;
+    case eOpcode::V_RCP_F64: {
+    } break;
+    case eOpcode::V_RCP_CLAMP_F64: {
+    } break;
+    case eOpcode::V_RSQ_F64: {
+    } break;
+    case eOpcode::V_RSQ_CLAMP_F64: {
+    } break;
+    case eOpcode::V_SQRT_F32: {
+    } break;
+    case eOpcode::V_SQRT_F64: {
+    } break;
+    case eOpcode::V_SIN_F32: {
+    } break;
+    case eOpcode::V_COS_F32: {
+    } break;
+    case eOpcode::V_NOT_B32: {
+    } break;
+    case eOpcode::V_BFREV_B32: {
+    } break;
+    case eOpcode::V_FFBH_U32: {
+    } break;
+    case eOpcode::V_FFBL_B32: {
+    } break;
+    case eOpcode::V_FFBH_I32: {
+    } break;
+    case eOpcode::V_FREXP_EXP_I32_F64: {
+    } break;
+    case eOpcode::V_FREXP_MANT_F64: {
+    } break;
+    case eOpcode::V_FRACT_F64: {
+    } break;
+    case eOpcode::V_FREXP_EXP_I32_F32: {
+    } break;
+    case eOpcode::V_FREXP_MANT_F32: {
+    } break;
+    case eOpcode::V_CLREXCP: {
+    } break;
+    case eOpcode::V_MOVRELD_B32: {
+    } break;
+    case eOpcode::V_MOVRELS_B32: {
+    } break;
+    case eOpcode::V_MOVRELSD_B32: {
+    } break;
+    case eOpcode::V_LOG_LEGACY_F32: {
+    } break;
+    case eOpcode::V_EXP_LEGACY_F32: {
+    } break;
+    default: throw std::runtime_error(std::format("missing inst {}", debug::getDebug(op))); break;
+  }
   return size;
 }
 
@@ -84,7 +218,6 @@ uint8_t Parser::handleVop2(CodeBlock& cb, pc_t pc, uint32_t const* pCode, bool e
 
     if (src0.isLiteral() || src1.isLiteral()) {
       size = sizeof(uint64_t);
-      // src0 = createSrc(ctx.create<core::ConstantOp>(createDst(), ir::ConstantValue {.value_u64 = **pCode}, ir::OperandType::i32()));
     }
   }
 
@@ -147,23 +280,23 @@ uint8_t Parser::handleVopc(CodeBlock& cb, pc_t pc, uint32_t const* pCode, bool e
   using namespace mlir::arith;
 
   auto compf = [&](CmpFPredicate comp, mlir::Type type, bool exec, bool signaling) {
-    auto value0 = loadRegister(src0, type);
-    auto value1 = loadRegister(src1, type);
+    // auto value0 = loadRegister(src0, type);
+    // auto value1 = loadRegister(src1, type);
 
-    auto res = _mlirBuilder.create<mlir::arith::CmpFOp>(_defaultLocation, comp, value0, value1);
+    // auto res = _mlirBuilder.create<mlir::arith::CmpFOp>(_defaultLocation, comp, value0, value1);
 
-    storeRegister(sdst, res);
-    if (exec) storeRegister(eOperandKind::EXEC(), res);
+    // storeRegister(sdst, res);
+    // if (exec) storeRegister(eOperandKind::EXEC(), res);
   };
 
   auto compI = [&](CmpIPredicate comp, mlir::Type type, bool exec) {
-    auto value0 = loadRegister(src0, type);
-    auto value1 = loadRegister(src1, type);
+    // auto value0 = loadRegister(src0, type);
+    // auto value1 = loadRegister(src1, type);
 
-    auto res = _mlirBuilder.create<mlir::arith::CmpIOp>(_defaultLocation, comp, value0, value1);
+    // auto res = _mlirBuilder.create<mlir::arith::CmpIOp>(_defaultLocation, comp, value0, value1);
 
-    storeRegister(sdst, res);
-    if (exec) storeRegister(eOperandKind::EXEC(), res);
+    // storeRegister(sdst, res);
+    // if (exec) storeRegister(eOperandKind::EXEC(), res);
   };
 
   constexpr std::array cmpOpsF = {CmpFPredicate::AlwaysFalse, CmpFPredicate::OLT, CmpFPredicate::OEQ, CmpFPredicate::OLE,
@@ -186,127 +319,127 @@ uint8_t Parser::handleVopc(CodeBlock& cb, pc_t pc, uint32_t const* pCode, bool e
 
   // // compare float
 
-  if (op >= eOpcode::V_CMP_F_F32 && op <= eOpcode::V_CMP_T_F32) {
-    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMP_F_F32;
-    compf(cmpOpsF[opIndex], types().f32(), false, false);
-  } else if (op >= eOpcode::V_CMPX_F_F32 && op <= eOpcode::V_CMPX_T_F32) {
-    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPX_F_F32;
-    compf(cmpOpsF[opIndex], types().f32(), true, false);
-  } else if (op >= eOpcode::V_CMP_F_F64 && op <= eOpcode::V_CMP_T_F64) {
-    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMP_F_F64;
-    compf(cmpOpsF[opIndex], types().f32(), false, false);
-  } else if (op >= eOpcode::V_CMPX_F_F64 && op <= eOpcode::V_CMPX_T_F64) {
-    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPX_F_F64;
-    compf(cmpOpsF[opIndex], types().f64(), true, false);
-  } else if (op >= eOpcode::V_CMPS_F_F32 && op <= eOpcode::V_CMPS_T_F32) {
-    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPS_F_F32;
-    compf(cmpOpsF[opIndex], types().f32(), false, true);
-  } else if (op >= eOpcode::V_CMPSX_F_F32 && op <= eOpcode::V_CMPSX_T_F32) {
-    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPSX_F_F32;
-    compf(cmpOpsF[opIndex], types().f32(), true, true);
-  } else if (op >= eOpcode::V_CMPS_F_F64 && op <= eOpcode::V_CMPSX_T_F64) {
-    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPS_F_F64;
-    compf(cmpOpsF[opIndex], types().f64(), false, true);
-  } else if (op >= eOpcode::V_CMPSX_F_F64 && op <= eOpcode::V_CMPSX_T_F64) {
-    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPSX_F_F64;
-    compf(cmpOpsF[opIndex], types().f64(), true, true);
-  }
+  // if (op >= eOpcode::V_CMP_F_F32 && op <= eOpcode::V_CMP_T_F32) {
+  //   auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMP_F_F32;
+  //   compf(cmpOpsF[opIndex], types().f32(), false, false);
+  // } else if (op >= eOpcode::V_CMPX_F_F32 && op <= eOpcode::V_CMPX_T_F32) {
+  //   auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPX_F_F32;
+  //   compf(cmpOpsF[opIndex], types().f32(), true, false);
+  // } else if (op >= eOpcode::V_CMP_F_F64 && op <= eOpcode::V_CMP_T_F64) {
+  //   auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMP_F_F64;
+  //   compf(cmpOpsF[opIndex], types().f32(), false, false);
+  // } else if (op >= eOpcode::V_CMPX_F_F64 && op <= eOpcode::V_CMPX_T_F64) {
+  //   auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPX_F_F64;
+  //   compf(cmpOpsF[opIndex], types().f64(), true, false);
+  // } else if (op >= eOpcode::V_CMPS_F_F32 && op <= eOpcode::V_CMPS_T_F32) {
+  //   auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPS_F_F32;
+  //   compf(cmpOpsF[opIndex], types().f32(), false, true);
+  // } else if (op >= eOpcode::V_CMPSX_F_F32 && op <= eOpcode::V_CMPSX_T_F32) {
+  //   auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPSX_F_F32;
+  //   compf(cmpOpsF[opIndex], types().f32(), true, true);
+  // } else if (op >= eOpcode::V_CMPS_F_F64 && op <= eOpcode::V_CMPSX_T_F64) {
+  //   auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPS_F_F64;
+  //   compf(cmpOpsF[opIndex], types().f64(), false, true);
+  // } else if (op >= eOpcode::V_CMPSX_F_F64 && op <= eOpcode::V_CMPSX_T_F64) {
+  //   auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPSX_F_F64;
+  //   compf(cmpOpsF[opIndex], types().f64(), true, true);
+  // }
 
-  // Compare integer
-  else if (op == eOpcode::V_CMP_F_I32) {
-    auto res = loadRegister(eOperandKind::createImm(0), types().i1());
-    storeRegister(sdst, res);
-  } else if (op > eOpcode::V_CMP_F_I32 && op < eOpcode::V_CMP_T_I32) {
-    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMP_F_I32;
-    compI(cmdOpsSI[opIndex], types().i32(), false);
-  } else if (op == eOpcode::V_CMP_T_I32) {
-    auto res = loadRegister(eOperandKind::createImm(1), types().i1());
-    storeRegister(sdst, res);
-  } else if (op == eOpcode::V_CMP_CLASS_F32) { // todo
-    throw std::runtime_error("class comp");
-  } else if (op == eOpcode::V_CMPX_F_I32) {
-    auto res = loadRegister(eOperandKind::createImm(0), types().i1());
-    storeRegister(sdst, res);
-    storeRegister(eOperandKind::EXEC(), res);
-  } else if (op > eOpcode::V_CMPX_F_I32 && op < eOpcode::V_CMPX_T_I32) {
-    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPX_F_I32;
-    compI(cmdOpsSI[opIndex], types().i32(), true);
-  } else if (op == eOpcode::V_CMPX_T_I32) {
-    auto res = loadRegister(eOperandKind::createImm(1), types().i1());
-    storeRegister(sdst, res);
-    storeRegister(eOperandKind::EXEC(), res);
-  } else if (op == eOpcode::V_CMPX_CLASS_F32) {
-    throw std::runtime_error("class comp"); // todo
-  } else if (op == eOpcode::V_CMP_F_I64) {
-    auto res = loadRegister(eOperandKind::createImm(0), types().i1());
-    storeRegister(sdst, res);
-  } else if (op > eOpcode::V_CMP_F_I64 && op < eOpcode::V_CMP_T_I64) {
-    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMP_F_I64;
-    compI(cmdOpsSI[opIndex], types().i64(), false);
-  } else if (op == eOpcode::V_CMP_T_I64) {
-    auto res = loadRegister(eOperandKind::createImm(1), types().i1());
-    storeRegister(sdst, res);
-  } else if (op == eOpcode::V_CMP_CLASS_F64) {
-    throw std::runtime_error("class comp"); // todo
-  } else if (op == eOpcode::V_CMPX_F_I64) {
-    auto res = loadRegister(eOperandKind::createImm(0), types().i1());
-    storeRegister(sdst, res);
-    storeRegister(eOperandKind::EXEC(), res);
-  } else if (op > eOpcode::V_CMPX_F_I64 && op < eOpcode::V_CMPX_T_I64) {
-    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPX_F_I64;
-    compI(cmdOpsSI[opIndex], types().i64(), true);
-  } else if (op == eOpcode::V_CMPX_T_I64) {
-    auto res = loadRegister(eOperandKind::createImm(1), types().i1());
-    storeRegister(sdst, res);
-    storeRegister(eOperandKind::EXEC(), res);
-  } else if (op == eOpcode::V_CMPX_CLASS_F64) {
-    throw std::runtime_error("class comp"); // todo
-  }
+  // // Compare integer
+  // else if (op == eOpcode::V_CMP_F_I32) {
+  //   auto res = loadRegister(eOperandKind::createImm(0), types().i1());
+  //   storeRegister(sdst, res);
+  // } else if (op > eOpcode::V_CMP_F_I32 && op < eOpcode::V_CMP_T_I32) {
+  //   auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMP_F_I32;
+  //   compI(cmdOpsSI[opIndex], types().i32(), false);
+  // } else if (op == eOpcode::V_CMP_T_I32) {
+  //   auto res = loadRegister(eOperandKind::createImm(1), types().i1());
+  //   storeRegister(sdst, res);
+  // } else if (op == eOpcode::V_CMP_CLASS_F32) { // todo
+  //   throw std::runtime_error("class comp");
+  // } else if (op == eOpcode::V_CMPX_F_I32) {
+  //   auto res = loadRegister(eOperandKind::createImm(0), types().i1());
+  //   storeRegister(sdst, res);
+  //   storeRegister(eOperandKind::EXEC(), res);
+  // } else if (op > eOpcode::V_CMPX_F_I32 && op < eOpcode::V_CMPX_T_I32) {
+  //   auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPX_F_I32;
+  //   compI(cmdOpsSI[opIndex], types().i32(), true);
+  // } else if (op == eOpcode::V_CMPX_T_I32) {
+  //   auto res = loadRegister(eOperandKind::createImm(1), types().i1());
+  //   storeRegister(sdst, res);
+  //   storeRegister(eOperandKind::EXEC(), res);
+  // } else if (op == eOpcode::V_CMPX_CLASS_F32) {
+  //   throw std::runtime_error("class comp"); // todo
+  // } else if (op == eOpcode::V_CMP_F_I64) {
+  //   auto res = loadRegister(eOperandKind::createImm(0), types().i1());
+  //   storeRegister(sdst, res);
+  // } else if (op > eOpcode::V_CMP_F_I64 && op < eOpcode::V_CMP_T_I64) {
+  //   auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMP_F_I64;
+  //   compI(cmdOpsSI[opIndex], types().i64(), false);
+  // } else if (op == eOpcode::V_CMP_T_I64) {
+  //   auto res = loadRegister(eOperandKind::createImm(1), types().i1());
+  //   storeRegister(sdst, res);
+  // } else if (op == eOpcode::V_CMP_CLASS_F64) {
+  //   throw std::runtime_error("class comp"); // todo
+  // } else if (op == eOpcode::V_CMPX_F_I64) {
+  //   auto res = loadRegister(eOperandKind::createImm(0), types().i1());
+  //   storeRegister(sdst, res);
+  //   storeRegister(eOperandKind::EXEC(), res);
+  // } else if (op > eOpcode::V_CMPX_F_I64 && op < eOpcode::V_CMPX_T_I64) {
+  //   auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPX_F_I64;
+  //   compI(cmdOpsSI[opIndex], types().i64(), true);
+  // } else if (op == eOpcode::V_CMPX_T_I64) {
+  //   auto res = loadRegister(eOperandKind::createImm(1), types().i1());
+  //   storeRegister(sdst, res);
+  //   storeRegister(eOperandKind::EXEC(), res);
+  // } else if (op == eOpcode::V_CMPX_CLASS_F64) {
+  //   throw std::runtime_error("class comp"); // todo
+  // }
 
-  // // unsigned integers
-  else if (op == eOpcode::V_CMP_F_U32) {
-    auto res = loadRegister(eOperandKind::createImm(0), types().i1());
-    storeRegister(sdst, res);
-  } else if (op > eOpcode::V_CMP_F_U32 && op < eOpcode::V_CMP_T_U32) {
-    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMP_F_U32;
-    compI(cmdOpsUI[opIndex], types().i32(), false);
-  } else if (op == eOpcode::V_CMP_T_U32) {
-    auto res = loadRegister(eOperandKind::createImm(1), types().i1());
-    storeRegister(sdst, res);
-  } else if (op == eOpcode::V_CMPX_F_U32) {
-    auto res = loadRegister(eOperandKind::createImm(0), types().i1());
-    storeRegister(sdst, res);
-    storeRegister(eOperandKind::EXEC(), res);
-  } else if (op > eOpcode::V_CMPX_F_U32 && op < eOpcode::V_CMPX_T_U32) {
-    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPX_F_U32;
-    compI(cmdOpsUI[opIndex], types().i32(), true);
-  } else if (op == eOpcode::V_CMPX_T_U32) {
-    auto res = loadRegister(eOperandKind::createImm(1), types().i1());
-    storeRegister(sdst, res);
-    storeRegister(eOperandKind::EXEC(), res);
-  } else if (op == eOpcode::V_CMP_F_U64) {
-    auto res = loadRegister(eOperandKind::createImm(0), types().i1());
-    storeRegister(sdst, res);
-  } else if (op > eOpcode::V_CMP_F_U64 && op < eOpcode::V_CMP_T_U64) {
-    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMP_F_U64;
-    compI(cmdOpsUI[opIndex], types().i64(), false);
-  } else if (op == eOpcode::V_CMP_F_U64) {
-    auto res = loadRegister(eOperandKind::createImm(1), types().i1());
-    storeRegister(sdst, res);
-  } else if (op == eOpcode::V_CMPX_F_U64) {
-    auto res = loadRegister(eOperandKind::createImm(0), types().i1());
-    storeRegister(sdst, res);
-    storeRegister(eOperandKind::EXEC(), res);
-  } else if (op > eOpcode::V_CMPX_F_U64 && op < eOpcode::V_CMPX_T_U64) {
-    auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPX_F_U64;
-    compI(cmdOpsUI[opIndex], types().i64(), true);
-  } else if (op == eOpcode::V_CMPX_T_U64) {
-    auto res = loadRegister(eOperandKind::createImm(1), types().i1());
-    storeRegister(sdst, res);
-    storeRegister(eOperandKind::EXEC(), res);
-  } else {
-    throw std::runtime_error(std::format("missing inst {}", debug::getDebug(op)));
-  }
+  // // // unsigned integers
+  // else if (op == eOpcode::V_CMP_F_U32) {
+  //   auto res = loadRegister(eOperandKind::createImm(0), types().i1());
+  //   storeRegister(sdst, res);
+  // } else if (op > eOpcode::V_CMP_F_U32 && op < eOpcode::V_CMP_T_U32) {
+  //   auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMP_F_U32;
+  //   compI(cmdOpsUI[opIndex], types().i32(), false);
+  // } else if (op == eOpcode::V_CMP_T_U32) {
+  //   auto res = loadRegister(eOperandKind::createImm(1), types().i1());
+  //   storeRegister(sdst, res);
+  // } else if (op == eOpcode::V_CMPX_F_U32) {
+  //   auto res = loadRegister(eOperandKind::createImm(0), types().i1());
+  //   storeRegister(sdst, res);
+  //   storeRegister(eOperandKind::EXEC(), res);
+  // } else if (op > eOpcode::V_CMPX_F_U32 && op < eOpcode::V_CMPX_T_U32) {
+  //   auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPX_F_U32;
+  //   compI(cmdOpsUI[opIndex], types().i32(), true);
+  // } else if (op == eOpcode::V_CMPX_T_U32) {
+  //   auto res = loadRegister(eOperandKind::createImm(1), types().i1());
+  //   storeRegister(sdst, res);
+  //   storeRegister(eOperandKind::EXEC(), res);
+  // } else if (op == eOpcode::V_CMP_F_U64) {
+  //   auto res = loadRegister(eOperandKind::createImm(0), types().i1());
+  //   storeRegister(sdst, res);
+  // } else if (op > eOpcode::V_CMP_F_U64 && op < eOpcode::V_CMP_T_U64) {
+  //   auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMP_F_U64;
+  //   compI(cmdOpsUI[opIndex], types().i64(), false);
+  // } else if (op == eOpcode::V_CMP_F_U64) {
+  //   auto res = loadRegister(eOperandKind::createImm(1), types().i1());
+  //   storeRegister(sdst, res);
+  // } else if (op == eOpcode::V_CMPX_F_U64) {
+  //   auto res = loadRegister(eOperandKind::createImm(0), types().i1());
+  //   storeRegister(sdst, res);
+  //   storeRegister(eOperandKind::EXEC(), res);
+  // } else if (op > eOpcode::V_CMPX_F_U64 && op < eOpcode::V_CMPX_T_U64) {
+  //   auto const opIndex = (InstructionKind_t)op - (InstructionKind_t)eOpcode::V_CMPX_F_U64;
+  //   compI(cmdOpsUI[opIndex], types().i64(), true);
+  // } else if (op == eOpcode::V_CMPX_T_U64) {
+  //   auto res = loadRegister(eOperandKind::createImm(1), types().i1());
+  //   storeRegister(sdst, res);
+  //   storeRegister(eOperandKind::EXEC(), res);
+  // } else {
+  //   throw std::runtime_error(std::format("missing inst {}", debug::getDebug(op)));
+  // }
 
   return size;
 }
