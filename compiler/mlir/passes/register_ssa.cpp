@@ -111,6 +111,7 @@ struct RegisterSSAPass: public ::impl::RegisterSSAPassBase<RegisterSSAPass> {
 
   void visitRegion(mlir::Region& region, Storage& storage, PatternRewriter& rewriter) {
     using namespace compiler::frontend;
+    // todo handle boolean casting, type casting
 
     for (auto& block: region.getBlocks()) {
       for (Operation& opBase: llvm::make_early_inc_range(block)) {
@@ -209,7 +210,7 @@ struct RegisterSSAPass: public ::impl::RegisterSSAPassBase<RegisterSSAPass> {
               }
             } else {
               rewriter.setInsertionPoint(op);
-              auto newOp = rewriter.replaceOpWithNewOp<mlir::arith::BitcastOp>(op, targetType, item.value);
+              auto newOp = rewriter.replaceOpWithNewOp<mlir::spirv::BitcastOp>(op, targetType, item.value);
             }
           }
 

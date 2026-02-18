@@ -94,6 +94,8 @@ struct eOperandKind {
 
   constexpr bool isLiteral() const noexcept { return (eBase)_v.bits.base == eBase::Literal; }
 
+  constexpr bool isValid() const noexcept { return (eBase)_v.bits.base != eBase::CUSTOM_UNSET; }
+
   constexpr bool isConstF() const noexcept {
     return (_v.bits.base >= (eOperandKind_t)eBase::ConstFloat_0_5 && _v.bits.base <= (eOperandKind_t)eBase::ConstFloat_n4_0);
   }

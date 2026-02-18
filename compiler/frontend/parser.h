@@ -50,10 +50,21 @@ struct OpSrc {
   PACK(struct {
     eOperandKind         kind;
     util::Flags<OpFlags> flags;
+
+    union {
+      uint32_t uimm;
+      float    fimm;
+    };
   });
 
   constexpr explicit OpSrc(eOperandKind kind, util::Flags<OpFlags> flags = {}): kind(kind), flags(flags) {}
+
+  constexpr explicit OpSrc(uint32_t imm, util::Flags<OpFlags> flags = {}): kind(eOperandKind::Unset()), flags(flags), uimm(imm) {}
+
+  // constexpr explicit OpSrc(mlir::Value value, util::Flags<OpFlags> flags = {}): kind(eOperandKind::Unset()), flags(flags), value(value) {}
 };
+
+static_assert(sizeof(OpSrc) <= sizeof(uint64_t));
 
 struct OpDst {
   PACK(struct {
@@ -99,12 +110,16 @@ class Parser {
 
   OperandTypeCache const& types() const;
   mlir::Value             loadRegister(OpSrc op, mlir::Type type);
-  void                    storeRegister(OpDst dst, mlir::Value value);
+  mlir::Value             storeRegister(OpDst dst, mlir::Value value);
 
   template <typename Op, typename... Args>
   inline auto create(Args&&... args) {
     return _mlirBuilder.create<Op>(_defaultLocation, std::forward<Args>(args)...);
   }
+
+  inline auto& getLoc() { return _defaultLocation; }
+
+  inline auto& getBuilder() { return _mlirBuilder; }
 
   private:
   std::pmr::vector<std::pair<pc_t, CodeBlock*>> _blocks;

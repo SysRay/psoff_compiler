@@ -274,7 +274,14 @@ OperandTypeCache const& Parser::types() const {
 }
 
 mlir::Value Parser::loadRegister(OpSrc src, mlir::Type type) {
-  if (src.kind.isLiteral()) {
+  if (!src.kind.isValid()) {
+    // use src imm
+    if (type.isFloat()) {
+      return _mlirBuilder.create<mlir::arith::ConstantFloatOp>(_defaultLocation, (mlir::FloatType)type, llvm::APFloat(src.fimm));
+    } else {
+      return _mlirBuilder.create<mlir::arith::ConstantIntOp>(_defaultLocation, type, src.uimm);
+    }
+  } else if (src.kind.isLiteral()) {
     if (type.isFloat()) {
       if (type.getIntOrFloatBitWidth() == 64 && type.isFloat()) {
         // Note Literal double constants are placed in high 32-bits of double
@@ -298,7 +305,10 @@ mlir::Value Parser::loadRegister(OpSrc src, mlir::Type type) {
   }
 }
 
-void Parser::storeRegister(OpDst dst, mlir::Value value) {
+mlir::Value Parser::storeRegister(OpDst dst, mlir::Value value) {
   _mlirBuilder.create<mlir::psoff::StoreOp>(_defaultLocation, _mlirBuilder.getIndexAttr((uint32_t)dst.kind.value()), value);
+
+  // todo handle flags
+  return value;
 }
 } // namespace compiler::frontend
