@@ -31,13 +31,12 @@ class Flags {
   constexpr void reset() noexcept { flags = 0; }
 
   [[nodiscard]] constexpr Flags operator|(T flag) const noexcept {
-    Flags result = *this;
-    result.set(flag);
-    return result;
+    Flags result = flags;
+    return result | (Underlying_t)flag;
   }
 
   constexpr Flags& operator|=(T flag) noexcept {
-    set(flag);
+    flags = flags | (Underlying_t)flag;
     return *this;
   }
 
@@ -47,13 +46,17 @@ class Flags {
   }
 
   [[nodiscard]] constexpr Flags operator&(T flag) const noexcept {
-    Flags result;
-    if (is_set(flag)) result.set(flag);
-    return result;
+    Flags result = flags;
+    return result & ~(Underlying_t)flag;
   }
 
   constexpr Flags& operator&=(T flag) noexcept {
-    if (!is_set(flag)) set(flag);
+    flags = flags & ~(Underlying_t)flag;
+    return *this;
+  }
+
+  constexpr Flags& operator^=(T flag) noexcept {
+    flags = flags ^ (Underlying_t)flag;
     return *this;
   }
 

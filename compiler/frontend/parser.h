@@ -37,10 +37,12 @@ struct CodeBlock {
 };
 
 enum OpFlags : uint8_t {
-  eNegate   = (1 << 0), ///< SET MSB
-  eAbsolute = (1 << 1),
-  eNot      = (1 << 2), ///< Invert
-  eClamp    = (1 << 3),
+  eNegate       = (1 << 0), ///< SET MSB
+  eAbsolute     = (1 << 1),
+  eNot          = (1 << 2), ///< Invert
+  eClampToOne   = (1 << 3), ///< +-1.0
+  eClampFMinMax = (1 << 4), ///< float min max
+  eClampFZero   = (1 << 5), ///< +zero
 };
 
 using OperandType_t = mlir::Type;
@@ -57,11 +59,22 @@ struct OpSrc {
     };
   });
 
+  inline void setNot() { flags ^= OpFlags::eNot; }
+
+  constexpr explicit OpSrc() {}
+
   constexpr explicit OpSrc(eOperandKind kind, util::Flags<OpFlags> flags = {}): kind(kind), flags(flags) {}
+
+  constexpr explicit OpSrc(eOperandKind kind, bool negate, bool absolute): kind(kind) {
+    if (negate) flags |= OpFlags::eNegate;
+    if (absolute) flags |= OpFlags::eAbsolute;
+  }
 
   constexpr explicit OpSrc(uint32_t imm, util::Flags<OpFlags> flags = {}): kind(eOperandKind::Unset()), flags(flags), uimm(imm) {}
 
-  // constexpr explicit OpSrc(mlir::Value value, util::Flags<OpFlags> flags = {}): kind(eOperandKind::Unset()), flags(flags), value(value) {}
+  constexpr explicit OpSrc(int32_t imm, util::Flags<OpFlags> flags = {}): kind(eOperandKind::Unset()), flags(flags), uimm(std::bit_cast<uint32_t>(imm)) {}
+
+  constexpr OpSrc& operator=(OpSrc const& other) = default;
 };
 
 static_assert(sizeof(OpSrc) <= sizeof(uint64_t));
@@ -73,7 +86,15 @@ struct OpDst {
     uint8_t              omod = 0;
   });
 
-  constexpr explicit OpDst(eOperandKind kind, util::Flags<OpFlags> flags = {}, uint8_t omod = 0): kind(kind), flags(flags), omod(omod) {}
+  constexpr explicit OpDst() {}
+
+  constexpr explicit OpDst(eOperandKind kind, util::Flags<OpFlags> flags = {}): kind(kind) {}
+
+  constexpr explicit OpDst(eOperandKind kind, uint8_t omod, bool clamp): kind(kind), omod(omod) {
+    if (clamp) flags |= OpFlags::eClampToOne;
+  }
+
+  constexpr OpDst& operator=(OpDst const& other) = default;
 };
 
 class Parser {

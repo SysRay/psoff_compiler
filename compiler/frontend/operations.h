@@ -19,6 +19,25 @@ enum class eCmpIPredicate {
   AlwaysTrue,
 };
 
+enum class eCmpFPredicate {
+  AlwaysFalse,
+  OEQ,
+  OGT,
+  OGE,
+  OLT,
+  OLE,
+  ONE,
+  ORD,
+  UEQ,
+  UGT,
+  UGE,
+  ULT,
+  ULE,
+  UNE,
+  UNO,
+  AlwaysTrue,
+};
+
 struct MoveOp {
   static void create(Parser* parser, OpDst dst, OpSrc src, OperandType_t type);
   static void create(Parser* parser, OpDst dst, uint64_t);
@@ -38,6 +57,7 @@ struct BrevOp {
 
 struct BitCountOp {
   static void create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OperandType_t type);
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OperandType_t type);
 };
 
 struct FindFirstLsbBitOp {
@@ -77,6 +97,10 @@ struct AddSIOp {
   static void create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OpSrc src1, OperandType_t type);
 };
 
+struct AddFOp {
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OperandType_t type);
+};
+
 struct SubUIOp {
   static void create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OpSrc src1, OperandType_t type);
   static void create(Parser* parser, OpDst dst, OpDst carryOut, OpSrc src0, OpSrc src1, OpSrc carryIn, OperandType_t type);
@@ -86,12 +110,29 @@ struct SubSIOp {
   static void create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OpSrc src1, OperandType_t type);
 };
 
+struct SubFOp {
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OperandType_t type);
+};
+
 struct MulSIOp {
   static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OperandType_t type);
 };
 
-struct CmpIOp {
-  static void create(Parser* parser, eCmpIPredicate predOp, OpDst dst, OpSrc src0, OpSrc src1, OperandType_t type);
+struct Mul24IOp {
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OperandType_t type, bool isSigned, bool retHigh);
+};
+
+struct MulFOp {
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OperandType_t type);
+};
+
+struct FmaOp {
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OpSrc add, OperandType_t type);
+};
+
+struct CmpOp {
+  static mlir::Value create(Parser* parser, eCmpIPredicate predOp, OpDst dst, OpSrc src0, OpSrc src1, OperandType_t type);
+  static mlir::Value create(Parser* parser, eCmpFPredicate predOp, OpDst dst, OpSrc src0, OpSrc src1, OperandType_t type);
 };
 
 struct IsBitSetOp {
@@ -108,6 +149,14 @@ struct MinUIOp {
 
 struct MaxUIOp {
   static void create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OpSrc src1, OperandType_t type);
+};
+
+struct MaxFOp {
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OperandType_t type, bool legacy = false);
+};
+
+struct MinFOp {
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OperandType_t type, bool legacy = false);
 };
 
 struct MinSIOp {
@@ -164,6 +213,119 @@ struct AbsDiffIOp {
 
 struct BranchOp {
   static void create(Parser* parser, OpSrc src);
+};
+
+struct ConvertFtoSIOp {
+  enum class eMode {
+    Round,
+    RPI,
+    Floor,
+  };
+  static void create(Parser* parser, OpDst dst, OperandType_t dstType, OpSrc src, OperandType_t srcType, eMode roundMode = eMode::Round);
+};
+
+struct ConvertFtoUIOp {
+  static void create(Parser* parser, OpDst dst, OperandType_t dstType, OpSrc src, OperandType_t srcType);
+};
+
+struct ConvertUItoFOp {
+  static void create(Parser* parser, OpDst dst, OperandType_t dstType, OpSrc src, OperandType_t srcType);
+};
+
+struct ConvertSItoFOp {
+  static void create(Parser* parser, OpDst dst, OperandType_t dstType, OpSrc src, OperandType_t srcType);
+};
+
+struct ConvertFtoFOp {
+  static void create(Parser* parser, OpDst dst, OperandType_t dstType, OpSrc src, OperandType_t srcType);
+};
+
+struct ConvertSubPixelOffsetToFOp {
+  static void create(Parser* parser, OpDst dst, OperandType_t dstType, OpSrc src, OperandType_t srcType);
+};
+
+struct ConvertByteToFOp {
+  static void create(Parser* parser, OpDst dst, OperandType_t dstType, OpSrc src, OperandType_t srcType, uint8_t index);
+};
+
+struct TruncOp {
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OperandType_t type);
+};
+
+struct CeilOp {
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OperandType_t type);
+};
+
+struct FloorOp {
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OperandType_t type);
+};
+
+struct RoundEvenOp {
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OperandType_t type);
+};
+
+struct FractOp {
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OperandType_t type);
+};
+
+struct Exp2Op {
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OperandType_t type);
+};
+
+struct Log2Op {
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OperandType_t type);
+};
+
+struct RcpOp {
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OperandType_t type);
+};
+
+struct RsqOp {
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OperandType_t type);
+};
+
+struct SqrtOp {
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OperandType_t type);
+};
+
+struct SinOp {
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OperandType_t type);
+};
+
+struct CosOp {
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OperandType_t type);
+};
+
+struct GetExpOp {
+  static void create(Parser* parser, OpDst dst, OperandType_t dstType, OpSrc src0, OperandType_t type);
+};
+
+struct GetMantOp {
+  static void create(Parser* parser, OpDst dst, OperandType_t dstType, OpSrc src0, OperandType_t type);
+};
+
+struct LDExpOp {
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OperandType_t type);
+};
+
+struct ConvertPackSnormOp {
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1);
+};
+
+struct ConvertPackUnormOp {
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1);
+};
+
+struct ConvertPackF32Op {
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1);
+};
+
+struct ConvertPackSI32Op {
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1);
+};
+
+struct ConvertPackUI32Op {
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1);
 };
 
 struct SaveExecOp {

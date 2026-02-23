@@ -30,9 +30,11 @@ void NotOp::create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OperandTy
   auto       res = parser->create<mlir::spirv::NotOp>(v0);
   parser->storeRegister(dst, res);
 
-  auto zero     = mlir::spirv::ConstantOp::getZero(type, parser->getLoc(), parser->getBuilder());
-  auto carryOut = parser->create<mlir::spirv::INotEqualOp>(res, zero);
-  parser->storeRegister(carry, carryOut);
+  if (carry.kind.isValid()) {
+    auto zero     = mlir::spirv::ConstantOp::getZero(type, parser->getLoc(), parser->getBuilder());
+    auto carryOut = parser->create<mlir::spirv::INotEqualOp>(res, zero);
+    parser->storeRegister(carry, carryOut);
+  }
 }
 
 void BrevOp::create(Parser* parser, OpDst dst, OpSrc src0, OperandType_t type) {
@@ -46,9 +48,19 @@ void BitCountOp::create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, Oper
   auto       res = parser->create<mlir::spirv::BitCountOp>(parser->types().i32(), v0);
   parser->storeRegister(dst, res);
 
-  auto zero     = mlir::spirv::ConstantOp::getZero(parser->types().i32(), parser->getLoc(), parser->getBuilder());
-  auto carryOut = parser->create<mlir::spirv::INotEqualOp>(res, zero);
-  parser->storeRegister(carry, carryOut);
+  if (carry.kind.isValid()) {
+    auto zero     = mlir::spirv::ConstantOp::getZero(parser->types().i32(), parser->getLoc(), parser->getBuilder());
+    auto carryOut = parser->create<mlir::spirv::INotEqualOp>(res, zero);
+    parser->storeRegister(carry, carryOut);
+  }
+}
+
+void BitCountOp::create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OperandType_t type) {
+  auto const  v0  = parser->loadRegister(src0, type);
+  auto const  v1  = parser->loadRegister(src1, type);
+  mlir::Value res = parser->create<mlir::spirv::BitCountOp>(type, v0);
+  res             = parser->create<mlir::spirv::IAddOp>(v0, v1);
+  parser->storeRegister(dst, res);
 }
 
 void FindFirstLsbBitOp::create(Parser* parser, OpDst dst, OpSrc src0, OperandType_t type) {
@@ -80,8 +92,12 @@ void FindFirstSMsbBitOp::create(Parser* parser, OpDst dst, OpSrc src0, OperandTy
 }
 
 void SignExtOp::create(Parser* parser, OpDst dst, OperandType_t dstType, OpSrc src0, OperandType_t srcType) {
-  auto value0 = parser->loadRegister(src0, srcType);
-  auto res    = parser->create<mlir::spirv::BitFieldSExtractOp>(dstType, value0);
+  auto value0 = parser->loadRegister(src0, dstType);
+
+  auto offset = mlir::spirv::ConstantOp::getZero(parser->types().i32(), parser->getLoc(), parser->getBuilder());
+  auto width  = parser->loadRegister(OpSrc(srcType.getIntOrFloatBitWidth()), srcType);
+
+  auto res = parser->create<mlir::spirv::BitFieldSExtractOp>(dstType, value0, offset, width);
   parser->storeRegister(dst, res);
 }
 
@@ -164,6 +180,13 @@ void AddSIOp::create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OpSrc s
   parser->storeRegister(carry, mlir::spirv::ConstantOp::getZero(type, parser->getLoc(), parser->getBuilder())); // todo
 }
 
+void AddFOp::create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OperandType_t type) {
+  auto value0 = parser->loadRegister(src0, type);
+  auto value1 = parser->loadRegister(src1, type);
+  auto res    = parser->create<mlir::spirv::FAddOp>(value0, value1);
+  parser->storeRegister(dst, res);
+}
+
 void SubUIOp::create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OpSrc src1, OperandType_t type) {
   auto value0 = parser->loadRegister(src0, type);
   auto value1 = parser->loadRegister(src1, type);
@@ -208,10 +231,58 @@ void SubSIOp::create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OpSrc s
   parser->storeRegister(carry, mlir::spirv::ConstantOp::getZero(type, parser->getLoc(), parser->getBuilder())); // todo
 }
 
+void SubFOp::create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OperandType_t type) {
+  auto value0 = parser->loadRegister(src0, type);
+  auto value1 = parser->loadRegister(src1, type);
+  auto res    = parser->create<mlir::spirv::FSubOp>(value0, value1);
+  parser->storeRegister(dst, res);
+}
+
 void MulSIOp::create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OperandType_t type) {
   auto value0 = parser->loadRegister(src0, type);
   auto value1 = parser->loadRegister(src1, type);
   auto res    = parser->create<mlir::spirv::IMulOp>(value0, value1);
+  parser->storeRegister(dst, res);
+}
+
+void Mul24IOp::create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OperandType_t type, bool isSigned, bool retHigh) {
+  auto value0 = parser->loadRegister(src0, type);
+  auto value1 = parser->loadRegister(src1, type);
+
+  auto bitWidth = parser->loadRegister(OpSrc(24), type);
+  auto offset   = mlir::spirv::ConstantOp::getOne(type, parser->getLoc(), parser->getBuilder());
+
+  mlir::Value res;
+  if (isSigned) {
+    value0 = parser->create<mlir::spirv::BitFieldSExtractOp>(type, value0, offset, bitWidth);
+    value1 = parser->create<mlir::spirv::BitFieldSExtractOp>(type, value1, offset, bitWidth);
+  } else {
+    value0 = parser->create<mlir::spirv::BitFieldUExtractOp>(type, value0, offset, bitWidth);
+    value1 = parser->create<mlir::spirv::BitFieldUExtractOp>(type, value1, offset, bitWidth);
+  }
+
+  if (retHigh) {
+    res = parser->create<mlir::spirv::SMulExtendedOp>(value0, value1);
+    res = parser->create<mlir::spirv::CompositeExtractOp>(res, llvm::ArrayRef(1));
+  } else {
+    res = parser->create<mlir::spirv::IMulOp>(value0, value1);
+  }
+
+  parser->storeRegister(dst, res);
+}
+
+void MulFOp::create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OperandType_t type) {
+  auto value0 = parser->loadRegister(src0, type);
+  auto value1 = parser->loadRegister(src1, type);
+  auto res    = parser->create<mlir::spirv::FMulOp>(value0, value1);
+  parser->storeRegister(dst, res);
+}
+
+void FmaOp::create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType_t type) {
+  auto value0 = parser->loadRegister(src0, type);
+  auto value1 = parser->loadRegister(src1, type);
+  auto value2 = parser->loadRegister(src2, type);
+  auto res    = parser->create<mlir::spirv::GLFmaOp>(type, value0, value1, value2);
   parser->storeRegister(dst, res);
 }
 
@@ -223,7 +294,9 @@ void MinUIOp::create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OpSrc s
   auto res  = parser->create<mlir::spirv::SelectOp>(pred, value0, value1);
 
   parser->storeRegister(dst, res);
-  parser->storeRegister(carry, pred);
+  if (carry.kind.isValid()) {
+    parser->storeRegister(carry, pred);
+  }
 }
 
 void MaxUIOp::create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OpSrc src1, OperandType_t type) {
@@ -234,7 +307,25 @@ void MaxUIOp::create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OpSrc s
   auto res  = parser->create<mlir::spirv::SelectOp>(pred, value0, value1);
 
   parser->storeRegister(dst, res);
-  parser->storeRegister(carry, pred);
+  if (carry.kind.isValid()) {
+    parser->storeRegister(carry, pred);
+  }
+}
+
+void MaxFOp::create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OperandType_t type, bool legacy) {
+  auto value0 = parser->loadRegister(src0, type);
+  auto value1 = parser->loadRegister(src1, type);
+
+  mlir::Value res = legacy ? parser->create<mlir::spirv::GLNMaxOp>(value0, value1).getResult() : parser->create<mlir::spirv::GLFMaxOp>(value0, value1);
+  parser->storeRegister(dst, res);
+}
+
+void MinFOp::create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OperandType_t type, bool legacy) {
+  auto value0 = parser->loadRegister(src0, type);
+  auto value1 = parser->loadRegister(src1, type);
+
+  mlir::Value res = legacy ? parser->create<mlir::spirv::GLNMinOp>(value0, value1).getResult() : parser->create<mlir::spirv::GLFMinOp>(value0, value1);
+  parser->storeRegister(dst, res);
 }
 
 void MinSIOp::create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OpSrc src1, OperandType_t type) {
@@ -245,7 +336,9 @@ void MinSIOp::create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OpSrc s
   auto res  = parser->create<mlir::spirv::SelectOp>(pred, value0, value1);
 
   parser->storeRegister(dst, res);
-  parser->storeRegister(carry, pred);
+  if (carry.kind.isValid()) {
+    parser->storeRegister(carry, pred);
+  }
 }
 
 void MaxSIOp::create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OpSrc src1, OperandType_t type) {
@@ -256,7 +349,9 @@ void MaxSIOp::create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OpSrc s
   auto res  = parser->create<mlir::spirv::SelectOp>(pred, value0, value1);
 
   parser->storeRegister(dst, res);
-  parser->storeRegister(carry, pred);
+  if (carry.kind.isValid()) {
+    parser->storeRegister(carry, pred);
+  }
 }
 
 void BranchOp::create(Parser* parser, OpSrc src) {
@@ -279,7 +374,7 @@ void SaveExecOp::create(Parser* parser, OpDst dst, BitOp bitop, OpSrc src0, OpSr
   parser->storeRegister(OpDst(eOperandKind::EXEC()), res);
 }
 
-void CmpIOp::create(Parser* parser, eCmpIPredicate predOp, OpDst dst, OpSrc src0, OpSrc src1, OperandType_t type) {
+mlir::Value CmpOp::create(Parser* parser, eCmpIPredicate predOp, OpDst dst, OpSrc src0, OpSrc src1, OperandType_t type) {
   auto value0 = parser->loadRegister(src0, type);
   auto value1 = parser->loadRegister(src1, type);
 
@@ -299,7 +394,43 @@ void CmpIOp::create(Parser* parser, eCmpIPredicate predOp, OpDst dst, OpSrc src0
     case eCmpIPredicate::AlwaysTrue: res = mlir::spirv::ConstantOp::getOne(parser->types().i1(), parser->getLoc(), parser->getBuilder()); break;
   }
 
-  parser->storeRegister(dst, res);
+  return parser->storeRegister(dst, res);
+}
+
+mlir::Value CmpOp::create(Parser* parser, eCmpFPredicate predOp, OpDst dst, OpSrc src0, OpSrc src1, OperandType_t type) {
+  auto value0 = parser->loadRegister(src0, type);
+  auto value1 = parser->loadRegister(src1, type);
+
+  mlir::Value res;
+  switch (predOp) {
+    case eCmpFPredicate::AlwaysFalse: res = mlir::spirv::ConstantOp::getZero(parser->types().i1(), parser->getLoc(), parser->getBuilder()); break;
+    case eCmpFPredicate::OEQ: res = parser->create<mlir::spirv::FOrdEqualOp>(value0, value1); break;
+    case eCmpFPredicate::OGT: res = parser->create<mlir::spirv::FOrdGreaterThanOp>(value0, value1); break;
+    case eCmpFPredicate::OGE: res = parser->create<mlir::spirv::FOrdGreaterThanEqualOp>(value0, value1); break;
+    case eCmpFPredicate::OLT: res = parser->create<mlir::spirv::FOrdLessThanOp>(value0, value1); break;
+    case eCmpFPredicate::OLE: res = parser->create<mlir::spirv::FOrdLessThanEqualOp>(value0, value1); break;
+    case eCmpFPredicate::ONE: res = parser->create<mlir::spirv::FOrdNotEqualOp>(value0, value1); break;
+    case eCmpFPredicate::ORD: {
+      auto lhs_nan = parser->create<mlir::spirv::IsNanOp>(value0);
+      auto rhs_nan = parser->create<mlir::spirv::IsNanOp>(value1);
+      auto orValue = parser->create<mlir::spirv::LogicalOrOp>(lhs_nan, rhs_nan);
+      res          = parser->create<mlir::spirv::LogicalNotOp>(orValue);
+    } break;
+    case eCmpFPredicate::UEQ: res = parser->create<mlir::spirv::FUnordEqualOp>(value0, value1); break;
+    case eCmpFPredicate::UGT: res = parser->create<mlir::spirv::FUnordGreaterThanOp>(value0, value1); break;
+    case eCmpFPredicate::UGE: res = parser->create<mlir::spirv::FUnordGreaterThanEqualOp>(value0, value1); break;
+    case eCmpFPredicate::ULT: res = parser->create<mlir::spirv::FUnordLessThanOp>(value0, value1); break;
+    case eCmpFPredicate::ULE: res = parser->create<mlir::spirv::FUnordLessThanEqualOp>(value0, value1); break;
+    case eCmpFPredicate::UNE: res = parser->create<mlir::spirv::FUnordNotEqualOp>(value0, value1); break;
+    case eCmpFPredicate::UNO: {
+      auto lhs_nan = parser->create<mlir::spirv::IsNanOp>(value0);
+      auto rhs_nan = parser->create<mlir::spirv::IsNanOp>(value1);
+      res          = parser->create<mlir::spirv::LogicalOrOp>(lhs_nan, rhs_nan);
+    } break;
+    case eCmpFPredicate::AlwaysTrue: res = mlir::spirv::ConstantOp::getOne(parser->types().i1(), parser->getLoc(), parser->getBuilder()); break;
+  }
+
+  return parser->storeRegister(dst, res);
 }
 
 void IsBitSetOp::create(Parser* parser, OpDst dst, OpSrc src, OpSrc index, OperandType_t type) {
@@ -341,9 +472,11 @@ void AndIOp::create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OpSrc sr
   mlir::Value res = parser->create<mlir::spirv::BitwiseAndOp>(type, value0, value1);
   res             = parser->storeRegister(dst, res);
 
-  auto zero       = mlir::spirv::ConstantOp::getZero(type, parser->getLoc(), parser->getBuilder());
-  auto carryValue = parser->create<mlir::spirv::INotEqualOp>(res, zero);
-  parser->storeRegister(carry, carryValue);
+  if (carry.kind.isValid()) {
+    auto zero       = mlir::spirv::ConstantOp::getZero(type, parser->getLoc(), parser->getBuilder());
+    auto carryValue = parser->create<mlir::spirv::INotEqualOp>(res, zero);
+    parser->storeRegister(carry, carryValue);
+  }
 }
 
 void OrIOp::create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OpSrc src1, OperandType_t type) {
@@ -353,9 +486,11 @@ void OrIOp::create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OpSrc src
   mlir::Value res = parser->create<mlir::spirv::BitwiseOrOp>(type, value0, value1);
   res             = parser->storeRegister(dst, res);
 
-  auto zero       = mlir::spirv::ConstantOp::getZero(type, parser->getLoc(), parser->getBuilder());
-  auto carryValue = parser->create<mlir::spirv::INotEqualOp>(res, zero);
-  parser->storeRegister(carry, carryValue);
+  if (carry.kind.isValid()) {
+    auto zero       = mlir::spirv::ConstantOp::getZero(type, parser->getLoc(), parser->getBuilder());
+    auto carryValue = parser->create<mlir::spirv::INotEqualOp>(res, zero);
+    parser->storeRegister(carry, carryValue);
+  }
 }
 
 void XorIOp::create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OpSrc src1, OperandType_t type) {
@@ -365,9 +500,11 @@ void XorIOp::create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OpSrc sr
   mlir::Value res = parser->create<mlir::spirv::BitwiseXorOp>(type, value0, value1);
   res             = parser->storeRegister(dst, res);
 
-  auto zero       = mlir::spirv::ConstantOp::getZero(type, parser->getLoc(), parser->getBuilder());
-  auto carryValue = parser->create<mlir::spirv::INotEqualOp>(res, zero);
-  parser->storeRegister(carry, carryValue);
+  if (carry.kind.isValid()) {
+    auto zero       = mlir::spirv::ConstantOp::getZero(type, parser->getLoc(), parser->getBuilder());
+    auto carryValue = parser->create<mlir::spirv::INotEqualOp>(res, zero);
+    parser->storeRegister(carry, carryValue);
+  }
 }
 
 void LSHLOp::create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OpSrc src1, OperandType_t type) {
@@ -380,9 +517,11 @@ void LSHLOp::create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OpSrc sr
   mlir::Value res = parser->create<mlir::spirv::ShiftLeftLogicalOp>(type, value0, shiftValue);
   res             = parser->storeRegister(dst, res);
 
-  auto zero       = mlir::spirv::ConstantOp::getZero(type, parser->getLoc(), parser->getBuilder());
-  auto carryValue = parser->create<mlir::spirv::INotEqualOp>(res, zero);
-  parser->storeRegister(carry, carryValue);
+  if (carry.kind.isValid()) {
+    auto zero       = mlir::spirv::ConstantOp::getZero(type, parser->getLoc(), parser->getBuilder());
+    auto carryValue = parser->create<mlir::spirv::INotEqualOp>(res, zero);
+    parser->storeRegister(carry, carryValue);
+  }
 }
 
 void LSHROp::create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OpSrc src1, OperandType_t type) {
@@ -395,9 +534,11 @@ void LSHROp::create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OpSrc sr
   mlir::Value res = parser->create<mlir::spirv::ShiftRightLogicalOp>(type, value0, shiftValue);
   res             = parser->storeRegister(dst, res);
 
-  auto zero       = mlir::spirv::ConstantOp::getZero(type, parser->getLoc(), parser->getBuilder());
-  auto carryValue = parser->create<mlir::spirv::INotEqualOp>(res, zero);
-  parser->storeRegister(carry, carryValue);
+  if (carry.kind.isValid()) {
+    auto zero       = mlir::spirv::ConstantOp::getZero(type, parser->getLoc(), parser->getBuilder());
+    auto carryValue = parser->create<mlir::spirv::INotEqualOp>(res, zero);
+    parser->storeRegister(carry, carryValue);
+  }
 }
 
 void ASHROp::create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OpSrc src1, OperandType_t type) {
@@ -410,9 +551,11 @@ void ASHROp::create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OpSrc sr
   mlir::Value res = parser->create<mlir::spirv::ShiftRightArithmeticOp>(type, value0, shiftValue);
   res             = parser->storeRegister(dst, res);
 
-  auto zero       = mlir::spirv::ConstantOp::getZero(type, parser->getLoc(), parser->getBuilder());
-  auto carryValue = parser->create<mlir::spirv::INotEqualOp>(res, zero);
-  parser->storeRegister(carry, carryValue);
+  if (carry.kind.isValid()) {
+    auto zero       = mlir::spirv::ConstantOp::getZero(type, parser->getLoc(), parser->getBuilder());
+    auto carryValue = parser->create<mlir::spirv::INotEqualOp>(res, zero);
+    parser->storeRegister(carry, carryValue);
+  }
 }
 
 void BitfieldMaskOp::create(Parser* parser, OpDst dst, OpSrc width, OpSrc offset, OperandType_t type) {
@@ -425,7 +568,7 @@ void BitfieldMaskOp::create(Parser* parser, OpDst dst, OpSrc width, OpSrc offset
 
   auto        zero  = mlir::spirv::ConstantOp::getZero(type, parser->getLoc(), parser->getBuilder());
   auto        value = parser->create<mlir::arith::ConstantIntOp>(type, -1);
-  mlir::Value res   = parser->create<mlir::spirv::BitFieldInsertOp>(type, zero, value, widthValue, offsetValue);
+  mlir::Value res   = parser->create<mlir::spirv::BitFieldInsertOp>(type, zero, value, offsetValue, widthValue);
   res               = parser->storeRegister(dst, res);
 }
 
@@ -436,10 +579,10 @@ void BitfieldExtractUIOp::create(Parser* parser, OpDst dst, OpDst carry, OpSrc s
   auto zero        = mlir::spirv::ConstantOp::getZero(parser->types().i32(), parser->getLoc(), parser->getBuilder());
   auto bitwidth    = parser->create<mlir::arith::ConstantIntOp>(parser->types().i32(), type.getIntOrFloatBitWidth() > 32 ? 6 : 5);
   auto widthOffset = parser->create<mlir::arith::ConstantIntOp>(parser->types().i32(), 16);
-  auto offset      = parser->create<mlir::spirv::BitFieldUExtractOp>(parser->types().i32(), packedValue, bitwidth, zero);
-  auto width       = parser->create<mlir::spirv::BitFieldUExtractOp>(parser->types().i32(), packedValue, bitwidth, widthOffset);
+  auto offset      = parser->create<mlir::spirv::BitFieldUExtractOp>(parser->types().i32(), packedValue, zero, bitwidth);
+  auto width       = parser->create<mlir::spirv::BitFieldUExtractOp>(parser->types().i32(), packedValue, widthOffset, bitwidth);
 
-  mlir::Value res = parser->create<mlir::spirv::BitFieldUExtractOp>(type, srcValue, width, offset);
+  mlir::Value res = parser->create<mlir::spirv::BitFieldUExtractOp>(type, srcValue, offset, width);
   res             = parser->storeRegister(dst, res);
 
   auto carryValue = parser->create<mlir::spirv::INotEqualOp>(res, mlir::spirv::ConstantOp::getZero(type, parser->getLoc(), parser->getBuilder()));
@@ -453,14 +596,16 @@ void BitfieldExtractSIOp::create(Parser* parser, OpDst dst, OpDst carry, OpSrc s
   auto zero        = mlir::spirv::ConstantOp::getZero(parser->types().i32(), parser->getLoc(), parser->getBuilder());
   auto bitwidth    = parser->create<mlir::arith::ConstantIntOp>(parser->types().i32(), type.getIntOrFloatBitWidth() > 32 ? 6 : 5);
   auto widthOffset = parser->create<mlir::arith::ConstantIntOp>(parser->types().i32(), 16);
-  auto offset      = parser->create<mlir::spirv::BitFieldUExtractOp>(parser->types().i32(), packedValue, bitwidth, zero);
-  auto width       = parser->create<mlir::spirv::BitFieldUExtractOp>(parser->types().i32(), packedValue, bitwidth, widthOffset);
+  auto offset      = parser->create<mlir::spirv::BitFieldUExtractOp>(parser->types().i32(), packedValue, zero, bitwidth);
+  auto width       = parser->create<mlir::spirv::BitFieldUExtractOp>(parser->types().i32(), packedValue, widthOffset, bitwidth);
 
-  mlir::Value res = parser->create<mlir::spirv::BitFieldSExtractOp>(type, srcValue, width, offset);
+  mlir::Value res = parser->create<mlir::spirv::BitFieldSExtractOp>(type, srcValue, offset, width);
   res             = parser->storeRegister(dst, res);
 
-  auto carryValue = parser->create<mlir::spirv::INotEqualOp>(res, mlir::spirv::ConstantOp::getZero(type, parser->getLoc(), parser->getBuilder()));
-  parser->storeRegister(carry, carryValue);
+  if (carry.kind.isValid()) {
+    auto carryValue = parser->create<mlir::spirv::INotEqualOp>(res, mlir::spirv::ConstantOp::getZero(type, parser->getLoc(), parser->getBuilder()));
+    parser->storeRegister(carry, carryValue);
+  }
 }
 
 void BitfieldInsertOp::create(Parser* parser, OpDst dst, OpSrc src, OpSrc value, OpSrc width, OpSrc offset, OperandType_t type) {
@@ -469,8 +614,8 @@ void BitfieldInsertOp::create(Parser* parser, OpDst dst, OpSrc src, OpSrc value,
   auto widthValue  = parser->loadRegister(width, parser->types().i32());
   auto offsetValue = parser->loadRegister(offset, parser->types().i32());
 
-  mlir::Value res = parser->create<mlir::spirv::BitFieldInsertOp>(type, srcValue, insertValue, widthValue, offsetValue);
-  res             = parser->storeRegister(dst, res);
+  mlir::Value res = parser->create<mlir::spirv::BitFieldInsertOp>(type, srcValue, insertValue, offsetValue, widthValue);
+  parser->storeRegister(dst, res);
 }
 
 void AbsDiffIOp::create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OpSrc src1, OperandType_t type) {
@@ -480,9 +625,217 @@ void AbsDiffIOp::create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OpSr
   mlir::Value res = parser->create<mlir::spirv::ISubOp>(type, value0, value1);
   res             = parser->storeRegister(dst, res);
 
-  auto zero       = mlir::spirv::ConstantOp::getZero(type, parser->getLoc(), parser->getBuilder());
-  auto carryValue = parser->create<mlir::spirv::INotEqualOp>(res, zero);
-  parser->storeRegister(carry, carryValue);
+  if (carry.kind.isValid()) {
+    auto zero       = mlir::spirv::ConstantOp::getZero(type, parser->getLoc(), parser->getBuilder());
+    auto carryValue = parser->create<mlir::spirv::INotEqualOp>(res, zero);
+    parser->storeRegister(carry, carryValue);
+  }
+}
+
+void ConvertFtoSIOp::create(Parser* parser, OpDst dst, OperandType_t dstType, OpSrc src, OperandType_t srcType, eMode roundMode) {
+  auto value0 = parser->loadRegister(src, srcType);
+  switch (roundMode) {
+    case eMode::Round: break;
+    case eMode::RPI: {
+      auto offset = parser->create<mlir::arith::ConstantFloatOp>((mlir::FloatType)srcType, llvm::APFloat(0.5f));
+      value0      = parser->create<mlir::spirv::FAddOp>(srcType, value0, offset);
+      value0      = parser->create<mlir::spirv::GLFloorOp>(srcType, value0);
+    } break;
+    case eMode::Floor: value0 = parser->create<mlir::spirv::GLFloorOp>(srcType, value0); break;
+  }
+
+  parser->storeRegister(dst, parser->create<mlir::spirv::ConvertFToSOp>(dstType, value0));
+}
+
+void ConvertFtoUIOp::create(Parser* parser, OpDst dst, OperandType_t dstType, OpSrc src, OperandType_t srcType) {
+  auto value0 = parser->loadRegister(src, srcType);
+  parser->storeRegister(dst, parser->create<mlir::spirv::ConvertFToSOp>(dstType, value0));
+}
+
+void ConvertUItoFOp::create(Parser* parser, OpDst dst, OperandType_t dstType, OpSrc src, OperandType_t srcType) {
+  auto value0 = parser->loadRegister(src, srcType);
+  parser->storeRegister(dst, parser->create<mlir::spirv::ConvertUToFOp>(dstType, value0));
+}
+
+void ConvertSItoFOp::create(Parser* parser, OpDst dst, OperandType_t dstType, OpSrc src, OperandType_t srcType) {
+  auto value0 = parser->loadRegister(src, srcType);
+  parser->storeRegister(dst, parser->create<mlir::spirv::ConvertSToFOp>(dstType, value0));
+}
+
+void ConvertFtoFOp::create(Parser* parser, OpDst dst, OperandType_t dstType, OpSrc src, OperandType_t srcType) {
+  auto value0 = parser->loadRegister(src, srcType);
+  parser->storeRegister(dst, parser->create<mlir::spirv::FConvertOp>(dstType, value0));
+}
+
+void ConvertSubPixelOffsetToFOp::create(Parser* parser, OpDst dst, OperandType_t dstType, OpSrc src, OperandType_t srcType) {
+  auto value0 = parser->loadRegister(src, srcType);
+
+  auto offset = mlir::spirv::ConstantOp::getZero(srcType, parser->getLoc(), parser->getBuilder());
+  auto width  = parser->loadRegister(OpSrc(4), srcType);
+  value0      = parser->create<mlir::spirv::BitFieldSExtractOp>(srcType, value0, offset, width);
+  value0      = parser->create<mlir::spirv::FConvertOp>(dstType, value0);
+
+  auto factor = parser->create<mlir::arith::ConstantFloatOp>((mlir::FloatType)dstType, llvm::APFloat(1.f / 16.f));
+  value0      = parser->create<mlir::spirv::FMulOp>(dstType, value0, factor);
+
+  parser->storeRegister(dst, value0);
+}
+
+void ConvertByteToFOp::create(Parser* parser, OpDst dst, OperandType_t dstType, OpSrc src, OperandType_t srcType, uint8_t index) {
+  auto value0 = parser->loadRegister(src, srcType);
+
+  auto offset = parser->loadRegister(OpSrc((uint32_t)sizeof(uint8_t) * index), srcType);
+  auto width  = parser->loadRegister(OpSrc(8), srcType);
+  value0      = parser->create<mlir::spirv::BitFieldUExtractOp>(srcType, value0, offset, width);
+  value0      = parser->create<mlir::spirv::FConvertOp>(dstType, value0);
+
+  parser->storeRegister(dst, value0);
+}
+
+void TruncOp::create(Parser* parser, OpDst dst, OpSrc src0, OperandType_t type) {
+  auto const v0 = parser->loadRegister(src0, type);
+  // todo new llvm release
+  // auto       res = parser->create<mlir::spirv::GLTruncOp>(type, v0);
+  // parser->storeRegister(dst, res);
+}
+
+void CeilOp::create(Parser* parser, OpDst dst, OpSrc src0, OperandType_t type) {
+  auto const v0  = parser->loadRegister(src0, type);
+  auto       res = parser->create<mlir::spirv::GLCeilOp>(type, v0);
+  parser->storeRegister(dst, res);
+}
+
+void FloorOp::create(Parser* parser, OpDst dst, OpSrc src0, OperandType_t type) {
+  auto const v0  = parser->loadRegister(src0, type);
+  auto       res = parser->create<mlir::spirv::GLFloorOp>(type, v0);
+  parser->storeRegister(dst, res);
+}
+
+void RoundEvenOp::create(Parser* parser, OpDst dst, OpSrc src0, OperandType_t type) {
+  auto const v0  = parser->loadRegister(src0, type);
+  auto       res = parser->create<mlir::spirv::GLRoundEvenOp>(type, v0);
+  parser->storeRegister(dst, res);
+}
+
+void FractOp::create(Parser* parser, OpDst dst, OpSrc src0, OperandType_t type) {
+  auto const v0  = parser->loadRegister(src0, type);
+  auto       res = parser->create<mlir::spirv::GLFractOp>(type, v0);
+  parser->storeRegister(dst, res);
+}
+
+void Exp2Op::create(Parser* parser, OpDst dst, OpSrc src0, OperandType_t type) {
+  auto const v0  = parser->loadRegister(src0, type);
+  auto       res = parser->create<mlir::spirv::GLExp2Op>(type, v0);
+  parser->storeRegister(dst, res);
+}
+
+void Log2Op::create(Parser* parser, OpDst dst, OpSrc src0, OperandType_t type) {
+  auto const  v0  = parser->loadRegister(src0, type);
+  mlir::Value res = parser->create<mlir::spirv::GLLog2Op>(type, v0);
+  parser->storeRegister(dst, res);
+}
+
+void RcpOp::create(Parser* parser, OpDst dst, OpSrc src0, OperandType_t type) {
+  auto const  v0  = parser->loadRegister(src0, type);
+  auto        one = parser->create<mlir::arith::ConstantFloatOp>((mlir::FloatType)type, llvm::APFloat(1.f));
+  mlir::Value res = parser->create<mlir::spirv::FDivOp>(type, one, v0);
+  parser->storeRegister(dst, res);
+}
+
+void RsqOp::create(Parser* parser, OpDst dst, OpSrc src0, OperandType_t type) {
+  auto const  v0  = parser->loadRegister(src0, type);
+  mlir::Value res = parser->create<mlir::spirv::GLInverseSqrtOp>(type, v0);
+  parser->storeRegister(dst, res);
+}
+
+void SqrtOp::create(Parser* parser, OpDst dst, OpSrc src0, OperandType_t type) {
+  auto const  v0  = parser->loadRegister(src0, type);
+  mlir::Value res = parser->create<mlir::spirv::GLSqrtOp>(type, v0);
+  parser->storeRegister(dst, res);
+}
+
+void SinOp::create(Parser* parser, OpDst dst, OpSrc src0, OperandType_t type) {
+  auto const  v0  = parser->loadRegister(src0, type);
+  mlir::Value res = parser->create<mlir::spirv::GLSinOp>(type, v0);
+  parser->storeRegister(dst, res);
+}
+
+void CosOp::create(Parser* parser, OpDst dst, OpSrc src0, OperandType_t type) {
+  auto const  v0  = parser->loadRegister(src0, type);
+  mlir::Value res = parser->create<mlir::spirv::GLCosOp>(type, v0);
+  parser->storeRegister(dst, res);
+}
+
+void GetExpOp::create(Parser* parser, OpDst dst, OperandType_t dstType, OpSrc src0, OperandType_t type) {
+  auto const  v0  = parser->loadRegister(src0, type);
+  mlir::Value res = parser->create<mlir::spirv::GLFrexpStructOp>(mlir::spirv::StructType::get({type, dstType}), v0);
+  parser->storeRegister(dst, parser->create<mlir::spirv::CompositeExtractOp>(res, llvm::ArrayRef(1)));
+}
+
+void GetMantOp::create(Parser* parser, OpDst dst, OperandType_t dstType, OpSrc src0, OperandType_t type) {
+  auto const  v0  = parser->loadRegister(src0, type);
+  mlir::Value res = parser->create<mlir::spirv::GLFrexpStructOp>(mlir::spirv::StructType::get({type, dstType}), v0);
+  parser->storeRegister(dst, parser->create<mlir::spirv::CompositeExtractOp>(res, llvm::ArrayRef(0)));
+}
+
+void LDExpOp::create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OperandType_t type) {
+  auto const  v0  = parser->loadRegister(src0, type);
+  auto const  v1  = parser->loadRegister(src1, type);
+  mlir::Value res = parser->create<mlir::spirv::GLLdexpOp>(type, v0, v1);
+  parser->storeRegister(dst, res);
+}
+
+void ConvertPackSnormOp::create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1) {
+  auto const v0 = parser->loadRegister(src0, parser->types().f32());
+  auto const v1 = parser->loadRegister(src1, parser->types().f32());
+
+  auto        vec = parser->create<mlir::spirv::CompositeConstructOp>(parser->types().vec2xf32(), mlir::ValueRange {v0, v1});
+  mlir::Value res = parser->create<mlir::spirv::GLPackSnorm2x16Op>(parser->types().i32(), vec);
+  parser->storeRegister(dst, res);
+}
+
+void ConvertPackUnormOp::create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1) {
+  auto const v0 = parser->loadRegister(src0, parser->types().f32());
+  auto const v1 = parser->loadRegister(src1, parser->types().f32());
+
+  auto        vec = parser->create<mlir::spirv::CompositeConstructOp>(parser->types().vec2xf32(), mlir::ValueRange {v0, v1});
+  mlir::Value res = parser->create<mlir::spirv::GLPackUnorm2x16Op>(parser->types().i32(), vec);
+  parser->storeRegister(dst, res);
+}
+
+void ConvertPackF32Op::create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1) {
+  auto const v0 = parser->loadRegister(src0, parser->types().f32());
+  auto const v1 = parser->loadRegister(src1, parser->types().f32());
+
+  auto        vec = parser->create<mlir::spirv::CompositeConstructOp>(parser->types().vec2xf32(), mlir::ValueRange {v0, v1});
+  mlir::Value res = parser->create<mlir::spirv::GLPackHalf2x16Op>(parser->types().i32(), vec);
+  parser->storeRegister(dst, res);
+}
+
+void ConvertPackUI32Op::create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1) {
+  auto const v0 = parser->loadRegister(src0, parser->types().i32());
+  auto const v1 = parser->loadRegister(src1, parser->types().i32());
+
+  auto        offsetValue = parser->loadRegister(OpSrc(16), parser->types().i32());
+  auto        widthValue  = parser->loadRegister(OpSrc(16), parser->types().i32());
+  mlir::Value res         = parser->create<mlir::spirv::BitFieldInsertOp>(v0, v1, offsetValue, widthValue);
+  parser->storeRegister(dst, res);
+}
+
+void ConvertPackSI32Op::create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1) {
+  auto v0 = parser->loadRegister(src0, parser->types().i32());
+  auto v1 = parser->loadRegister(src1, parser->types().i32());
+
+  auto minValue = parser->loadRegister(OpSrc(-0x8000), parser->types().i32());
+  auto maxValue = parser->loadRegister(OpSrc(0x7fff), parser->types().i32());
+
+  v0 = parser->create<mlir::spirv::GLSClampOp>(parser->types().i32(), v0, minValue, maxValue);
+  v1 = parser->create<mlir::spirv::GLSClampOp>(parser->types().i32(), v1, minValue, maxValue);
+
+  auto        offsetValue = parser->loadRegister(OpSrc(16), parser->types().i32());
+  auto        widthValue  = parser->loadRegister(OpSrc(16), parser->types().i32());
+  mlir::Value res         = parser->create<mlir::spirv::BitFieldInsertOp>(v0, v1, offsetValue, widthValue);
+  parser->storeRegister(dst, res);
 }
 
 } // namespace compiler::frontend::op

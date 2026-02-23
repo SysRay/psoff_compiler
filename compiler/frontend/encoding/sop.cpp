@@ -9,9 +9,6 @@
 #include <stdexcept>
 
 // mlir
-#include "mlir/custom.h"
-
-#include <mlir/Dialect/Arith/IR/Arith.h>
 #include <mlir/Dialect/ControlFlow/IR/ControlFlowOps.h>
 #include <mlir/Dialect/Func/IR/FuncOps.h>
 
@@ -330,40 +327,40 @@ uint8_t Parser::handleSopc(CodeBlock& cb, pc_t pc, uint32_t const* pCode) {
 
   switch (op) {
     case eOpcode::S_CMP_EQ_I32: {
-      parse<op::CmpIOp>(op::eCmpIPredicate::eq, sdst, src0, src1, types().i32());
+      parse<op::CmpOp>(op::eCmpIPredicate::eq, sdst, src0, src1, types().i32());
     } break;
     case eOpcode::S_CMP_LG_I32: {
-      parse<op::CmpIOp>(op::eCmpIPredicate::ne, sdst, src0, src1, types().i32());
+      parse<op::CmpOp>(op::eCmpIPredicate::ne, sdst, src0, src1, types().i32());
     } break;
     case eOpcode::S_CMP_GT_I32: {
-      parse<op::CmpIOp>(op::eCmpIPredicate::sgt, sdst, src0, src1, types().i32());
+      parse<op::CmpOp>(op::eCmpIPredicate::sgt, sdst, src0, src1, types().i32());
     } break;
     case eOpcode::S_CMP_GE_I32: {
-      parse<op::CmpIOp>(op::eCmpIPredicate::sge, sdst, src0, src1, types().i32());
+      parse<op::CmpOp>(op::eCmpIPredicate::sge, sdst, src0, src1, types().i32());
     } break;
     case eOpcode::S_CMP_LT_I32: {
-      parse<op::CmpIOp>(op::eCmpIPredicate::slt, sdst, src0, src1, types().i32());
+      parse<op::CmpOp>(op::eCmpIPredicate::slt, sdst, src0, src1, types().i32());
     } break;
     case eOpcode::S_CMP_LE_I32: {
-      parse<op::CmpIOp>(op::eCmpIPredicate::sle, sdst, src0, src1, types().i32());
+      parse<op::CmpOp>(op::eCmpIPredicate::sle, sdst, src0, src1, types().i32());
     } break;
     case eOpcode::S_CMP_EQ_U32: {
-      parse<op::CmpIOp>(op::eCmpIPredicate::eq, sdst, src0, src1, types().i32());
+      parse<op::CmpOp>(op::eCmpIPredicate::eq, sdst, src0, src1, types().i32());
     } break;
     case eOpcode::S_CMP_LG_U32: {
-      parse<op::CmpIOp>(op::eCmpIPredicate::ne, sdst, src0, src1, types().i32());
+      parse<op::CmpOp>(op::eCmpIPredicate::ne, sdst, src0, src1, types().i32());
     } break;
     case eOpcode::S_CMP_GT_U32: {
-      parse<op::CmpIOp>(op::eCmpIPredicate::ugt, sdst, src0, src1, types().i32());
+      parse<op::CmpOp>(op::eCmpIPredicate::ugt, sdst, src0, src1, types().i32());
     } break;
     case eOpcode::S_CMP_GE_U32: {
-      parse<op::CmpIOp>(op::eCmpIPredicate::uge, sdst, src0, src1, types().i32());
+      parse<op::CmpOp>(op::eCmpIPredicate::uge, sdst, src0, src1, types().i32());
     } break;
     case eOpcode::S_CMP_LT_U32: {
-      parse<op::CmpIOp>(op::eCmpIPredicate::ult, sdst, src0, src1, types().i32());
+      parse<op::CmpOp>(op::eCmpIPredicate::ult, sdst, src0, src1, types().i32());
     } break;
     case eOpcode::S_CMP_LE_U32: {
-      parse<op::CmpIOp>(op::eCmpIPredicate::ule, sdst, src0, src1, types().i32());
+      parse<op::CmpOp>(op::eCmpIPredicate::ule, sdst, src0, src1, types().i32());
     } break;
     case eOpcode::S_BITCMP0_B32: {
       parse<op::IsBitClearOp>(sdst, src0, src1, types().i32());
@@ -408,40 +405,40 @@ uint8_t Parser::handleSopk(CodeBlock& cb, pc_t pc, uint32_t const* pCode) {
       parse<op::CMoveOp>(sdst, OpSrc(eOperandKind::SCC()), src0, OpSrc(sdst.kind), types().i32());
     } break;
     case eOpcode::S_CMPK_EQ_I32: {
-      parse<op::CmpIOp>(op::eCmpIPredicate::eq, sdst, OpSrc(sdst.kind), src0, types().i32());
+      parse<op::CmpOp>(op::eCmpIPredicate::eq, sdst, OpSrc(sdst.kind), src0, types().i32());
     } break;
     case eOpcode::S_CMPK_LG_I32: {
-      parse<op::CmpIOp>(op::eCmpIPredicate::ne, sdst, OpSrc(sdst.kind), src0, types().i32());
+      parse<op::CmpOp>(op::eCmpIPredicate::ne, sdst, OpSrc(sdst.kind), src0, types().i32());
     } break;
     case eOpcode::S_CMPK_GT_I32: {
-      parse<op::CmpIOp>(op::eCmpIPredicate::sgt, sdst, OpSrc(sdst.kind), src0, types().i32());
+      parse<op::CmpOp>(op::eCmpIPredicate::sgt, sdst, OpSrc(sdst.kind), src0, types().i32());
     } break;
     case eOpcode::S_CMPK_GE_I32: {
-      parse<op::CmpIOp>(op::eCmpIPredicate::sge, sdst, OpSrc(sdst.kind), src0, types().i32());
+      parse<op::CmpOp>(op::eCmpIPredicate::sge, sdst, OpSrc(sdst.kind), src0, types().i32());
     } break;
     case eOpcode::S_CMPK_LT_I32: {
-      parse<op::CmpIOp>(op::eCmpIPredicate::slt, sdst, OpSrc(sdst.kind), src0, types().i32());
+      parse<op::CmpOp>(op::eCmpIPredicate::slt, sdst, OpSrc(sdst.kind), src0, types().i32());
     } break;
     case eOpcode::S_CMPK_LE_I32: {
-      parse<op::CmpIOp>(op::eCmpIPredicate::sle, sdst, OpSrc(sdst.kind), src0, types().i32());
+      parse<op::CmpOp>(op::eCmpIPredicate::sle, sdst, OpSrc(sdst.kind), src0, types().i32());
     } break;
     case eOpcode::S_CMPK_EQ_U32: {
-      parse<op::CmpIOp>(op::eCmpIPredicate::eq, sdst, OpSrc(sdst.kind), src0, types().i32());
+      parse<op::CmpOp>(op::eCmpIPredicate::eq, sdst, OpSrc(sdst.kind), src0, types().i32());
     } break;
     case eOpcode::S_CMPK_LG_U32: {
-      parse<op::CmpIOp>(op::eCmpIPredicate::ne, sdst, OpSrc(sdst.kind), src0, types().i32());
+      parse<op::CmpOp>(op::eCmpIPredicate::ne, sdst, OpSrc(sdst.kind), src0, types().i32());
     } break;
     case eOpcode::S_CMPK_GT_U32: {
-      parse<op::CmpIOp>(op::eCmpIPredicate::ugt, sdst, OpSrc(sdst.kind), src0, types().i32());
+      parse<op::CmpOp>(op::eCmpIPredicate::ugt, sdst, OpSrc(sdst.kind), src0, types().i32());
     } break;
     case eOpcode::S_CMPK_GE_U32: {
-      parse<op::CmpIOp>(op::eCmpIPredicate::uge, sdst, OpSrc(sdst.kind), src0, types().i32());
+      parse<op::CmpOp>(op::eCmpIPredicate::uge, sdst, OpSrc(sdst.kind), src0, types().i32());
     } break;
     case eOpcode::S_CMPK_LT_U32: {
-      parse<op::CmpIOp>(op::eCmpIPredicate::ult, sdst, OpSrc(sdst.kind), src0, types().i32());
+      parse<op::CmpOp>(op::eCmpIPredicate::ult, sdst, OpSrc(sdst.kind), src0, types().i32());
     } break;
     case eOpcode::S_CMPK_LE_U32: {
-      parse<op::CmpIOp>(op::eCmpIPredicate::ule, sdst, OpSrc(sdst.kind), src0, types().i32());
+      parse<op::CmpOp>(op::eCmpIPredicate::ule, sdst, OpSrc(sdst.kind), src0, types().i32());
     } break;
     case eOpcode::S_ADDK_I32: {
       parse<op::AddSIOp>(sdst, OpDst(eOperandKind::SCC()), OpSrc(sdst.kind), src0, types().i32());

@@ -309,6 +309,12 @@ mlir::Value Parser::storeRegister(OpDst dst, mlir::Value value) {
   _mlirBuilder.create<mlir::psoff::StoreOp>(_defaultLocation, _mlirBuilder.getIndexAttr((uint32_t)dst.kind.value()), value);
 
   // todo handle flags
+
+  //   auto floatMax = parser->create<mlir::arith::ConstantFloatOp>((mlir::FloatType)type, llvm::APFloat(std::numeric_limits<float>::max()));
+  // auto floatMin = parser->create<mlir::arith::ConstantFloatOp>((mlir::FloatType)type, llvm::APFloat(std::numeric_limits<float>::min()));
+  // res           = parser->create<mlir::spirv::GLFClampOp>(res, floatMin, floatMax);
+
+  // isNan value = +0.f
   return value;
 }
 } // namespace compiler::frontend

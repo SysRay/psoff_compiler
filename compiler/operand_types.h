@@ -18,14 +18,18 @@ struct OperandTypeCache {
 
   mlir::Type i64() const { return _types[4]; }
 
-  mlir::Type f32() const { return _types[5]; }
+  mlir::Type f16() const { return _types[5]; }
 
-  mlir::Type f64() const { return _types[6]; }
+  mlir::Type f32() const { return _types[6]; }
+
+  mlir::Type f64() const { return _types[7]; }
+
+  mlir::Type vec2xf32() const { return _types[8]; }
 
   OperandTypeCache(mlir::MLIRContext* ctx);
 
   private:
-  std::array<mlir::Type, 7> _types;
+  std::array<mlir::Type, 9> _types;
 };
 
 } // namespace compiler
