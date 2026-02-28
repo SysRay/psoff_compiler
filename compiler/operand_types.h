@@ -1,0 +1,37 @@
+#pragma once
+
+#include "util/common.h"
+
+#include <mlir/IR/BuiltinTypes.h>
+
+namespace compiler {
+struct OperandTypeCache {
+  CLASS_NO_COPY(OperandTypeCache);
+
+  mlir::Type i1() const { return _types[0]; }
+
+  mlir::Type i8() const { return _types[1]; }
+
+  mlir::Type i16() const { return _types[2]; }
+
+  mlir::Type i32() const { return _types[3]; }
+
+  mlir::Type i64() const { return _types[4]; }
+
+  mlir::Type f16() const { return _types[5]; }
+
+  mlir::Type f32() const { return _types[6]; }
+
+  mlir::Type f64() const { return _types[7]; }
+
+  mlir::Type vec2xf32() const { return _types[8]; }
+
+  mlir::Type vec4xf32() const { return _types[9]; }
+
+  OperandTypeCache(mlir::MLIRContext* ctx);
+
+  private:
+  std::array<mlir::Type, 10> _types;
+};
+
+} // namespace compiler

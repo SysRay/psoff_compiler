@@ -31,15 +31,15 @@ static void printKind(std::ostream& os, eOperandKind kind, uint16_t numdw, bool 
     }
   } else {
     if (is64bit) {
-      switch (kind.base()) {
+      switch (kind.value()) {
         case eOperandKind::eBase::VccLo: os << "VCC"; break;
         case eOperandKind::eBase::CUSTOM_UNSET: os << "NOT_SET"; break;
         case eOperandKind::eBase::ExecLo: os << "EXEC"; break;
         case eOperandKind::eBase::Literal: os << "LITERAL"; break;
-        default: os << "UNK" << std::dec << (uint16_t)kind.base(); break;
+        default: os << "UNK" << std::dec << (uint16_t)kind.value(); break;
       }
     } else {
-      switch (kind.base()) {
+      switch (kind.value()) {
         case eOperandKind::eBase::VccLo: os << "VCC_LO"; break;
         case eOperandKind::eBase::VccHi: os << "VCC_HI"; break;
         case eOperandKind::eBase::M0: os << "M0"; break;
@@ -54,7 +54,7 @@ static void printKind(std::ostream& os, eOperandKind kind, uint16_t numdw, bool 
         case eOperandKind::eBase::Scc: os << "SCC"; break;
         case eOperandKind::eBase::LdsDirect: os << "DIRECT"; break;
         case eOperandKind::eBase::Literal: os << "LITERAL"; break;
-        default: os << "UNK" << std::dec << (uint16_t)kind.base(); break;
+        default: os << "UNK" << std::dec << (uint16_t)kind.value(); break;
       }
     }
   }

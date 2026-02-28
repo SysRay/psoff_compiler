@@ -75,7 +75,7 @@ struct eOperandKind {
 
   constexpr eKind kind() const noexcept { return (eKind)_v.bits.kind; }
 
-  constexpr eBase base() const noexcept { return (eBase)_v.bits.base; }
+  constexpr eBase value() const noexcept { return (eBase)_v.bits.base; }
 
   constexpr bool is64bit() const noexcept { return _v.bits.b64; }
 

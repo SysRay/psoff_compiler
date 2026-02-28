@@ -56,8 +56,8 @@ InstructionKind_t handleSop1(parser::Context& ctx, parser::pc_t pc, parser::code
     } break;
     case eOpcode::S_WQM_B32:
     case eOpcode::S_WQM_B64: {
-      if (eOperandKind(sdst.kind).base() != eOperandKind::eBase::ExecLo || eOperandKind(src0.kind).base() != eOperandKind::eBase::ExecLo) {
-        throw std::runtime_error(std::format("missing wqm {}", (uint16_t)eOperandKind(src0.kind).base()));
+      if (eOperandKind(sdst.kind).value() != eOperandKind::eBase::ExecLo || eOperandKind(src0.kind).value() != eOperandKind::eBase::ExecLo) {
+        throw std::runtime_error(std::format("missing wqm {}", (uint16_t)eOperandKind(src0.kind).value()));
       }
     } break;
     case eOpcode::S_BREV_B32: {

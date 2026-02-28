@@ -1,4 +1,3 @@
-
 option(ENABLE_DEFAULT_LOGGING "printf logs" OFF)
 
 add_library(psOff_recompiler STATIC
