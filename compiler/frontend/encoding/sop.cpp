@@ -289,7 +289,7 @@ uint8_t Parser::handleSop2(CodeBlock& cb, pc_t pc, uint32_t const* pCode) {
       parse<op::BitfieldMaskOp>(sdst, src0, src1, types().i64());
     } break;
     case eOpcode::S_MUL_I32: {
-      parse<op::MulSIOp>(sdst, src0, src1, types().i32());
+      parse<op::MulIOp>(sdst, src0, src1, types().i32());
     } break;
     case eOpcode::S_BFE_U32: {
       parse<op::BitfieldExtractUIOp>(sdst, OpDst(eOperandKind::SCC()), src0, src1, types().i32());
@@ -444,7 +444,7 @@ uint8_t Parser::handleSopk(CodeBlock& cb, pc_t pc, uint32_t const* pCode) {
       parse<op::AddSIOp>(sdst, OpDst(eOperandKind::SCC()), OpSrc(sdst.kind), src0, types().i32());
     } break;
     case eOpcode::S_MULK_I32: {
-      parse<op::MulSIOp>(sdst, OpSrc(sdst.kind), src0, types().i32());
+      parse<op::MulIOp>(sdst, OpSrc(sdst.kind), src0, types().i32());
     } break;
     // case eOpcode::S_CBRANCH_I_FORK: {
     // } break;

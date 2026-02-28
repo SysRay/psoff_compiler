@@ -25,7 +25,7 @@ def RegisterSSAPass : Pass<"registerSSA", "mlir::func::FuncOp"> {
   let constructor = "mlir::createRegisterSSAPass()";
 }
 
-def PSOFF_IndirectBranch : Op<PSOFFDialect,"IndirectBranch"> {
+def IndirectBranch : Op<PSOFFDialect,"IndirectBranch"> {
   let summary = "Branch to a target using a variable";
   let description = [{
     Branches to a target using a variable as destination.
@@ -34,7 +34,7 @@ def PSOFF_IndirectBranch : Op<PSOFFDialect,"IndirectBranch"> {
   let results = (outs);
 }
 
-def PSOFF_LoadOp : Op<PSOFFDialect, "load", [Pure]> {
+def LoadOp : Op<PSOFFDialect, "load", [Pure]> {
   let summary = "Load a value into the register identified by an unsigned ID";
   let description = [{
     Loads a value from memory into the register specified by a compile-time constant unsigned integer ID.
@@ -48,7 +48,7 @@ def PSOFF_LoadOp : Op<PSOFFDialect, "load", [Pure]> {
   let hasCustomAssemblyFormat = 1;
 }
 
-def PSOFF_StoreOp : Op<PSOFFDialect, "store", [Pure]> {
+def StoreOp : Op<PSOFFDialect, "store", [Pure]> {
   let summary = "Store a value from an register";
   let description = [{
     Stores a value from the specified register into memory.
@@ -60,7 +60,7 @@ def PSOFF_StoreOp : Op<PSOFFDialect, "store", [Pure]> {
   let hasCustomAssemblyFormat = 1;
 }
 
-def PSOFF_Create64bOp : Op<PSOFFDialect, "create64b", [Pure]> {
+def Create64bOp : Op<PSOFFDialect, "create64b", [Pure]> {
   let summary = "Create i64 from two i32 values (low, high)";
   let description = [{
     Combines two i32 values into one i64: result = (high << 32) | low.
@@ -79,7 +79,7 @@ def PSOFF_Create64bOp : Op<PSOFFDialect, "create64b", [Pure]> {
   let hasCanonicalizer = 1;
 }
 
-def PSOFF_Split64bOp : Op<PSOFFDialect, "split64b", [Pure]> {
+def Split64bOp : Op<PSOFFDialect, "split64b", [Pure]> {
   let summary = "Split i64 into two i32 values (low, high)";
   let description = [{
     Extracts the lower and upper 32 bits of a 64-bit integer.
@@ -96,4 +96,33 @@ def PSOFF_Split64bOp : Op<PSOFFDialect, "split64b", [Pure]> {
 
   let hasFolder = 1;
   let hasCanonicalizer = 1;
+}
+
+def GetAttributeOp : Op<PSOFFDialect, "GetAttribute"> {
+  let summary = "load f32 input at location";
+  let description = [{
+
+  }];
+
+  let arguments = (ins
+    I32Attr:$index,
+    I32Attr:$channel
+  );
+
+  let results = (outs
+    F32:$data
+  );
+}
+
+def WriteOutputOp : Op<PSOFFDialect, "WriteOutput", [MemoryEffects<[MemWrite]>]> {
+  let summary = "write vec4xf32 to location (depends on shader type)";
+  let description = [{
+
+  }];
+
+  let arguments = (ins
+    I32Attr:$pos,
+    I1:$exec,
+    VectorOfRankAndType<[1], [F32]>:$data
+  );
 }

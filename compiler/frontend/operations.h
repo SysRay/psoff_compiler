@@ -114,8 +114,9 @@ struct SubFOp {
   static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OperandType_t type);
 };
 
-struct MulSIOp {
+struct MulIOp {
   static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OperandType_t type);
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OperandType_t type, bool isSigned, bool retHigh);
 };
 
 struct Mul24IOp {
@@ -128,6 +129,10 @@ struct MulFOp {
 
 struct FmaOp {
   static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OpSrc add, OperandType_t type);
+};
+
+struct FmaI24Op {
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OpSrc add, bool isSigned);
 };
 
 struct CmpOp {
@@ -145,26 +150,44 @@ struct IsBitClearOp {
 
 struct MinUIOp {
   static void create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OpSrc src1, OperandType_t type);
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType_t type);
 };
 
 struct MaxUIOp {
   static void create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OpSrc src1, OperandType_t type);
-};
-
-struct MaxFOp {
-  static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OperandType_t type, bool legacy = false);
-};
-
-struct MinFOp {
-  static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OperandType_t type, bool legacy = false);
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType_t type);
 };
 
 struct MinSIOp {
   static void create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OpSrc src1, OperandType_t type);
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType_t type);
 };
 
 struct MaxSIOp {
   static void create(Parser* parser, OpDst dst, OpDst carry, OpSrc src0, OpSrc src1, OperandType_t type);
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType_t type);
+};
+
+struct MaxFOp {
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OperandType_t type, bool legacy = false);
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType_t type);
+};
+
+struct MinFOp {
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OperandType_t type, bool legacy = false);
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType_t type);
+};
+
+struct MedFOp {
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType_t type);
+};
+
+struct MedSIOp {
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType_t type);
+};
+
+struct MedUIOp {
+  static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1, OpSrc src2, OperandType_t type);
 };
 
 struct AndIOp {
@@ -197,14 +220,17 @@ struct BitfieldMaskOp {
 
 struct BitfieldExtractUIOp {
   static void create(Parser* parser, OpDst dst, OpDst carry, OpSrc src, OpSrc packed, OperandType_t type);
+  static void create(Parser* parser, OpDst dst, OpSrc src, OpSrc offset, OpSrc width, OperandType_t type);
 };
 
 struct BitfieldInsertOp {
   static void create(Parser* parser, OpDst dst, OpSrc src, OpSrc value, OpSrc width, OpSrc offset, OperandType_t type);
+  static void create(Parser* parser, OpDst dst, OpSrc mask, OpSrc src0, OpSrc src1, OperandType_t type);
 };
 
 struct BitfieldExtractSIOp {
   static void create(Parser* parser, OpDst dst, OpDst carry, OpSrc src, OpSrc packed, OperandType_t type);
+  static void create(Parser* parser, OpDst dst, OpSrc src, OpSrc offset, OpSrc width, OperandType_t type);
 };
 
 struct AbsDiffIOp {
@@ -326,6 +352,10 @@ struct ConvertPackSI32Op {
 
 struct ConvertPackUI32Op {
   static void create(Parser* parser, OpDst dst, OpSrc src0, OpSrc src1);
+};
+
+struct ConvertPackUI8Op {
+  static void create(Parser* parser, OpDst dst, OpSrc src, OpSrc pos, OpSrc packed);
 };
 
 struct SaveExecOp {

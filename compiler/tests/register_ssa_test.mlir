@@ -1,4 +1,4 @@
-// RUN: mlir-opt --registerSSA --remove-dead-values %s | FileCheck %s
+// RUN: mlir-opt-psoff --registerSSA --remove-dead-values %s | FileCheck %s
 
 // CHECK-LABEL: func.func @simple
 // CHECK-SAME: (%[[ARG0:.*]]: f32) -> i1
@@ -133,4 +133,17 @@ func.func @simpleIfDiffTypes(%arg0: i64, %arg1: i1) -> i64 {
   %4 = psoff.load v[2] : i64
   %res = arith.addi %3, %4 : i64
   return %res : i64
+}
+
+
+func.func @bool(%arg0: i1) -> i1 {
+  psoff.store s[0] = %arg0 : i1
+
+  %2 = psoff.load s[0] : i64
+
+  %res = arith.addi %2, %2 : i64
+  psoff.store EXEC = %res : i64
+
+  %exec = psoff.load EXEC_LO : i1
+  return %exec : i1
 }

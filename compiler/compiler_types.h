@@ -13,4 +13,8 @@ enum class ShaderBuildFlags : uint16_t {
   WITHDUMP = (1 << 3),
 };
 
+struct ShaderBuildFeatures {
+  bool withFragmentShaderBarycentric = false; ///< False: Emulate VK_KHR_FRAGMENT_SHADER_BARYCENTRIC
+};
+
 } // namespace compiler

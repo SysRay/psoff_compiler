@@ -9,12 +9,13 @@
 int main(int argc, char** argv) {
   mlir::DialectRegistry registry;
 
-  registry.insert<mlir::BuiltinDialect>();
-  registry.insert<mlir::func::FuncDialect>();
-  registry.insert<mlir::arith::ArithDialect>();
-  registry.insert<mlir::scf::SCFDialect>();
-  registry.insert<mlir::cf::ControlFlowDialect>();
-  registry.insert<mlir::psoff::PSOFFDialect>();
+  registry.insert<mlir::BuiltinDialect, mlir::func::FuncDialect, mlir::arith::ArithDialect, mlir::scf::SCFDialect, mlir::cf::ControlFlowDialect,
+                  mlir::psoff::PSOFFDialect, mlir::spirv::SPIRVDialect>();
+
+  registry.addExtension(+[](mlir::MLIRContext* ctx) {
+    ctx->loadDialect<mlir::func::FuncDialect, mlir::arith::ArithDialect, mlir::scf::SCFDialect, mlir::cf::ControlFlowDialect, mlir::spirv::SPIRVDialect,
+                     mlir::psoff::PSOFFDialect>();
+  });
 
   compiler::util::BumpAllocator allocator;
   mlir::registerPass([&allocator] { return mlir::psoff::createRegisterSSAPass(allocator); });

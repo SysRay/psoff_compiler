@@ -73,10 +73,10 @@ static bool createDump(CompilerCtx& ctx, frontend::ShaderHeader const* header, u
   return true;
 }
 
-bool createShader(frontend::ShaderStage stage, uint32_t id, frontend::ShaderHeader const* header, uint32_t const* gpuRegs,
+bool createShader(frontend::ShaderStage stage, uint32_t id, frontend::ShaderHeader const* header, uint32_t const* gpuRegs, ShaderBuildFeatures const& features,
                   util::Flags<ShaderBuildFlags> buildFlags) {
 
-  CompilerCtx compilerCtx(buildFlags);
+  CompilerCtx compilerCtx(features, buildFlags);
 
   if (buildFlags.is_set(ShaderBuildFlags::ISDEBUG) || buildFlags.is_set(ShaderBuildFlags::WITHDUMP)) {
     compilerCtx.setName(std::format("{}_{:#x}_{}", getFileTpye(stage), header->hash0, id));
@@ -119,7 +119,7 @@ bool createShader(frontend::ShaderStage stage, uint32_t id, frontend::ShaderHead
   return result;
 }
 
-bool createShader(ShaderDump_t const& dump, util::Flags<ShaderBuildFlags> buildFlags) {
+bool createShader(ShaderDump_t const& dump, ShaderBuildFeatures const& features, util::Flags<ShaderBuildFlags> buildFlags) {
   buildFlags.set(ShaderBuildFlags::ISDUMP);
 
   size_t         start   = 0;
@@ -135,7 +135,7 @@ bool createShader(ShaderDump_t const& dump, util::Flags<ShaderBuildFlags> buildF
     return false;
   }
 
-  CompilerCtx compilerCtx(buildFlags);
+  CompilerCtx compilerCtx(features, buildFlags);
 
   auto& shaderInput = compilerCtx.getShaderInput();
   shaderInput       = data.shaderInput;

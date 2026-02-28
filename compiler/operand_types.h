@@ -26,10 +26,12 @@ struct OperandTypeCache {
 
   mlir::Type vec2xf32() const { return _types[8]; }
 
+  mlir::Type vec4xf32() const { return _types[9]; }
+
   OperandTypeCache(mlir::MLIRContext* ctx);
 
   private:
-  std::array<mlir::Type, 9> _types;
+  std::array<mlir::Type, 10> _types;
 };
 
 } // namespace compiler

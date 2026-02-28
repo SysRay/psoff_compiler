@@ -259,7 +259,8 @@ void Parser::process() {
     curBlock.pc_end     = pc;
     hostMemory->size_dw = std::max(hostMemory->size_dw, (uint32_t((pc - hostMemory->pc) / sizeof(uint32_t)))); // update shader size
 
-    if (curBlock.mlirBlock->empty() || !curBlock.mlirBlock->getTerminator()) {
+    if (!curBlock.mlirBlock->mightHaveTerminator()) {
+      LOG(eLOG_TYPE::DEBUG, "Parse| Falltrough pc:0x{:x}->0x{:x}", curBlock.pc_start, curBlock.pc_end);
       // Note: handle Falltrough
       auto target = getOrCreateBlock(pc, curBlock.mlirBlock->getParent());
       _mlirBuilder.create<mlir::cf::BranchOp>(_defaultLocation, target->mlirBlock);
@@ -306,6 +307,15 @@ mlir::Value Parser::loadRegister(OpSrc src, mlir::Type type) {
 }
 
 mlir::Value Parser::storeRegister(OpDst dst, mlir::Value value) {
+  // if (value.getType().getIntOrFloatBitWidth() == 1 && dst.kind.is64bit()) {
+  //   // Special case: Handle each bool as i64 (if 64 bit register)
+  //   auto const targetType = types().i64();
+
+  //   auto zero = mlir::spirv::ConstantOp::getZero(targetType, getLoc(), _mlirBuilder);
+  //   auto one  = mlir::spirv::ConstantOp::getOne(targetType, getLoc(), _mlirBuilder);
+  //   value     = create<mlir::spirv::SelectOp>(targetType, value, one, zero);
+  // }
+
   _mlirBuilder.create<mlir::psoff::StoreOp>(_defaultLocation, _mlirBuilder.getIndexAttr((uint32_t)dst.kind.value()), value);
 
   // todo handle flags

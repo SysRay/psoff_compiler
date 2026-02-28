@@ -24,9 +24,9 @@ struct HostMapping {
 
 class CompilerCtx {
   public:
-  CompilerCtx(util::Flags<ShaderBuildFlags> const& flags = {});
+  CompilerCtx(ShaderBuildFeatures const& features, util::Flags<ShaderBuildFlags> const& flags = {});
 
-  std::string_view getName() const { return _name.data(); }
+  inline std::string_view getName() const { return _name.data(); }
 
   void setName(std::string_view name) {
     auto const pos = name.copy(_name.data(), sizeof(_name) - 1);
@@ -39,13 +39,13 @@ class CompilerCtx {
 
   void setHostMapping(uint64_t pc, uint32_t const* vaddr, uint32_t size_dw = 0);
 
-  auto getContext() { return &_mlirCtx; }
+  inline auto getContext() { return &_mlirCtx; }
 
-  auto getModule() { return &_mlirModule; }
+  inline auto getModule() { return &_mlirModule; }
 
-  auto& getShaderInput() { return _shaderInput; }
+  inline auto& getShaderInput() { return _shaderInput; }
 
-  auto& getShaderInput() const { return _shaderInput; }
+  inline auto& getShaderInput() const { return _shaderInput; }
 
   template <ShaderBuildFlags item>
   constexpr bool is_set() const {
@@ -54,21 +54,25 @@ class CompilerCtx {
 
   bool processBinary();
 
-  auto& types() const { return _types; }
+  inline auto& types() const { return _types; }
 
-  auto& allocator() { return _allocator; }
+  inline auto& allocator() { return _allocator; }
+
+  inline auto& features() { return _features; }
 
   private:
   protected:
-  util::Flags<ShaderBuildFlags> _debugFlags = {};
+  mlir::MLIRContext _mlirCtx;
+  mlir::ModuleOp    _mlirModule;
+
+  ShaderBuildFeatures const& _features;
 
   compiler::util::BumpAllocator _allocator;
   frontend::ShaderInput         _shaderInput;
-  mlir::MLIRContext             _mlirCtx;
-  mlir::ModuleOp                _mlirModule;
 
-  std::array<HostMapping, 4> _hostMapping {};
-  OperandTypeCache           _types;
+  std::array<HostMapping, 4>    _hostMapping {};
+  OperandTypeCache              _types;
+  util::Flags<ShaderBuildFlags> _debugFlags = {};
 
   std::array<char, 32> _name = {"main"};
 };

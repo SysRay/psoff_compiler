@@ -2,6 +2,7 @@
 #include "../gfx/encoding_types.h"
 #include "../operations.h"
 #include "../parser.h"
+#include "compiler_ctx.h"
 #include "opcodes_table.h"
 
 #include <bitset>
@@ -454,135 +455,172 @@ uint8_t Parser::handleVop3(CodeBlock& cb, pc_t pc, uint32_t const* pCode) {
 
   auto isSDST = [op] { return op == eOpcode::V_MAD_U64_U32 || op == eOpcode::V_MAD_I64_I32; };
 
-  auto inst  = VOP3(getU64(pCode));
-  auto instS = VOP3_SDST(getU64(pCode));
-  op         = (eOpcode)(OPcodeStart_VOP3 + inst.template get<VOP3::Field::OP>());
-
-  auto const vdst_ = eOperandKind::VGPR(inst.template get<VOP3::Field::VDST>());
-  auto const src0_ = eOperandKind((eOperandKind_t)inst.template get<VOP3::Field::SRC0>());
-  auto const src1_ = eOperandKind((eOperandKind_t)inst.template get<VOP3::Field::SRC1>());
-  auto const src2_ = eOperandKind((eOperandKind_t)inst.template get<VOP3::Field::SRC2>());
-
-  auto const sdst_ = eOperandKind((eOperandKind_t)instS.template get<VOP3_SDST::Field::SDST>());
+  auto inst = VOP3(getU64(pCode));
+  op        = (eOpcode)(OPcodeStart_VOP3 + inst.template get<VOP3::Field::OP>());
 
   auto const           omod   = inst.template get<VOP3::Field::OMOD>();
   std::bitset<3> const negate = inst.template get<VOP3::Field::NEG>();
-  std::bitset<3> const abs    = inst.template get<VOP3::Field::ABS>();
-  auto const           clamp  = inst.template get<VOP3::Field::CLAMP>();
+  std::bitset<3>       abs    = inst.template get<VOP3::Field::ABS>();
+  auto                 clamp  = inst.template get<VOP3::Field::CLAMP>();
+
+  OpDst sdst = OpDst(eOperandKind::VCC());
+  if (isSDST()) {
+    auto instS = VOP3_SDST(getU64(pCode));
+    sdst       = OpDst(eOperandKind((eOperandKind_t)instS.template get<VOP3_SDST::Field::SDST>()));
+    abs        = 0;
+    clamp      = false;
+  }
+
+  auto vdst = OpDst(eOperandKind::VGPR(inst.template get<VOP3::Field::VDST>()), omod, clamp);
+  auto src0 = OpSrc(eOperandKind((eOperandKind_t)inst.template get<VOP3::Field::SRC0>()), negate[0], abs[0]);
+  auto src1 = OpSrc(eOperandKind((eOperandKind_t)inst.template get<VOP3::Field::SRC1>()), negate[1], abs[1]);
+  auto src2 = OpSrc(eOperandKind((eOperandKind_t)inst.template get<VOP3::Field::SRC2>()), negate[2], abs[2]);
 
   switch (op) {
     case eOpcode::V_MAD_LEGACY_F32: {
+      parse<op::FmaOp>(vdst, src0, src1, src2, types().f32()); // todo
     } break;
     case eOpcode::V_MAD_F32: {
+      parse<op::FmaOp>(vdst, src0, src1, src2, types().f32());
     } break;
     case eOpcode::V_MAD_I32_I24: {
+      parse<op::FmaI24Op>(vdst, src0, src1, src2, true);
     } break;
     case eOpcode::V_MAD_U32_U24: {
+      parse<op::FmaI24Op>(vdst, src0, src1, src2, false);
     } break;
-    case eOpcode::V_CUBEID_F32: {
-    } break;
-    case eOpcode::V_CUBESC_F32: {
-    } break;
-    case eOpcode::V_CUBETC_F32: {
-    } break;
-    case eOpcode::V_CUBEMA_F32: {
-    } break;
+    // todo
+    // case eOpcode::V_CUBEID_F32: { // todo
+    // } break;
+    // case eOpcode::V_CUBESC_F32: { // todo
+    // } break;
+    // case eOpcode::V_CUBETC_F32: { // todo
+    // } break;
+    // case eOpcode::V_CUBEMA_F32: { // todo
+    // } break;
     case eOpcode::V_BFE_U32: {
+      parse<op::BitfieldExtractUIOp>(vdst, src0, src1, src2, types().i32());
     } break;
     case eOpcode::V_BFE_I32: {
+      parse<op::BitfieldExtractSIOp>(vdst, src0, src1, src2, types().i32());
     } break;
     case eOpcode::V_BFI_B32: {
+      parse<op::BitfieldInsertOp>(vdst, src0, src1, src2, types().i32());
     } break;
     case eOpcode::V_FMA_F32: {
+      parse<op::FmaOp>(vdst, src0, src1, src2, types().f32());
     } break;
     case eOpcode::V_FMA_F64: {
+      parse<op::FmaOp>(vdst, src0, src1, src2, types().f64());
     } break;
-    case eOpcode::V_LERP_U8: {
-    } break;
-    case eOpcode::V_ALIGNBIT_B32: {
-    } break;
-    case eOpcode::V_ALIGNBYTE_B32: {
-    } break;
-    case eOpcode::V_MULLIT_F32: {
-    } break;
+    // case eOpcode::V_LERP_U8: { // todo
+    // } break;
+    // case eOpcode::V_ALIGNBIT_B32: { // todo
+    // } break;
+    // case eOpcode::V_ALIGNBYTE_B32: { // todo
+    // } break;
+    // case eOpcode::V_MULLIT_F32: { // todo
+    // } break;
     case eOpcode::V_MIN3_F32: {
+      parse<op::MinFOp>(vdst, src0, src1, src2, types().f32());
     } break;
     case eOpcode::V_MIN3_I32: {
+      parse<op::MaxSIOp>(vdst, src0, src1, src2, types().i32());
     } break;
     case eOpcode::V_MIN3_U32: {
+      parse<op::MinUIOp>(vdst, src0, src1, src2, types().i32());
     } break;
     case eOpcode::V_MAX3_F32: {
+      parse<op::MaxUIOp>(vdst, src0, src1, src2, types().f32());
     } break;
     case eOpcode::V_MAX3_I32: {
+      parse<op::MaxSIOp>(vdst, src0, src1, src2, types().i32());
     } break;
     case eOpcode::V_MAX3_U32: {
+      parse<op::MaxUIOp>(vdst, src0, src1, src2, types().i32());
     } break;
     case eOpcode::V_MED3_F32: {
+      parse<op::MedFOp>(vdst, src0, src1, src2, types().f32());
     } break;
     case eOpcode::V_MED3_I32: {
+      parse<op::MedSIOp>(vdst, src0, src1, src2, types().i32());
     } break;
     case eOpcode::V_MED3_U32: {
+      parse<op::MedUIOp>(vdst, src0, src1, src2, types().i32());
     } break;
-    case eOpcode::V_SAD_U8: {
-    } break;
-    case eOpcode::V_SAD_HI_U8: {
-    } break;
-    case eOpcode::V_SAD_U16: {
-    } break;
-    case eOpcode::V_SAD_U32: {
-    } break;
+    // case eOpcode::V_SAD_U8: { // todo
+    // } break;
+    // case eOpcode::V_SAD_HI_U8: { // todo
+    // } break;
+    // case eOpcode::V_SAD_U16: { // todo
+    // } break;
+    // case eOpcode::V_SAD_U32: { // todo
+    // } break;
     case eOpcode::V_CVT_PK_U8_F32: {
+      parse<op::ConvertPackUI8Op>(vdst, src0, src1, src2);
     } break;
-    case eOpcode::V_DIV_FIXUP_F32: {
-    } break;
-    case eOpcode::V_DIV_FIXUP_F64: {
-    } break;
+    // case eOpcode::V_DIV_FIXUP_F32: { // todo
+    // } break;
+    // case eOpcode::V_DIV_FIXUP_F64: { // todo
+    // } break;
     case eOpcode::V_LSHL_B64: {
+      parse<op::LSHLOp>(vdst, OpDst(eOperandKind::Unset()), src0, src1, types().i32());
     } break;
     case eOpcode::V_LSHR_B64: {
+      parse<op::LSHROp>(vdst, OpDst(eOperandKind::Unset()), src0, src1, types().i64());
     } break;
     case eOpcode::V_ASHR_I64: {
+      parse<op::ASHROp>(vdst, OpDst(eOperandKind::Unset()), src0, src1, types().i64());
     } break;
     case eOpcode::V_ADD_F64: {
+      parse<op::AddFOp>(vdst, src0, src1, types().f64());
     } break;
     case eOpcode::V_MUL_F64: {
+      parse<op::MulFOp>(vdst, src0, src1, types().f64());
     } break;
     case eOpcode::V_MIN_F64: {
+      parse<op::MinFOp>(vdst, src0, src1, types().f64());
     } break;
     case eOpcode::V_MAX_F64: {
+      parse<op::MaxFOp>(vdst, src0, src1, types().f64());
     } break;
     case eOpcode::V_LDEXP_F64: {
+      parse<op::LDExpOp>(vdst, src1, src0, types().f64());
     } break;
     case eOpcode::V_MUL_LO_U32: {
+      parse<op::MulIOp>(vdst, src0, src1, types().i32(), false, false);
     } break;
     case eOpcode::V_MUL_HI_U32: {
+      parse<op::MulIOp>(vdst, src0, src1, types().i32(), false, true);
     } break;
     case eOpcode::V_MUL_LO_I32: {
+      parse<op::MulIOp>(vdst, src0, src1, types().i32(), true, false);
     } break;
     case eOpcode::V_MUL_HI_I32: {
+      parse<op::MulIOp>(vdst, src0, src1, types().i32(), true, true);
     } break;
-    case eOpcode::V_DIV_SCALE_F32: {
-    } break;
-    case eOpcode::V_DIV_SCALE_F64: {
-    } break;
-    case eOpcode::V_DIV_FMAS_F32: {
-    } break;
-    case eOpcode::V_DIV_FMAS_F64: {
-    } break;
-    case eOpcode::V_MSAD_U8: {
-    } break;
-    case eOpcode::V_QSAD_U8: {
-    } break;
-    case eOpcode::V_MQSAD_U8: {
-    } break;
-    case eOpcode::V_TRIG_PREOP_F64: {
-    } break;
-    case eOpcode::V_MQSAD_U32_U8: {
-    } break;
-    case eOpcode::V_MAD_U64_U32: {
-    } break;
-    case eOpcode::V_MAD_I64_I32: {
-    } break;
+    // case eOpcode::V_DIV_SCALE_F32: { // todo
+    // } break;
+    // case eOpcode::V_DIV_SCALE_F64: {  // todo
+    // } break;
+    // case eOpcode::V_DIV_FMAS_F32: {  // todo
+    // } break;
+    // case eOpcode::V_DIV_FMAS_F64: { // todo
+    // } break;
+    // case eOpcode::V_MSAD_U8: { // todo
+    // } break;
+    // case eOpcode::V_QSAD_U8: { // todo
+    // } break;
+    // case eOpcode::V_MQSAD_U8: { // todo
+    // } break;
+    // case eOpcode::V_TRIG_PREOP_F64: { // todo
+    // } break;
+    // case eOpcode::V_MQSAD_U32_U8: { // todo
+    // } break;
+    // case eOpcode::V_MAD_U64_U32: {  // todo
+    // } break;
+    // case eOpcode::V_MAD_I64_I32: {  // todo
+    // } break;
     default: throw std::runtime_error(std::format("missing inst {}", debug::getDebug(op))); break;
   }
   return sizeof(uint64_t);
@@ -710,15 +748,30 @@ uint8_t Parser::handleVintrp(CodeBlock& cb, pc_t pc, uint32_t const* pCode) {
   auto       inst = VINTRP(*pCode);
   auto const op   = (eOpcode)(OPcodeStart_VINTRP + inst.template get<VINTRP::Field::OP>());
 
-  auto const vdst    = eOperandKind((eOperandKind_t)inst.template get<VINTRP::Field::VDST>());
-  auto       src0    = eOperandKind((eOperandKind_t)inst.template get<VINTRP::Field::VSRC>());
+  auto const vdst    = OpDst(eOperandKind((eOperandKind_t)inst.template get<VINTRP::Field::VDST>()));
+  auto       src0    = OpSrc(eOperandKind((eOperandKind_t)inst.template get<VINTRP::Field::VSRC>()));
   auto const channel = (uint8_t)inst.template get<VINTRP::Field::ATTRCHAN>();
   auto const attr    = (uint8_t)inst.template get<VINTRP::Field::ATTR>();
 
-  if (src0.isLiteral()) {
-    size = sizeof(uint64_t);
+  switch (op) {
+    case eOpcode::V_INTERP_P1_F32: {
+      if (!_compilerCtx.features().withFragmentShaderBarycentric) {
+      }
+    } break;
+    case eOpcode::V_INTERP_P2_F32: {
+      if (_compilerCtx.features().withFragmentShaderBarycentric) {
+
+      } else {
+      }
+    } break;
+    case eOpcode::V_INTERP_MOV_F32: {
+    } break;
+    default: throw std::runtime_error(std::format("missing inst {}", debug::getDebug(op))); break;
   }
 
-  return size;
+  if (src0.kind.isLiteral()) {
+    return sizeof(uint64_t);
+  }
+  return sizeof(uint32_t);
 }
 } // namespace compiler::frontend

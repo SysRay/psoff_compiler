@@ -9,7 +9,8 @@
 #include <mlir/Transforms/Passes.h>
 
 TEST(PromoteRegs, Simple) {
-  compiler::CompilerCtx ctx {};
+  compiler::ShaderBuildFeatures features {};
+  compiler::CompilerCtx         ctx {features};
 
   static constexpr std::string_view sInputModule = R"(
   func.func @main(%arg0: f32) -> i1 {
@@ -35,7 +36,8 @@ TEST(PromoteRegs, Simple) {
 }
 
 TEST(PromoteRegs, SimpleIf) {
-  compiler::CompilerCtx ctx {};
+  compiler::ShaderBuildFeatures features {};
+  compiler::CompilerCtx         ctx {features};
 
   static constexpr std::string_view sInputModule = R"(
 func.func @simpleIf(%arg0: f32, %arg1: i1) -> i1 {

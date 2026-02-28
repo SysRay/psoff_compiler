@@ -24,12 +24,20 @@ namespace compiler {
 
 OperandTypeCache::OperandTypeCache(mlir::MLIRContext* ctx) {
   auto builder = mlir::OpBuilder(ctx);
-  _types       = {builder.getI1Type(),  builder.getI8Type(),  builder.getI16Type(),
-                  builder.getI32Type(), builder.getI64Type(), builder.getF16Type(),
-                  builder.getF32Type(), builder.getF64Type(), mlir::VectorType::get({2}, builder.getF32Type())};
+  _types       = {builder.getI1Type(),
+                  builder.getI8Type(),
+                  builder.getI16Type(),
+                  builder.getI32Type(),
+                  builder.getI64Type(),
+                  builder.getF16Type(),
+                  builder.getF32Type(),
+                  builder.getF64Type(),
+                  mlir::VectorType::get({2}, builder.getF32Type()),
+                  mlir::VectorType::get({4}, builder.getF32Type())};
 }
 
-CompilerCtx::CompilerCtx(util::Flags<ShaderBuildFlags> const& flags): _debugFlags(flags), _mlirCtx(mlir::MLIRContext::Threading::DISABLED), _types(&_mlirCtx) {
+CompilerCtx::CompilerCtx(ShaderBuildFeatures const& features, util::Flags<ShaderBuildFlags> const& flags)
+    : _debugFlags(flags), _mlirCtx(mlir::MLIRContext::Threading::DISABLED), _types(&_mlirCtx), _features(features) {
   _mlirCtx.allowUnregisteredDialects();
 
   _mlirCtx.loadDialect<mlir::func::FuncDialect, mlir::arith::ArithDialect, mlir::scf::SCFDialect, mlir::cf::ControlFlowDialect, mlir::spirv::SPIRVDialect,

@@ -74,6 +74,8 @@ struct OpSrc {
 
   constexpr explicit OpSrc(int32_t imm, util::Flags<OpFlags> flags = {}): kind(eOperandKind::Unset()), flags(flags), uimm(std::bit_cast<uint32_t>(imm)) {}
 
+  constexpr explicit OpSrc(float imm, util::Flags<OpFlags> flags = {}): kind(eOperandKind::Unset()), flags(flags), fimm(imm) {}
+
   constexpr OpSrc& operator=(OpSrc const& other) = default;
 };
 

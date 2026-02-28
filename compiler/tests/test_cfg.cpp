@@ -1,6 +1,7 @@
 #include "compiler_ctx.h"
 #include "frontend/parser.h"
 #include "mlir/custom.h"
+#include "mlir/passes/psoff_passes.h"
 #include "shaders.h"
 #include "util/bump_allocator.h"
 
@@ -22,15 +23,28 @@ class ControlFlow: public ::testing::Test {
 
     _mlirModule = mlir::ModuleOp::create(mlir::UnknownLoc::get(_ctx.getContext()));
 
-    _func = builder.create<mlir::func::FuncOp>(mlir::UnknownLoc::get(_ctx.getContext()), "test_func", builder.getFunctionType({builder.getI1Type()}, {}));
+    _func = builder.create<mlir::func::FuncOp>(mlir::UnknownLoc::get(_ctx.getContext()), "test_func", builder.getFunctionType({}, {}));
     _mlirModule.push_back(_func);
 
     _block = _func.addEntryBlock();
   }
 
-  void TearDown() override {}
+  void TearDown() override {
+    // const ::testing::TestInfo* test_info = ::testing::UnitTest::GetInstance()->current_test_info();
 
-  compiler::CompilerCtx _ctx {};
+    // std::error_code      ec;
+    // llvm::raw_fd_ostream out(std::string(test_info->name()) + ".txt", ec);
+
+    // if (ec) {
+    //   llvm::errs() << "Failed to open file: " << ec.message() << "\n";
+    //   return;
+    // }
+
+    // _mlirModule.print(out);
+  }
+
+  compiler::ShaderBuildFeatures features {};
+  compiler::CompilerCtx         _ctx {features};
 
   mlir::Block*   _block;
   mlir::ModuleOp _mlirModule;
@@ -48,25 +62,21 @@ TEST_F(ControlFlow, SimpleIfElse) {
   _ctx.setHostMapping(0, binary.data(), binary.size());
 
   mlir::OpBuilder mlirBuilder(_ctx.getContext());
-  auto            funcOp =
-      mlirBuilder.create<mlir::func::FuncOp>(mlir::UnknownLoc::get(_ctx.getContext()), "main", mlirBuilder.getFunctionType({}, {}));
 
-  _ctx.getModule()->push_back(funcOp);
+  auto block = parser.getOrCreateBlock(0, &_func.getBody());
 
-  auto startBlock = funcOp.addEntryBlock();
-  auto block      = parser.getOrCreateBlock(0, &funcOp.getBody());
-
-  mlirBuilder.setInsertionPointToStart(startBlock);
+  mlirBuilder.setInsertionPointToStart(_block);
   mlirBuilder.create<mlir::cf::BranchOp>(mlir::UnknownLoc::get(_ctx.getContext()), block->mlirBlock);
 
   parser.process();
 
   mlir::PassManager pm(_ctx.getContext());
-  pm.enableVerifier(false);
+  // pm.enableVerifier(false);
   pm.addPass(mlir::createLiftControlFlowToSCFPass());
-  EXPECT_FALSE(failed(pm.run(*_ctx.getModule())));
+  pm.addNestedPass<mlir::func::FuncOp>(mlir::psoff::createRegisterSSAPass(_ctx.allocator()));
+  pm.addNestedPass<mlir::func::FuncOp>(mlir::createRemoveDeadValuesPass());
 
-  _ctx.getModule()->dump();
+  EXPECT_TRUE(succeeded(pm.run(_mlirModule)));
 }
 
 TEST_F(ControlFlow, Forloop) {
@@ -79,23 +89,20 @@ TEST_F(ControlFlow, Forloop) {
   _ctx.setHostMapping(0, binary.data(), binary.size());
 
   mlir::OpBuilder mlirBuilder(_ctx.getContext());
-  auto            funcOp =
-      mlirBuilder.create<mlir::func::FuncOp>(mlir::UnknownLoc::get(_ctx.getContext()), "main", mlirBuilder.getFunctionType({}, {}));
 
-  _ctx.getModule()->push_back(funcOp);
+  auto block = parser.getOrCreateBlock(0, &_func.getBody());
 
-  auto startBlock = funcOp.addEntryBlock();
-  auto block      = parser.getOrCreateBlock(0, &funcOp.getBody());
-
-  mlirBuilder.setInsertionPointToStart(startBlock);
+  mlirBuilder.setInsertionPointToStart(_block);
   mlirBuilder.create<mlir::cf::BranchOp>(mlir::UnknownLoc::get(_ctx.getContext()), block->mlirBlock);
 
   parser.process();
 
   mlir::PassManager pm(_ctx.getContext());
-  pm.enableVerifier(false);
-  pm.addNestedPass<mlir::func::FuncOp>(mlir::createLiftControlFlowToSCFPass());
-  EXPECT_FALSE(failed(pm.run(funcOp)));
+  // pm.enableVerifier(false);
 
-  _ctx.getModule()->dump();
+  pm.addPass(mlir::createLiftControlFlowToSCFPass());
+  pm.addNestedPass<mlir::func::FuncOp>(mlir::psoff::createRegisterSSAPass(_ctx.allocator()));
+  pm.addNestedPass<mlir::func::FuncOp>(mlir::createRemoveDeadValuesPass());
+
+  EXPECT_TRUE(succeeded(pm.run(_func)));
 }

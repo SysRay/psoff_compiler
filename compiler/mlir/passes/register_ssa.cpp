@@ -19,6 +19,10 @@ static inline bool is64BitType(mlir::Type ty) {
   return ty.getIntOrFloatBitWidth() == 64;
 }
 
+static inline bool isBoolType(mlir::Type ty) {
+  return ty.getIntOrFloatBitWidth() == 1;
+}
+
 // last two SGPRs are alias to VCC.
 // However the hardware does not prevent direct user access to these registers.
 
@@ -43,7 +47,7 @@ void Storage::set(compiler::frontend::eOperandKind kind, mlir::Value value) {
   StorageItem* item = &regs[(eOperandKind_t)kind.value()];
 
   *item++ = {value, 0};
-  if (is64BitType(value.getType())) {
+  if (is64BitType(value.getType()) || (isBoolType(value.getType()) && kind.is64bit())) {
     *item = {value, 1};
   }
 }
@@ -87,25 +91,34 @@ struct RegisterSSAPass: public ::impl::RegisterSSAPassBase<RegisterSSAPass> {
     auto const targetWidth = targetType.getIntOrFloatBitWidth();
     auto const valueWidth  = item.value.getType().getIntOrFloatBitWidth();
 
-    if (targetWidth > valueWidth) {
-      auto itemL = storage.regs[1 + index];
-      rewriter.setInsertionPoint(op);
-      if (!itemL.value) {
-        itemL = {rewriter.create<mlir::arith::ConstantIntOp>(op->getLoc(), targetType, 0), 0};
-      }
-
-      auto newOp = rewriter.create<mlir::psoff::Create64bOp>(op->getLoc(), targetType, itemL.value, item.value);
-
-      return newOp.getResult();
-    } else if (targetWidth < valueWidth) {
-      rewriter.setInsertionPoint(op);
-      auto newOp = rewriter.create<mlir::psoff::Split64bOp>(op->getLoc(), targetType, targetType, item.value);
-
-      if (item.index == 0) return newOp.getLo();
-      return newOp.getHi();
-    }
-
     rewriter.setInsertionPoint(op);
+    if (targetWidth > valueWidth) {
+      if (valueWidth == 1) {
+        // Expand bool value to target type
+        auto zero = mlir::spirv::ConstantOp::getZero(targetType, op->getLoc(), rewriter);
+        auto one  = mlir::spirv::ConstantOp::getOne(targetType, op->getLoc(), rewriter);
+        return rewriter.create<mlir::spirv::SelectOp>(op->getLoc(), targetType, item.value, one, zero);
+      } else {
+        // 64 Bit value. Gather lower part of 64 bit value and combine to 64 bit value
+        auto itemL = storage.regs[1 + index];
+        if (!itemL.value) {
+          itemL = {rewriter.create<mlir::arith::ConstantIntOp>(op->getLoc(), item.value.getType(), 0), 0};
+        }
+        return rewriter.create<mlir::psoff::Create64bOp>(op->getLoc(), targetType, itemL.value, item.value);
+      }
+    } else if (targetWidth < valueWidth) {
+      if (targetWidth == 1) {
+        // Reduce to boolean
+        auto zero = mlir::spirv::ConstantOp::getZero(item.value.getType(), op->getLoc(), rewriter);
+        return rewriter.create<mlir::spirv::INotEqualOp>(op->getLoc(), targetType, item.value, zero);
+      } else {
+        // Split 64Bit into 2x 32 bit
+        auto newOp = rewriter.create<mlir::psoff::Split64bOp>(op->getLoc(), targetType, targetType, item.value);
+
+        if (item.index == 0) return newOp.getLo();
+        return newOp.getHi();
+      }
+    }
     return rewriter.create<mlir::arith::BitcastOp>(op->getLoc(), targetType, item.value).getResult();
   }
 
@@ -127,8 +140,13 @@ struct RegisterSSAPass: public ::impl::RegisterSSAPassBase<RegisterSSAPass> {
             auto const& rhs = storageThen.regs[n];
             if (lhs != rhs) {
               // Get type
-              auto resultType =
-                  lhs.value.getType().getIntOrFloatBitWidth() >= rhs.value.getType().getIntOrFloatBitWidth() ? lhs.value.getType() : rhs.value.getType();
+
+              mlir::Type resultType;
+              if (!lhs.value || !rhs.value) {
+                resultType = lhs.value ? lhs.value.getType() : rhs.value.getType();
+              } else
+                resultType =
+                    lhs.value.getType().getIntOrFloatBitWidth() >= rhs.value.getType().getIntOrFloatBitWidth() ? lhs.value.getType() : rhs.value.getType();
 
               auto thenValue = getValue(storageThen, rewriter, n, resultType, op.getThenRegion().back().getTerminator());
               auto elseValue = getValue(storage, rewriter, n, resultType, op.getElseRegion().back().getTerminator());
@@ -175,12 +193,15 @@ struct RegisterSSAPass: public ::impl::RegisterSSAPassBase<RegisterSSAPass> {
           if (!item.value) {
             rewriter.setInsertionPoint(op);
             if (targetType.isFloat()) {
-              rewriter.replaceOpWithNewOp<mlir::arith::ConstantFloatOp>(op, (mlir::FloatType)targetType, llvm::APFloat(0.f));
+              item.value = rewriter.replaceOpWithNewOp<mlir::arith::ConstantFloatOp>(op, (mlir::FloatType)targetType, llvm::APFloat(0.f));
             } else {
-              rewriter.replaceOpWithNewOp<mlir::arith::ConstantIntOp>(op, targetType, 0);
+              item.value = rewriter.replaceOpWithNewOp<mlir::arith::ConstantIntOp>(op, targetType, 0);
             }
             // signalPassFailure();
-            return;
+            // return;
+
+            storage.set(kind, item.value);
+            continue;
           }
 
           auto const valueType = item.value.getType();
@@ -189,25 +210,42 @@ struct RegisterSSAPass: public ::impl::RegisterSSAPassBase<RegisterSSAPass> {
             auto const valueWidth  = valueType.getIntOrFloatBitWidth();
 
             if (targetWidth > valueWidth) {
-              // Gather lower part of 64 bit value and combine to 64 bit value
-              auto itemL = storage.get(eOperandKind((eOperandKind_t)kind.value() + 1));
-              if (!itemL.value) {
-                signalPassFailure();
-                return;
+              rewriter.setInsertionPoint(op);
+
+              if (valueWidth == 1) {
+                // Expand bool value to target type
+                auto zero = mlir::spirv::ConstantOp::getZero(targetType, op.getLoc(), rewriter);
+                auto one  = mlir::spirv::ConstantOp::getOne(targetType, op.getLoc(), rewriter);
+
+                storage.set(kind, rewriter.replaceOpWithNewOp<mlir::spirv::SelectOp>(op, item.value, one, zero));
+              } else {
+                // 64 Bit value. Gather lower part of 64 bit value and combine to 64 bit value
+                auto itemH = storage.get(eOperandKind((eOperandKind_t)kind.value() + 1));
+                if (!itemH.value) {
+                  signalPassFailure();
+                  return;
+                }
+
+                storage.set(kind, rewriter.replaceOpWithNewOp<mlir::psoff::Create64bOp>(op, targetType, item.value, itemH.value));
               }
 
-              rewriter.setInsertionPoint(op);
-              auto newOp = rewriter.replaceOpWithNewOp<mlir::psoff::Create64bOp>(op, targetType, itemL.value, item.value);
-              storage.set(kind, newOp);
             } else if (targetWidth < valueWidth) {
               rewriter.setInsertionPoint(op);
-              auto newOp = rewriter.create<mlir::psoff::Split64bOp>(op.getLoc(), targetType, targetType, item.value);
-              rewriter.replaceOp(op, item.index == 0 ? newOp.getLo() : newOp.getHi());
 
-              storage.set(kind, newOp.getLo());
-              if (item.index == 0) {
-                storage.set(eOperandKind((eOperandKind_t)kind.value() + 1), newOp.getHi());
+              if (targetWidth == 1) {
+                // Reduce to boolean
+                auto zero = mlir::spirv::ConstantOp::getZero(valueType, op.getLoc(), rewriter);
+                storage.set(kind, rewriter.replaceOpWithNewOp<mlir::spirv::INotEqualOp>(op, targetType, item.value, zero));
+              } else {
+                // Split 64Bit into 2x 32 bit
+                auto newOp = rewriter.create<mlir::psoff::Split64bOp>(op.getLoc(), targetType, targetType, item.value);
+                rewriter.replaceOp(op, item.index == 0 ? newOp.getLo() : newOp.getHi());
+                storage.set(kind, newOp.getLo());
+                if (item.index == 0) {
+                  storage.set(eOperandKind((eOperandKind_t)kind.value() + 1), newOp.getHi());
+                }
               }
+
             } else {
               rewriter.setInsertionPoint(op);
               auto newOp = rewriter.replaceOpWithNewOp<mlir::spirv::BitcastOp>(op, targetType, item.value);
